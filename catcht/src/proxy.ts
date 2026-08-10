@@ -1,8 +1,12 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { canonicalRedirectUrl } from "@/lib/canonical-origin";
 import { getSupabaseAuthEnv } from "@/lib/supabase/config";
 
 export async function proxy(request: NextRequest) {
+  const canonical = canonicalRedirectUrl(request.url, process.env.APP_URL);
+  if (canonical) return NextResponse.redirect(canonical, 308);
+
   let response = NextResponse.next({ request });
   const env = getSupabaseAuthEnv();
   const supabase = createServerClient(env.NEXT_PUBLIC_SUPABASE_URL, env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY, {

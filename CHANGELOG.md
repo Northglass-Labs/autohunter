@@ -25,6 +25,9 @@
   transfer, images, source links, and report IDOR boundaries
 - replaces predecessor deployment, package, scheduler, and public documentation identities while
   retaining only the internal schema identifiers required for additive migration compatibility
+- enforces the same five-digit ZIP contract in the database, web form, and hosted collector
+- permanently redirects predecessor product origins to `autohunter.northglass.io` and retires the
+  private predecessor repository and scheduler after consecutive idempotent production cycles
 
 ## Pre-AutoHunter history
 

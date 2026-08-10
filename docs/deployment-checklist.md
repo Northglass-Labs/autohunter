@@ -11,7 +11,7 @@ This is the release gate for an invite-only AutoHunter installation. The detaile
 - [x] verified `northglass.io` sending domain and Resend credential
 - [x] Cloudflare DNS control for `autohunter.northglass.io`
 - [x] licensed MarketCheck and/or Auto.dev credentials
-- [ ] optional MarketCheck OEM-incentives entitlement
+- [x] optional MarketCheck OEM-incentives entitlement
 - [ ] optional Vercel AI Gateway or OpenAI credential for bounded photo verification
 
 Generate independent high-entropy `ACTION_SIGNING_SECRET`, `INGEST_SECRET`, and `CRON_SECRET`
@@ -91,7 +91,7 @@ npm run platform:cycle -- --config platform.local.json
   VIN recall link
 - [x] confirm at least one real listing image and source link render
 - [x] enable one daily GitHub Actions, launchd, or systemd schedule
-- [ ] verify a second unattended run and report idempotency
+- [x] verify a second unattended run and report idempotency
 
 ## Security and release
 

@@ -79,12 +79,25 @@ truthfully.
   removed.
 - Connected Vercel to `Northglass-Labs/autohunter` on `main` and set the Git production root to
   `catcht`.
+- Tightened the database/collector contract so every saved search has a five-digit ZIP. The
+  regression first failed against the legacy lease rows, the private production lease location was
+  populated without entering the public repository, the additive migration was applied, and all 30
+  pgTAP assertions now pass.
+- Ran two consecutive canonical hosted cycles (`31376071369`, `31376216288`). Each completed 34
+  searches, normalized 168 MarketCheck matches, and completed NHTSA enrichment. The immediate
+  retry kept the store at 165 canonical rows and created no second digest run; both enabled profiles
+  were correctly `not_due`.
+- Added permanent canonical-origin redirects for the two predecessor hostnames so historical links
+  move to `autohunter.northglass.io` without preserving the Mookmobile identity.
+- Added a supersession notice to the private predecessor repository, disabled its scheduled
+  collector, and archived it. HomeLab now records AutoHunter and ADR-055 as the current production
+  boundary.
 
 ## Fresh complete local verification
 
-- Web unit/integration: 103 tests across 28 files pass.
-- Local database: every migration applies from empty state; 29 pgTAP assertions pass, including the
-  23-hour cadence and the hosted-advisor foreign-key index.
+- Web unit/integration: 106 tests across 29 files pass.
+- Local database: every migration applies from empty state; 30 pgTAP assertions pass, including the
+  search-ZIP contract, 23-hour cadence, and the hosted-advisor foreign-key index.
 - Browser E2E: 12 desktop/mobile stories pass, including real Mailpit magic links, anonymous
   redirects, sign-out, queue actions, search creation, invitation, ownership transfer, real HTTPS
   images/links, report archive, and cross-user isolation.
@@ -107,8 +120,8 @@ truthfully.
 - The additive migrations are applied to the existing Supabase project. The private application
   role is least-privilege; deletion and Auth-token mutation attempts are denied. Its historical
   internal identifier remains only because the encrypted production URL cannot be reconstructed.
-- The dashboard currently has real licensed inventory, real listing photographs and source links,
-  per-user matches, and source-health evidence. The latest observed inventory count was 151.
+- The dashboard currently has 165 canonical licensed listings, all with source links and 164 with a
+  primary listing photograph, plus per-user matches and source-health evidence.
 - Anonymous `/` redirects to `/login`; the login page returns 200; collector, ingest, and digest
   routes reject missing machine credentials; security headers are present.
 - A browser accessibility audit found no WCAG A/AA violations. One automated contrast check remains
@@ -116,12 +129,15 @@ truthfully.
 - The Gmail bridge and report trigger are independently idempotent. Product data remains in the
   private Postgres schema; mailbox message bodies and identities are not copied into AutoHunter.
 
-## Current release step
+## Current operational follow-ups
 
-1. Let the first Git-linked Vercel production build complete from the public repository.
-2. Run the hosted collector manually, verify fresh licensed-source health and idempotent report
-   behavior, then rely on the checked-in 10:17 UTC daily schedule.
-3. Update the HomeLab hosting record and remove or clearly supersede remaining operational aliases.
+1. GitHub Actions now owns the daily 10:17 UTC collection cycle. Treat a missing or stale source run
+   as an incident; do not re-enable the archived predecessor schedule.
+2. Auto.dev remains visibly unavailable until an optional production credential is provisioned.
+   MarketCheck is the active licensed inventory provider; OEM incentives currently return healthy
+   empty results.
+3. One photo-verification item still reports `customer_verification_required`. Inventory, queues,
+   and reports correctly continue without treating it as verified equipment evidence.
 4. The recurring 1Password desktop prompt is isolated to the optional legacy desktop CLI
    integration. Disabling that setting requires a fresh explicit user confirmation; unattended
    Codex, Claude, and Hermes paths no longer rely on it.
