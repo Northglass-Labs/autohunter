@@ -22,6 +22,9 @@ truthfully.
   reassignment while keeping the `catcht` application schema server-only.
 - Rebuilt the responsive application and email surfaces with the AutoHunter identity and exact
   endorsement `a Northglass Product`.
+- Promoted the in-app `A`-road-destination mark into a tested, editable identity kit with a
+  standalone adaptive symbol, wordmark, horizontal lockup, square app icon, explicit 16/32 favicon
+  variants, and separate endorsement guidance. Install metadata now uses the canonical app icon.
 - Added report history and report detail pages. Report reads constrain both profile and report ID;
   cross-user IDs return 404.
 - Separated lease intelligence into active offers, signed benchmarks, and market signals. Effective
@@ -64,6 +67,11 @@ truthfully.
   mailbox content.
 - Added a narrow Hermes schedule for the fixed mailbox-import profile. The predecessor Leasehackr
   and Mookmobile jobs remain paused and are explicitly named `SUPERSEDED`.
+- Made scheduled digest responses aggregate-only. Per-profile identifiers and mail-provider message
+  IDs remain in the private report store and can no longer flow into public scheduler logs.
+- Renamed the predecessor Camoufox commands as `legacy:*` migration utilities and made them exit
+  before config access or browser launch unless the operator records the exact written-permission
+  attestation. The licensed and authorized `platform:*` path is unaffected.
 - Verified the prompt-free Agent-vault service-account paths for Codex, Claude, and Hermes. The
   separately scoped project-Environment health check passes, although its mapped-profile launcher
   still fails closed; AutoHunter production no longer depends on that launcher. Claude's Cloudflare
@@ -95,7 +103,8 @@ truthfully.
 
 ## Fresh complete local verification
 
-- Web unit/integration: 106 tests across 29 files pass.
+- Web unit/integration: 110 tests across 31 files pass, including the exported identity contract and
+  the aggregate-only digest response contract.
 - Local database: every migration applies from empty state; 30 pgTAP assertions pass, including the
   search-ZIP contract, 23-hour cadence, and the hosted-advisor foreign-key index.
 - Browser E2E: 12 desktop/mobile stories pass, including real Mailpit magic links, anonymous
@@ -105,10 +114,15 @@ truthfully.
   dependency gates. Actions are commit-pinned and checkout credentials are not persisted. Public
   run `31374662816` passed all three web, collector, and database/browser jobs.
 - Next.js lint, TypeScript, and optimized production build pass.
-- Collector: 87 tests pass, including the fixed 45-day authorized-mail lookback.
+- Collector: 89 tests pass, including the fixed 45-day authorized-mail lookback and both sides of
+  the fail-closed legacy-browser permission gate.
 - Production dependency audits for both packages report zero known vulnerabilities.
-- Gitleaks reports no secrets in the 5 MB publishable working tree after disposable build artifacts
-  are removed. Semgrep's JavaScript, TypeScript, and OWASP Top Ten rules report zero findings and
+- A sealed standard repository security review found one low-severity privacy issue in the digest
+  completion payload: per-profile and mail-provider identifiers could reach public Actions logs.
+  The response is now aggregate-only, a regression test proves the private values stay absent, and
+  provider state still persists privately for idempotency and report history.
+- Fresh scans of the exact 209-file publishable working tree report zero Gitleaks findings. Semgrep's
+  JavaScript, TypeScript, and OWASP Top Ten rules scanned 189 applicable files with zero findings and
   zero scan errors.
 - Hosted Supabase advisors report zero security errors. The actionable missing foreign-key index is
   fixed in production; remaining performance notices are expected unused-index information for a

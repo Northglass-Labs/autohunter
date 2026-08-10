@@ -23,7 +23,10 @@ export const metadata: Metadata = {
   title: { default: INSTANCE_CONFIG.appName, template: `%s · ${INSTANCE_CONFIG.appName}` },
   description: "Private vehicle intelligence for used-car opportunities, lease programs, package evidence, and household decisions.",
   applicationName: INSTANCE_CONFIG.appName,
-  icons: { icon: [{ url: "/icon.svg", type: "image/svg+xml" }], shortcut: "/favicon.ico" },
+  icons: {
+    icon: [{ url: "/brand/autohunter-app-icon.svg", type: "image/svg+xml" }],
+    shortcut: "/favicon.ico",
+  },
   robots: { index: false, follow: false },
 };
 

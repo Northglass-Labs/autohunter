@@ -7,15 +7,15 @@
     "node": ">=22"
   },
   "scripts": {
-    "browser:install": "camoufox-js fetch",
-    "collect": "node --env-file-if-exists=.env.local src/collect.mjs",
-    "cycle": "node --env-file-if-exists=.env.local src/cycle.mjs",
+    "legacy:browser:install": "camoufox-js fetch",
+    "legacy:collect": "node --env-file-if-exists=.env.local src/collect.mjs",
+    "legacy:cycle": "node --env-file-if-exists=.env.local src/cycle.mjs",
     "platform:collect": "node --env-file-if-exists=.env.local src/platform.mjs",
     "platform:cycle": "node --env-file-if-exists=.env.local src/platform-cycle.mjs",
     "digest": "node --env-file-if-exists=.env.local src/digest.mjs",
     "platform:health": "node --env-file-if-exists=.env.local src/platform.mjs --dry-run --json",
     "email:cycle": "node --env-file-if-exists=.env.local src/gog-email-cycle.mjs",
-    "health": "node --env-file-if-exists=.env.local src/collect.mjs --dry-run --discover-only --limit 1 --json",
+    "legacy:health": "node --env-file-if-exists=.env.local src/collect.mjs --dry-run --discover-only --limit 1 --json",
     "test": "node --test test/*.test.mjs"
   },
   "dependencies": {

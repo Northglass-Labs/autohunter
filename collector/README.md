@@ -112,10 +112,14 @@ is due. Run `platform:health` first, then one deliberate `platform:collect`, the
 
 ## Legacy browser code
 
-The `collect`, `cycle`, `health`, and `browser:install` commands are disabled migration utilities
-from the predecessor installation. They are not used by `platform:*`, are not authorized coverage,
-and must not be pointed at a source without written permission. The optional Camoufox payload is
-downloaded only by an explicit `npm run browser:install`; AutoHunter has no CAPTCHA-solving path.
+The `legacy:collect`, `legacy:cycle`, `legacy:health`, and `legacy:browser:install` commands are
+fail-closed migration utilities from the predecessor installation. They are not used by
+`platform:*`, are not authorized coverage, and must not be pointed at a source without written
+permission. Browser collection exits before reading config or launching Camoufox unless the
+operator explicitly sets
+`AUTOHUNTER_LEGACY_BROWSER_AUTHORIZATION=written-source-permission-confirmed`. That attestation is
+not a substitute for permission. The optional Camoufox payload is downloaded only by an explicit
+`npm run legacy:browser:install`; AutoHunter has no CAPTCHA-solving path.
 
 The historical `.catcht/` profile directory is private, gitignored state. Do not publish, copy, or
 deploy it.

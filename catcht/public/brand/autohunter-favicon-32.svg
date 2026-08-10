@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title id="title">AutoHunter favicon</title>
+  <rect width="64" height="64" rx="14" fill="#0A0A0A"/>
+  <g transform="translate(8 8)" fill="#C7B7FF" data-mark="autohunter-a-road">
+    <path fill-rule="evenodd" d="M7 42 20.3 6h7.4L41 42h-8l-2.45-7.1h-13.1L15 42H7Zm12.7-13.7h8.6L24 15.75 19.7 28.3Z" clip-rule="evenodd"/>
+    <path d="M12 29.7h26.5v3.4H12z"/>
+    <circle cx="41.5" cy="31.4" r="3.4"/>
+  </g>
+</svg>

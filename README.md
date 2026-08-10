@@ -85,6 +85,7 @@ email addresses, roles, cookies, or Auth IDs.
 | Path | Purpose |
 |---|---|
 | `catcht/` | Next.js app, Auth integration, private data access, ranking, reports, and email |
+| `catcht/public/brand/` | tested AutoHunter symbol, wordmark, lockup, app-icon, and favicon exports |
 | `catcht/supabase/` | additive migrations, Auth templates, local seed, and pgTAP contracts |
 | `collector/` | licensed/authorized adapters, orchestration, source health, and bounded legacy code |
 | `collector/platform.example.json` | portable source policy and example search definitions |
@@ -153,6 +154,8 @@ fixed-profile operation and is not required by the web product.
   bodies, recipient addresses, or arbitrary mailbox content.
 - Listing facts are canonical; searches, matches, decisions, digest history, and resend state are
   profile-scoped.
+- Scheduler completion payloads contain aggregate counts only; profile and mail-provider identifiers
+  stay in private report state and out of public automation logs.
 - Signed email actions open a confirmation page before mutation so link scanners cannot change a
   queue.
 - Provider states are recorded as `success`, `empty`, `unavailable`, `challenged`, or `failed`.
