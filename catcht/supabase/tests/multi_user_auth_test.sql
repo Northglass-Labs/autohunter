@@ -1,6 +1,6 @@
 begin;
 
-select plan(17);
+select plan(18);
 
 select has_table('catcht', 'user_profiles', 'profiles form the private membership allowlist');
 select has_table('catcht', 'listing_matches', 'listings can match more than one owned search');
@@ -17,6 +17,7 @@ select has_column('catcht', 'user_listing_decisions', 'user_id', 'a decision bel
 select has_column('catcht', 'user_listing_decisions', 'listing_id', 'a decision points at one listing');
 
 select col_is_fk('catcht', 'saved_searches', 'owner_id', 'search ownership is enforced by a foreign key');
+select col_not_null('catcht', 'saved_searches', 'zip', 'every regional inventory and lease search has a collector-safe ZIP');
 select col_is_fk('catcht', 'digest_runs', 'user_id', 'digest ownership is enforced by a foreign key');
 select has_function('catcht', 'authorize_invited_user', array['jsonb'], 'Auth creation is rejected outside the private invite list');
 select col_default_is('catcht', 'user_profiles', 'digest_cadence_hours', '23', 'daily reports use a jitter-tolerant 23-hour cadence');
