@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" role="img" aria-labelledby="title" data-mark="autohunter-a-road">
+  <title id="title">AutoHunter symbol</title>
+  <style>
+    :root { color: #0A0A0A; }
+    @media (prefers-color-scheme: dark) { :root { color: #FAFAFA; } }
+  </style>
+  <g fill="currentColor">
+    <path fill-rule="evenodd" d="M7 42 20.3 6h7.4L41 42h-8l-2.45-7.1h-13.1L15 42H7Zm12.7-13.7h8.6L24 15.75 19.7 28.3Z" clip-rule="evenodd"/>
+    <path d="M12 29.7h26.5v3.4H12z"/>
+    <circle cx="41.5" cy="31.4" r="3.4"/>
+  </g>
+</svg>

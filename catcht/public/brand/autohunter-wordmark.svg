@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="248" height="64" viewBox="0 0 248 64" role="img" aria-labelledby="title">
+  <title id="title">AutoHunter wordmark</title>
+  <style>
+    :root { color: #0A0A0A; }
+    @media (prefers-color-scheme: dark) { :root { color: #FAFAFA; } }
+    text { font-family: "Space Grotesk", Inter, Arial, sans-serif; font-size: 42px; font-weight: 650; letter-spacing: -1.8px; }
+  </style>
+  <text x="3" y="46" fill="currentColor">AutoHunter</text>
+</svg>

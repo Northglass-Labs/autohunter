@@ -27,7 +27,6 @@ export async function runDigest() {
     recipientCount: recipients.length,
     sentCount: sent.length,
     listingCount: sent.reduce((total, result) => total + (result.listingCount ?? 0), 0),
-    results,
   };
 }
 
@@ -37,15 +36,15 @@ async function runRecipientDigest(
   sourceHealth: Awaited<ReturnType<typeof getSourceHealth>>,
 ) {
   if (!(await digestIsDue(recipient.id, recipient.digestCadenceHours))) {
-    return { userId: recipient.id, status: "not_due" as const };
+    return { status: "not_due" as const };
   }
   const runId = await startDigestRun(recipient.id, scheduledFor);
-  if (!runId) return { userId: recipient.id, status: "already_started" as const };
+  if (!runId) return { status: "already_started" as const };
   try {
     const listings = await getDigestCandidates(recipient.id);
     const messageId = await sendDigest(recipient, listings, scheduledFor, sourceHealth);
     await finishDigestRun(runId, listings, messageId, sourceHealth);
-    return { userId: recipient.id, status: "sent" as const, listingCount: listings.length, messageId };
+    return { status: "sent" as const, listingCount: listings.length };
   } catch (error) {
     const message = error instanceof Error ? error.message : "unknown digest error";
     await failDigestRun(runId, message);

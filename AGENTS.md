@@ -41,6 +41,15 @@ exact endorsement **a Northglass Product**.
 - Report lookup must constrain both report ID and owning user ID; a missing or foreign report is a
   404 with no leaked content.
 
+## Product identity
+
+- Keep the AutoHunter `A`-road-destination mark as the product symbol; it is deliberately not the
+  Northglass ensō.
+- Keep the live lockup, install metadata, favicon set, and `catcht/public/brand/` exports aligned.
+  The brand contract test is the drift gate.
+- Keep `a Northglass Product` as quiet supporting provenance copy, separate from the primary
+  wordmark in exported assets.
+
 ## Secrets and public identity
 
 - Keep secrets in scoped platform stores, 1Password, or OS credential storage. Never place them in
@@ -72,6 +81,8 @@ reports, or protected routes require real Mailpit-backed Playwright coverage on 
 | `catcht/src/lib/dal.ts` | private persistence, ownership, digest/report history |
 | `catcht/src/lib/email-template.ts` | deterministic AutoHunter daily report email |
 | `catcht/src/lib/auth.ts` | Supabase identity to invited-profile authorization |
+| `catcht/src/components/autohunter-brand.tsx` | canonical live mark, wordmark, and endorsement lockup |
+| `catcht/public/brand/` | editable symbol, wordmark, lockup, app-icon, and favicon exports |
 | `catcht/e2e/auth-and-isolation.spec.ts` | desktop/mobile Auth and isolation stories |
 | `docs/adr/012-autohunter-product-and-source-architecture.md` | current architecture decision |
 | `docs/adr/013-nhtsa-safety-evidence.md` | official safety-data boundary |

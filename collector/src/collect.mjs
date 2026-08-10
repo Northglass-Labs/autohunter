@@ -7,6 +7,17 @@ import { createCamoufoxBrowser } from "./browser.mjs";
 import { buildAutoTempestUrl, loadConfig, mergeRemoteSearchConfig } from "./config.mjs";
 import { readBoundedJson, validatedAppOrigin } from "./app-client.mjs";
 
+export const LEGACY_BROWSER_AUTHORIZATION = "written-source-permission-confirmed";
+
+export function requireLegacyBrowserAuthorization(env = process.env) {
+  if (env.AUTOHUNTER_LEGACY_BROWSER_AUTHORIZATION !== LEGACY_BROWSER_AUTHORIZATION) {
+    throw new Error(
+      "Legacy browser collection is disabled. It requires written source permission and " +
+      `AUTOHUNTER_LEGACY_BROWSER_AUTHORIZATION=${LEGACY_BROWSER_AUTHORIZATION}.`,
+    );
+  }
+}
+
 function argumentsFrom(argv) {
   const options = { config: process.env.CATCHT_CONFIG ?? "./config.example.json", dryRun: false, discoverOnly: false, json: false, limit: null, model: null };
   for (let index = 0; index < argv.length; index += 1) {
@@ -76,6 +87,7 @@ async function syncRemoteSearchConfig(config) {
 }
 
 export async function runCollection(options) {
+  requireLegacyBrowserAuthorization();
   const config = await syncRemoteSearchConfig(await loadConfig(resolve(options.config)));
   const models = config.search.models.filter((model) => !options.model || `${model.make} ${model.model}`.toLowerCase() === options.model.toLowerCase());
   if (models.length === 0) throw new Error("no configured model matched --model");
