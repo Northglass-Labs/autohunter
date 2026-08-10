@@ -12,6 +12,11 @@ describe("canonicalRedirectUrl", () => {
       "https://mookmobile.vercel.app/login",
       "https://autohunter.northglass.io",
     )?.toString()).toBe("https://autohunter.northglass.io/login");
+
+    expect(canonicalRedirectUrl(
+      "https://carhunt.tomstetson.com/listings?lane=gas",
+      "https://autohunter.northglass.io",
+    )?.toString()).toBe("https://autohunter.northglass.io/listings?lane=gas");
   });
 
   it("does not redirect canonical, preview, or local origins", () => {

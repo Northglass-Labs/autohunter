@@ -1,4 +1,5 @@
 const LEGACY_PRODUCT_HOSTS = new Set([
+  "carhunt.tomstetson.com",
   "mookmobile.tomstetson.dev",
   "mookmobile.vercel.app",
 ]);

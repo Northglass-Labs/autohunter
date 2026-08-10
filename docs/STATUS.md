@@ -95,7 +95,7 @@ truthfully.
   searches, normalized 168 MarketCheck matches, and completed NHTSA enrichment. The immediate
   retry kept the store at 165 canonical rows and created no second digest run; both enabled profiles
   were correctly `not_due`.
-- Added permanent canonical-origin redirects for the two predecessor hostnames so historical links
+- Added permanent canonical-origin redirects for the three predecessor hostnames so historical links
   move to `autohunter.northglass.io` without preserving the Mookmobile identity.
 - Added a supersession notice to the private predecessor repository, disabled its scheduled
   collector, and archived it. HomeLab now records AutoHunter and ADR-055 as the current production
