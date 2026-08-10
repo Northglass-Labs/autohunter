@@ -64,8 +64,21 @@ truthfully.
   mailbox content.
 - Added a narrow Hermes schedule for the fixed mailbox-import profile. The predecessor Leasehackr
   and Mookmobile jobs remain paused and are explicitly named `SUPERSEDED`.
-- Repaired the unattended 1Password service-account paths for Codex, Claude, and Hermes. Claude's
-  Cloudflare core bindings are connected read-only; optional write-capable bindings remain denied.
+- Verified the prompt-free Agent-vault service-account paths for Codex, Claude, and Hermes. The
+  separately scoped project-Environment health check passes, although its mapped-profile launcher
+  still fails closed; AutoHunter production no longer depends on that launcher. Claude's Cloudflare
+  API and documentation bindings are connected read-only, while optional write-capable bindings
+  remain denied.
+- Published the reviewed tree to the public `Northglass-Labs/autohunter` repository with a clean
+  root history, Northglass-only commit identity, secret scanning, push protection, Dependabot,
+  private vulnerability reporting, and hardened merge settings. The predecessor's private history
+  remains only in its private repository and local archive refs.
+- Installed all four required GitHub Actions secrets. The non-exportable Vercel capabilities were
+  rotated and synchronized in memory; the licensed MarketCheck key crossed from the predecessor
+  repository only as one-time RSA-OAEP ciphertext, and the temporary migration workflow was then
+  removed.
+- Connected Vercel to `Northglass-Labs/autohunter` on `main` and set the Git production root to
+  `catcht`.
 
 ## Fresh complete local verification
 
@@ -76,7 +89,8 @@ truthfully.
   redirects, sign-out, queue actions, search creation, invitation, ownership transfer, real HTTPS
   images/links, report archive, and cross-user isolation.
 - GitHub CI requires those database and browser stories in addition to unit, lint, build, and
-  dependency gates. Actions are commit-pinned and checkout credentials are not persisted.
+  dependency gates. Actions are commit-pinned and checkout credentials are not persisted. Public
+  run `31374662816` passed all three web, collector, and database/browser jobs.
 - Next.js lint, TypeScript, and optimized production build pass.
 - Collector: 87 tests pass, including the fixed 45-day authorized-mail lookback.
 - Production dependency audits for both packages report zero known vulnerabilities.
@@ -104,14 +118,11 @@ truthfully.
 
 ## Current release step
 
-1. Run the fresh complete unit, pgTAP, browser E2E, lint, build, dependency, secret, static-security,
-   hosted-advisor, and production-browser gates.
-2. Publish a clean root history as `Northglass-Labs/autohunter` without exposing the predecessor's
-   private history; configure its narrowly scoped Actions secrets.
-3. Connect Vercel to the new repository, deploy the final verified tree, run the hosted collector
-   manually once, and observe its idempotent production result before relying on the daily schedule.
-4. Update the HomeLab hosting record and remove or clearly supersede remaining operational aliases.
-5. The recurring 1Password desktop prompt is isolated to the optional legacy desktop CLI
+1. Let the first Git-linked Vercel production build complete from the public repository.
+2. Run the hosted collector manually, verify fresh licensed-source health and idempotent report
+   behavior, then rely on the checked-in 10:17 UTC daily schedule.
+3. Update the HomeLab hosting record and remove or clearly supersede remaining operational aliases.
+4. The recurring 1Password desktop prompt is isolated to the optional legacy desktop CLI
    integration. Disabling that setting requires a fresh explicit user confirmation; unattended
    Codex, Claude, and Hermes paths no longer rely on it.
 

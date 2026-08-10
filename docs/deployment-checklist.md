@@ -67,7 +67,7 @@ vercel deploy --prod
 - [x] verify anonymous `/` redirects to `/login`
 - [x] verify protected collector and digest routes return 401 without credentials
 - [x] consume a real administrator magic link and sign out again
-- [ ] prove a second test profile cannot read or mutate the administrator's searches, decisions, or
+- [x] prove a second test profile cannot read or mutate the administrator's searches, decisions, or
   reports
 - [x] send one deliberate report to the administrator and verify sender, rendering, links, images,
   and source-health content before enabling any other recipient
@@ -82,7 +82,7 @@ npm run platform:collect -- --config platform.local.json
 npm run platform:cycle -- --config platform.local.json
 ```
 
-- [ ] inject `AUTOHUNTER_APP_URL`, `AUTOHUNTER_INGEST_SECRET`, `AUTOHUNTER_CRON_SECRET`, and
+- [x] inject `AUTOHUNTER_APP_URL`, `AUTOHUNTER_INGEST_SECRET`, `AUTOHUNTER_CRON_SECRET`, and
   provider credentials from a secret store
 - [x] create the dedicated `AutoHunter/Lease Inputs` Gmail label before enabling `email:cycle`
 - [x] install the pinned GOG binary with owner-only permissions for unattended Gmail intake
@@ -90,17 +90,17 @@ npm run platform:cycle -- --config platform.local.json
 - [x] verify one NHTSA-rated model and one not-rated model render honestly, then follow the official
   VIN recall link
 - [x] confirm at least one real listing image and source link render
-- [ ] enable one daily GitHub Actions, launchd, or systemd schedule
+- [x] enable one daily GitHub Actions, launchd, or systemd schedule
 - [ ] verify a second unattended run and report idempotency
 
 ## Security and release
 
 - [x] run a repository-wide secret scan and dependency audit
 - [x] test Auth enumeration resistance, redirect validation, IDOR boundaries, and signed-action replay
-- [ ] inspect generated HTML and browser bundles for server credentials
-- [ ] inspect production logs without printing secret values
-- [ ] verify desktop and mobile flows with console, network, image, and overflow checks
-- [ ] publish only after personal identifiers, private locations, stale product names, and obsolete
+- [x] inspect generated HTML and browser bundles for server credentials
+- [x] inspect production logs without printing secret values
+- [x] verify desktop and mobile flows with console, network, image, and overflow checks
+- [x] publish only after personal identifiers, private locations, stale product names, and obsolete
   infrastructure instructions are removed
 - [x] mark the paused predecessor lease watcher superseded only after the replacement production
   report succeeds
