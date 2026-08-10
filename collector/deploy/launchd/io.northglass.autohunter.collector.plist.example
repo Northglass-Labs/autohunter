@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>io.northglass.autohunter.collector</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/absolute/path/to/npm</string>
+    <string>run</string>
+    <string>platform:cycle</string>
+    <string>--</string>
+    <string>--config</string>
+    <string>/absolute/path/to/autohunter/collector/platform.local.json</string>
+  </array>
+  <key>WorkingDirectory</key>
+  <string>/absolute/path/to/autohunter/collector</string>
+  <key>StartInterval</key>
+  <integer>86400</integer>
+  <key>RunAtLoad</key>
+  <false/>
+  <key>StandardOutPath</key>
+  <string>/absolute/path/to/logs/autohunter-collector.log</string>
+  <key>StandardErrorPath</key>
+  <string>/absolute/path/to/logs/autohunter-collector.error.log</string>
+</dict>
+</plist>

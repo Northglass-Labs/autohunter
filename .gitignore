@@ -1,0 +1,38 @@
+# Secrets / env
+.env
+.env.*
+!**/.env.example
+*.local
+collector/*.local.json
+credentials.json
+
+# Claude local
+CLAUDE.local.md
+.claude/settings.local.json
+.claude/context/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+
+# Node / local runtime state (at any package depth)
+**/node_modules/
+**/.next/
+**/.vercel/
+**/.catcht/
+**/coverage/
+catcht/test-results/
+catcht/playwright-report/
+
+# Scraped data / working files (keep schema, not the bulk dumps)
+data/raw/
+data/*.html
+data/*.cache
+data/*.db
+*.log
+
+# OS
+.DS_Store

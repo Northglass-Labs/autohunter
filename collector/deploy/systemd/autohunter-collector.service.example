@@ -1,0 +1,15 @@
+[Unit]
+Description=AutoHunter offer collector and daily report cycle
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=autohunter
+WorkingDirectory=/opt/autohunter/collector
+EnvironmentFile=-/etc/autohunter/collector.env
+ExecStart=/usr/bin/npm run platform:cycle -- --config /opt/autohunter/collector/platform.local.json
+PrivateTmp=true
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true

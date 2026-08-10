@@ -1,0 +1,82 @@
+{
+  "version": 2,
+  "searches": [
+    {
+      "id": "used-mx5-miata",
+      "name": "Used manual Miatas",
+      "offerKind": "used",
+      "make": "Mazda",
+      "model": "MX-5 Miata",
+      "trim": null,
+      "zip": "10001",
+      "radiusMiles": 150,
+      "transmission": "manual",
+      "maxPrice": 15000,
+      "maxMileage": 120000,
+      "active": true
+    },
+    {
+      "id": "new-toyota-gr86",
+      "name": "New Toyota GR86",
+      "offerKind": "new",
+      "make": "Toyota",
+      "model": "GR86",
+      "trim": null,
+      "zip": "10001",
+      "radiusMiles": 150,
+      "transmission": "any",
+      "maxPrice": 45000,
+      "maxMileage": 500,
+      "active": true
+    },
+    {
+      "id": "lease-audi-q5-northeast",
+      "name": "Audi Q5 lease deals",
+      "offerKind": "lease",
+      "make": "Audi",
+      "model": "Q5",
+      "trim": null,
+      "region": "Northeast",
+      "zip": "10001",
+      "transmission": "any",
+      "maxEffectiveMonthly": 750,
+      "maxDueAtSigning": 4000,
+      "minAnnualMiles": 10000,
+      "active": true
+    }
+  ],
+  "adapters": {
+    "marketcheck": {
+      "enabled": true,
+      "rowsPerSearch": 50,
+      "maximumRadiusMiles": 100,
+      "maximumSearchCalls": 13,
+      "detailFetchLimit": 3
+    },
+    "autodev": {
+      "enabled": true,
+      "rowsPerSearch": 20,
+      "maximumRadiusMiles": 250,
+      "maximumSearchCalls": 13
+    },
+    "marketcheckIncentives": {
+      "enabled": true,
+      "rowsPerGroup": 10,
+      "maximumSearchCalls": 13
+    },
+    "nhtsa": {
+      "enabled": true,
+      "maximumModelGroups": 5,
+      "maximumVariantsPerGroup": 2,
+      "minimumIntervalMs": 500
+    },
+    "leasehackr": {
+      "enabled": false,
+      "mode": "manual_import"
+    }
+  },
+  "collector": {
+    "minimumIntervalMs": 1000,
+    "syncSavedSearches": true
+  }
+}

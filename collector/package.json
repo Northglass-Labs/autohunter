@@ -1,0 +1,31 @@
+{
+  "name": "@northglass/autohunter-collector",
+  "version": "1.0.1",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "browser:install": "camoufox-js fetch",
+    "collect": "node --env-file-if-exists=.env.local src/collect.mjs",
+    "cycle": "node --env-file-if-exists=.env.local src/cycle.mjs",
+    "platform:collect": "node --env-file-if-exists=.env.local src/platform.mjs",
+    "platform:cycle": "node --env-file-if-exists=.env.local src/platform-cycle.mjs",
+    "digest": "node --env-file-if-exists=.env.local src/digest.mjs",
+    "platform:health": "node --env-file-if-exists=.env.local src/platform.mjs --dry-run --json",
+    "email:cycle": "node --env-file-if-exists=.env.local src/gog-email-cycle.mjs",
+    "health": "node --env-file-if-exists=.env.local src/collect.mjs --dry-run --discover-only --limit 1 --json",
+    "test": "node --test test/*.test.mjs"
+  },
+  "dependencies": {
+    "camoufox-js": "0.11.2",
+    "fast-xml-parser": "5.10.1",
+    "playwright-core": "1.61.1",
+    "zipcodes": "^8.0.0"
+  },
+  "overrides": {
+    "adm-zip": "0.6.0",
+    "better-sqlite3": "12.10.0"
+  }
+}

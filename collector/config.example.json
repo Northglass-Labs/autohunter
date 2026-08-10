@@ -1,0 +1,55 @@
+{
+  "version": 1,
+  "search": {
+    "condition": "used",
+    "zip": "10001",
+    "radiusMiles": 150,
+    "maxPrice": 15000,
+    "maxMileage": 120000,
+    "transmission": "manual",
+    "models": [
+      {
+        "make": "Mazda",
+        "model": "MX-5 Miata",
+        "aliases": ["Miata", "MX-5"],
+        "sourceIds": { "autotempest": "mx5miata" }
+      },
+      {
+        "make": "Subaru",
+        "model": "BRZ",
+        "aliases": ["BRZ"],
+        "sourceIds": { "autotempest": "brz" }
+      },
+      {
+        "make": "Scion",
+        "model": "FR-S",
+        "aliases": ["FR-S", "FRS"],
+        "sourceIds": { "autotempest": "frs" }
+      },
+      {
+        "make": "Honda",
+        "model": "Civic Si",
+        "aliases": ["Civic Si", "Civic SI"],
+        "sourceIds": { "autotempest": "civicsi" }
+      },
+      {
+        "make": "Porsche",
+        "model": "944",
+        "aliases": ["944", "Porsche 944"],
+        "sourceIds": { "autotempest": "944" }
+      },
+      {
+        "make": "Porsche",
+        "model": "944 Turbo",
+        "aliases": ["944 Turbo", "Porsche 944 Turbo", "951"],
+        "sourceIds": { "autotempest": "944" }
+      }
+    ]
+  },
+  "collector": {
+    "includeAuctions": false,
+    "maxCandidatesPerModel": 5,
+    "minimumIntervalMs": 6000,
+    "syncWatchModels": true
+  }
+}

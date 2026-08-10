@@ -1,0 +1,29 @@
+\set ON_ERROR_STOP on
+
+-- Run as the project database owner after all AutoHunter migrations. The password prompt is handled
+-- by psql and is never written to this file or shell history.
+do $$
+begin
+  if not exists (select 1 from pg_roles where rolname = 'catcht_app') then
+    create role catcht_app login;
+  end if;
+end
+$$;
+
+\password catcht_app
+
+grant usage on schema catcht to catcht_app;
+grant select, insert, update on catcht.watch_models to catcht_app;
+grant select, insert, update on catcht.listings to catcht_app;
+grant select, insert, update on catcht.manual_evidence to catcht_app;
+grant select, insert, update on catcht.digest_runs to catcht_app;
+grant select, insert on catcht.digest_items to catcht_app;
+grant select, insert on catcht.consumed_tokens to catcht_app;
+grant select, insert, update on catcht.saved_searches to catcht_app;
+grant select, insert on catcht.source_runs to catcht_app;
+grant select, insert, update on catcht.user_profiles to catcht_app;
+grant select, insert, update on catcht.listing_matches to catcht_app;
+grant select, insert, update on catcht.user_listing_decisions to catcht_app;
+
+revoke delete on all tables in schema catcht from catcht_app;
+revoke update, delete on catcht.consumed_tokens from catcht_app;
