@@ -4,6 +4,16 @@ import { INSTANCE_CONFIG } from "@/lib/instance-config";
 
 type ListingView = "finds" | "pending" | "interested" | "ignored";
 
+const SHORT_FEATURE_LABELS: Record<string, string> = {
+  hands_free_highway: "Hands-free highway",
+  adaptive_cruise_lane_centering: "Lane centering",
+  rear_axle_steering: "Rear steering",
+  air_suspension: "Air suspension",
+  third_row: "Third row",
+  surround_view: "360° camera",
+  tow_package: "Tow package",
+};
+
 function money(value: number, maximumFractionDigits = 0) {
   return value.toLocaleString("en-US", {
     style: "currency",
@@ -18,8 +28,6 @@ export function ListingCard({ listing, view }: { listing: Listing; view: Listing
   const review = setDispositionAction.bind(null, listing.id, "neutral");
   const isLease = listing.offerKind === "lease";
   const manualPending = listing.verificationStatus === "pending";
-  const manualVerified = listing.verificationStatus === "verified";
-  const familyLane = listing.garageGroup === "ev" || listing.garageGroup === "gas";
 
   return (
     <article className={`listing-card ${listing.offerKind} role-${listing.offerRole} lane-${listing.garageGroup}`}>
@@ -60,45 +68,26 @@ export function ListingCard({ listing, view }: { listing: Listing; view: Listing
         </div>
         <p className="location">{[listing.sellerName, listing.region ?? listing.location].filter(Boolean).join(" · ")}</p>
 
-        {familyLane ? <FamilyMetrics listing={listing} /> : null}
-        {isLease ? <LeaseTerms listing={listing} /> : null}
-        {listing.featureEvidence.length ? <FeatureEvidence listing={listing} /> : null}
-        {listing.safetyEvidence ? <SafetyEvidence listing={listing} /> : null}
-        {listing.packageNames.length ? (
-          <details className="package-details">
-            <summary>{listing.packageNames.length} listed package{listing.packageNames.length === 1 ? "" : "s"}</summary>
-            <p>{listing.packageNames.join(" · ")}</p>
-          </details>
-        ) : null}
+        {isLease ? <LeaseTerms listing={listing} /> : <FactChips listing={listing} />}
+        {listing.featureEvidence.length ? <FeatureChips listing={listing} /> : null}
 
-        <div className={`verification-strip ${manualPending ? "pending" : ""} ${isLease ? "lease" : ""}`}>
-          <span className="verification-icon" aria-hidden="true">{isLease ? "L" : manualVerified || manualPending ? "H" : "✓"}</span>
-          {manualPending ? (
-            <span><strong>Manual listing; photo proof pending</strong><small>The collector will retry the full interior gallery.</small></span>
-          ) : manualVerified ? (
-            <span><strong>Manual lever visually verified</strong><small>{Math.round(listing.manualConfidence * 100)}% photo confidence{listing.manualConfidence < 0.8 ? " · pattern not required" : ""}</small></span>
-          ) : isLease ? (
-            listing.offerRole === "benchmark" ? (
-              <span><strong>Signed benchmark</strong><small>Comparison only · this is not a current offer</small></span>
-            ) : listing.offerRole === "market_signal" ? (
-              <span><strong>Market signal</strong><small>Lead only · economics remain incomplete until the source discloses them</small></span>
-            ) : (
-              <span><strong>Lease economics normalized</strong><small>{Math.round(listing.parseConfidence * 100)}% term confidence · verify the original offer</small></span>
-            )
-          ) : familyLane ? (
-            <span><strong>Equipment evidence separated from assumptions</strong><small>{enrichmentLabel(listing.enrichmentStatus)}</small></span>
-          ) : (
-            <span><strong>{listing.condition === "new" ? "New" : listing.condition === "cpo" ? "CPO" : "Used"} inventory normalized</strong><small>Price, mileage, location, and source identity checked</small></span>
-          )}
-        </div>
-
-        <div className="safety-links">
-          {listing.vin ? (
-            <a href={`https://www.nhtsa.gov/recalls?vin=${encodeURIComponent(listing.vin)}`} target="_blank" rel="noopener noreferrer">Check VIN recalls ↗</a>
-          ) : <span>VIN recall lookup pending</span>}
-          {listing.oneOwner === true ? <span>1 owner</span> : null}
-          {listing.cleanTitle === true ? <span>clean-title record</span> : null}
-        </div>
+        <details className="card-more">
+          <summary>Evidence &amp; checks</summary>
+          {listing.featureEvidence.length ? <FeatureEvidence listing={listing} /> : null}
+          {listing.safetyEvidence ? <SafetyEvidence listing={listing} /> : null}
+          {listing.packageNames.length ? (
+            <details className="package-details">
+              <summary>{listing.packageNames.length} listed package{listing.packageNames.length === 1 ? "" : "s"}</summary>
+              <p>{listing.packageNames.join(" · ")}</p>
+            </details>
+          ) : null}
+          <VerificationStrip listing={listing} />
+          <div className="safety-links">
+            {listing.vin ? (
+              <a href={`https://www.nhtsa.gov/recalls?vin=${encodeURIComponent(listing.vin)}`} target="_blank" rel="noopener noreferrer">Check VIN recalls ↗</a>
+            ) : <span>VIN recall lookup pending</span>}
+          </div>
+        </details>
 
         <div className="card-actions">
           <a href={listing.url} target="_blank" rel="noopener noreferrer" className="button primary">
@@ -122,15 +111,69 @@ export function ListingCard({ listing, view }: { listing: Listing; view: Listing
   );
 }
 
-function FamilyMetrics({ listing }: { listing: Listing }) {
+function FactChips({ listing }: { listing: Listing }) {
   const facts = [
     listing.familyFitScore > 0 ? `${Math.round(listing.familyFitScore)} family fit` : null,
-    listing.featureMatchScore > 0 ? `${Math.round(listing.featureMatchScore)} feature match` : null,
     listing.seatingCapacity ? `${listing.seatingCapacity} seats` : null,
     listing.daysOnMarket !== null ? `${listing.daysOnMarket} days listed` : null,
     listing.priceChange !== null && listing.priceChange < 0 ? `${money(Math.abs(listing.priceChange))} price drop` : null,
+    listing.oneOwner === true ? "1 owner" : null,
+    listing.cleanTitle === true ? "clean title" : null,
+    listing.condition === "cpo" ? "CPO" : null,
   ].filter((fact): fact is string => Boolean(fact));
   return facts.length ? <ul className="family-metrics">{facts.map((fact) => <li key={fact}>{fact}</li>)}</ul> : null;
+}
+
+// The desired-equipment verdict at a glance: confirmed and expected features get named chips;
+// everything still unverified collapses into one muted chip instead of a wall of question marks.
+function FeatureChips({ listing }: { listing: Listing }) {
+  const confirmed = listing.featureEvidence.filter((feature) => feature.status === "confirmed");
+  const expected = listing.featureEvidence.filter((feature) => feature.status === "expected");
+  const unknown = listing.featureEvidence.filter((feature) => feature.status === "unknown");
+  return (
+    <ul className="feature-chips" aria-label="Desired equipment at a glance">
+      {confirmed.map((feature) => (
+        <li key={feature.key} className="confirmed" title={feature.evidence}><span aria-hidden="true">✓</span>{SHORT_FEATURE_LABELS[feature.key] ?? feature.label}</li>
+      ))}
+      {expected.map((feature) => (
+        <li key={feature.key} className="expected" title={feature.evidence}><span aria-hidden="true">~</span>{SHORT_FEATURE_LABELS[feature.key] ?? feature.label}</li>
+      ))}
+      {unknown.length ? (
+        <li className="unknown" title={unknown.map((feature) => SHORT_FEATURE_LABELS[feature.key] ?? feature.label).join(", ")}>
+          <span aria-hidden="true">?</span>{unknown.length} to verify
+        </li>
+      ) : null}
+    </ul>
+  );
+}
+
+function VerificationStrip({ listing }: { listing: Listing }) {
+  const isLease = listing.offerKind === "lease";
+  const manualPending = listing.verificationStatus === "pending";
+  const manualVerified = listing.verificationStatus === "verified";
+  const familyLane = listing.garageGroup === "ev" || listing.garageGroup === "gas";
+  return (
+    <div className={`verification-strip ${manualPending ? "pending" : ""} ${isLease ? "lease" : ""}`}>
+      <span className="verification-icon" aria-hidden="true">{isLease ? "L" : manualVerified || manualPending ? "H" : "✓"}</span>
+      {manualPending ? (
+        <span><strong>Manual listing; photo proof pending</strong><small>The collector will retry the full interior gallery.</small></span>
+      ) : manualVerified ? (
+        <span><strong>Manual lever visually verified</strong><small>{Math.round(listing.manualConfidence * 100)}% photo confidence{listing.manualConfidence < 0.8 ? " · pattern not required" : ""}</small></span>
+      ) : isLease ? (
+        listing.offerRole === "benchmark" ? (
+          <span><strong>Signed benchmark</strong><small>Comparison only · this is not a current offer</small></span>
+        ) : listing.offerRole === "market_signal" ? (
+          <span><strong>Market signal</strong><small>Lead only · economics remain incomplete until the source discloses them</small></span>
+        ) : (
+          <span><strong>Lease economics normalized</strong><small>{Math.round(listing.parseConfidence * 100)}% term confidence · verify the original offer</small></span>
+        )
+      ) : familyLane ? (
+        <span><strong>Equipment evidence separated from assumptions</strong><small>{enrichmentLabel(listing.enrichmentStatus)}</small></span>
+      ) : (
+        <span><strong>{listing.condition === "new" ? "New" : listing.condition === "cpo" ? "CPO" : "Used"} inventory normalized</strong><small>Price, mileage, location, and source identity checked</small></span>
+      )}
+    </div>
+  );
 }
 
 function FeatureEvidence({ listing }: { listing: Listing }) {

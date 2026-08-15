@@ -1,6 +1,25 @@
 # AutoHunter status
 
-Updated 2026-08-15. This is the live progress record for the Northglass rebuild.
+Updated 2026-08-15 (evening pass). This is the live progress record for the Northglass rebuild.
+
+## Deal-browser UI and evidence persistence (2026-08-15, second pass)
+
+Owner feedback after first phone login: the dashboard buried the deals and feature evidence still
+read as failed. Root causes and fixes (ADR-015 addendum):
+
+- The ingest upsert overwrote stored feature evidence every cycle, so detail-confirmed equipment
+  reverted to `unknown` the next day. Ingest now merges per feature key: persisted higher-ranked
+  evidence survives unless the fresh inference is itself detail-enriched.
+- The collector re-spent its detail budget on the same cheapest listings. The collector config now
+  serves `enrichedListingIds`, the MarketCheck adapter skips them, and production
+  `detailFetchLimit` rose from 3 to 20 (the adapter's long-standing clamp ceiling), so the whole
+  active queue converges to detail-grade evidence within days.
+- The dashboard was rebuilt as a deal browser: slim header, tap-through filter chips (queue, lane,
+  offer kind, per-model chips derived from the owner's saved searches, sort — no form submits),
+  compact cards with named confirmed/expected feature chips and a collapsed "Evidence & checks"
+  drawer, and an explanatory note when the lease lane has no active offers instead of a blank gap.
+- Verification: collector 103/103; web 122/122 unit, ESLint, TypeScript + build, 30/30 pgTAP,
+  12/12 Playwright desktop/mobile stories; desktop and mobile screenshots reviewed.
 
 ## Feature-evidence coverage sprint (2026-08-15)
 

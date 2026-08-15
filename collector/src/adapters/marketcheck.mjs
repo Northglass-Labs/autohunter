@@ -258,6 +258,7 @@ export async function runMarketCheckAdapter({
   maximumRadiusMiles = 100,
   maximumSearchCalls = 13,
   detailFetchLimit = 3,
+  enrichedListingIds = [],
   fetchImpl = fetch,
   minimumIntervalMs = 1_000,
   sleep = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds)),
@@ -316,10 +317,13 @@ export async function runMarketCheckAdapter({
 
   // Spend the metered detail budget where it can change evidence: summary-expected features can
   // upgrade to confirmed, unknown features can still resolve, already-confirmed features gain nothing.
+  // Listings whose detail evidence the app already persists are skipped entirely.
+  const alreadyEnriched = new Set(enrichedListingIds);
   const upgradeValue = (offer) => (offer.featureEvidence ?? [])
     .reduce((sum, feature) => sum + (feature.status === "expected" ? 2 : feature.status === "unknown" ? 1 : 0), 0);
   const enrichmentCandidates = offers
     .filter((offer) => hasVehicleIntelligence(searchesById.get(offer.searchId) ?? {}))
+    .filter((offer) => !alreadyEnriched.has(offer.sourceListingId))
     .sort((left, right) => upgradeValue(right) - upgradeValue(left)
       || (searchesById.get(right.searchId)?.priority ?? 0) - (searchesById.get(left.searchId)?.priority ?? 0)
       || (left.price ?? Number.POSITIVE_INFINITY) - (right.price ?? Number.POSITIVE_INFINITY));

@@ -50,7 +50,15 @@ async function remoteConfig(config) {
   if (!response.ok) throw new Error(`collector config endpoint returned HTTP ${response.status}`);
   const payload = await readBoundedJson(response);
   if (payload.version !== 2) throw new Error("collector config endpoint returned an unsupported version");
-  return mergeRemoteSavedSearches(config, payload.searches);
+  const merged = mergeRemoteSavedSearches(config, payload.searches);
+  return { ...merged, enrichedListingIds: sanitizedEnrichedListingIds(payload.enrichedListingIds) };
+}
+
+function sanitizedEnrichedListingIds(value) {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter((id) => typeof id === "string" && id.length > 0 && id.length <= 200)
+    .slice(0, 5_000);
 }
 
 function defaultAdapters(config) {
@@ -62,6 +70,7 @@ function defaultAdapters(config) {
       maximumRadiusMiles: config.adapters.marketcheck.maximumRadiusMiles ?? 100,
       maximumSearchCalls: config.adapters.marketcheck.maximumSearchCalls ?? 13,
       detailFetchLimit: config.adapters.marketcheck.detailFetchLimit ?? 3,
+      enrichedListingIds: config.enrichedListingIds ?? [],
       minimumIntervalMs: config.collector.minimumIntervalMs,
     }));
   }

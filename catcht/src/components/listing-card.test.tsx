@@ -141,3 +141,21 @@ describe("ListingCard family queue", () => {
     expect(html).not.toContain("Active offer");
   });
 });
+
+describe("ListingCard compact feature chips", () => {
+  it("names confirmed and expected equipment and collapses unknowns into one chip", () => {
+    const html = renderToStaticMarkup(<ListingCard listing={{
+      ...listing,
+      featureEvidence: [
+        ...listing.featureEvidence,
+        { key: "tow_package", label: "Tow package", status: "unknown", source: "search_target", evidence: "Confirm on the listing." },
+        { key: "air_suspension", label: "Air suspension", status: "unknown", source: "search_target", evidence: "Confirm on the listing." },
+      ],
+    }} view="finds" />);
+
+    expect(html).toContain("Third row");
+    expect(html).toContain("Hands-free highway");
+    expect(html).toContain("2 to verify");
+    expect(html).toContain("Evidence &amp; checks");
+  });
+});

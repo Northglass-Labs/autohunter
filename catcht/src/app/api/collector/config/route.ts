@@ -1,4 +1,4 @@
-import { getActiveSavedSearchesForCollector } from "@/lib/dal";
+import { getActiveSavedSearchesForCollector, getEnrichedListingIds } from "@/lib/dal";
 import { collectorSearch } from "@/lib/collector-config";
 import { isAuthorizedMachineRequest } from "@/lib/machine-auth";
 import { SEARCH_POLICY } from "@/lib/search-policy";
@@ -9,13 +9,17 @@ export async function GET(request: Request) {
   if (!isAuthorizedMachineRequest(request, "INGEST_SECRET")) {
     return Response.json({ error: "unauthorized" }, { status: 401 });
   }
-  const searches = await getActiveSavedSearchesForCollector();
+  const [searches, enrichedListingIds] = await Promise.all([
+    getActiveSavedSearchesForCollector(),
+    getEnrichedListingIds(),
+  ]);
   const legacyModels = searches
     .filter((search) => search.offerKind === "used" && search.transmission === "manual")
     .map(({ make, model, aliases }) => ({ make, model, aliases }));
   return Response.json({
     version: 2,
     searches: searches.map(collectorSearch),
+    enrichedListingIds,
     // Compatibility contract for the predecessor v1 collector during provider cutover.
     search: {
       condition: "used",

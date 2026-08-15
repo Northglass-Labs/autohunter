@@ -33,6 +33,7 @@ import {
 } from "./ranking";
 import { effectiveMonthlyCost } from "./offer-economics";
 import { parseSafetyEvidence } from "./safety-evidence";
+import { mergeFeatureIntelligence, type PersistedFeatureIntelligence } from "./feature-intelligence";
 
 export interface ListingCard {
   id: string;
@@ -935,10 +936,11 @@ export async function upsertCandidate(candidate: CandidateOffer, rawPayload: unk
   ` : [];
   const evaluationPolicy = policyRows[0] ? evaluationPolicyFromRow(policyRows[0]) : undefined;
   const persistedEvidence = await getPersistedManualEvidence(candidate);
-  const evaluatedCandidate = {
+  const persistedIntelligence = await getPersistedFeatureIntelligence(identity);
+  const evaluatedCandidate = mergeFeatureIntelligence({
     ...candidate,
     manualEvidence: mergeManualEvidence(candidate.manualEvidence, persistedEvidence),
-  };
+  }, persistedIntelligence);
   const evaluation = searchId && !evaluationPolicy
     ? {
         eligible: false,
@@ -1002,11 +1004,11 @@ export async function upsertCandidate(candidate: CandidateOffer, rawPayload: unk
       ${lease?.region ?? null}, ${candidate.parseConfidence ?? 1}, ${lease?.publishedAt ?? null},
       ${candidate.expiresAt ?? null}
       , ${candidate.garageGroup ?? "other"}, ${candidate.powertrainCategory ?? "any"},
-      ${candidate.bodyStyle ?? null}, ${candidate.seatingCapacity ?? null}, ${candidate.packageNames ?? []},
-      ${sql.json((candidate.featureEvidence ?? []) as never)}, ${candidate.featureMatchScore ?? 0},
-      ${candidate.familyFitScore ?? 0}, ${candidate.daysOnMarket ?? null}, ${candidate.priceChange ?? null},
+      ${candidate.bodyStyle ?? null}, ${candidate.seatingCapacity ?? null}, ${evaluatedCandidate.packageNames ?? []},
+      ${sql.json((evaluatedCandidate.featureEvidence ?? []) as never)}, ${evaluatedCandidate.featureMatchScore ?? 0},
+      ${evaluatedCandidate.familyFitScore ?? 0}, ${candidate.daysOnMarket ?? null}, ${candidate.priceChange ?? null},
       ${candidate.oneOwner ?? null}, ${candidate.cleanTitle ?? null}, ${candidate.exteriorColor ?? null},
-      ${candidate.interiorColor ?? null}, ${candidate.enrichmentStatus ?? "not_requested"},
+      ${candidate.interiorColor ?? null}, ${evaluatedCandidate.enrichmentStatus ?? "not_requested"},
       ${candidate.safetyEvidence ? sql.json(candidate.safetyEvidence as never) : null}
     )
     on conflict (identity_key) do update set
@@ -1052,8 +1054,8 @@ export async function upsertCandidate(candidate: CandidateOffer, rawPayload: unk
         eligibility_reason, feature_match_score, family_fit_score
       ) values (
         ${listingId}::uuid, ${searchId}::uuid, ${evaluation.score}, ${evaluation.manualConfidence},
-        ${verification.status}, ${evaluation.reason}, ${candidate.featureMatchScore ?? 0},
-        ${candidate.familyFitScore ?? 0}
+        ${verification.status}, ${evaluation.reason}, ${evaluatedCandidate.featureMatchScore ?? 0},
+        ${evaluatedCandidate.familyFitScore ?? 0}
       )
       on conflict (listing_id, search_id) do update set
         deal_score = excluded.deal_score,
@@ -1214,6 +1216,39 @@ function evaluationPolicyFromRow(row: Record<string, unknown>): OfferEvaluationP
     desiredFeatures: Array.isArray(row.desired_features) ? row.desired_features.map(String) as VehicleFeatureKey[] : [],
     requiredFeatures: Array.isArray(row.required_features) ? row.required_features.map(String) as VehicleFeatureKey[] : [],
   };
+}
+
+const ENRICHMENT_STATUSES = ["not_requested", "enriched", "budget_deferred", "unavailable", "failed"] as const;
+
+async function getPersistedFeatureIntelligence(identity: string): Promise<PersistedFeatureIntelligence | null> {
+  const sql = getDb();
+  const rows = await sql`
+    select feature_evidence, package_names, enrichment_status
+    from catcht.listings where identity_key = ${identity} limit 1
+  `;
+  if (!rows[0]) return null;
+  const status = String(rows[0].enrichment_status ?? "not_requested");
+  return {
+    featureEvidence: featureEvidenceFromRow(rows[0].feature_evidence),
+    packageNames: Array.isArray(rows[0].package_names) ? rows[0].package_names.map(String) : [],
+    enrichmentStatus: (ENRICHMENT_STATUSES as readonly string[]).includes(status)
+      ? (status as PersistedFeatureIntelligence["enrichmentStatus"])
+      : "not_requested",
+  };
+}
+
+// Source listing IDs whose metered provider detail is already persisted, so the collector can
+// spend its daily detail budget on listings that still need evidence. Opaque provider IDs only.
+export async function getEnrichedListingIds(): Promise<string[]> {
+  const sql = getDb();
+  const rows = await sql`
+    select source_listing_id from catcht.listings
+    where source = 'marketcheck' and enrichment_status = 'enriched'
+      and source_listing_id is not null and (expires_at is null or expires_at > now())
+    order by last_seen_at desc
+    limit 2000
+  `;
+  return rows.map((row) => String(row.source_listing_id));
 }
 
 function featureEvidenceFromRow(value: unknown): VehicleFeatureEvidence[] {
