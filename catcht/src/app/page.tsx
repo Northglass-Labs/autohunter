@@ -6,6 +6,8 @@ import {
   getSourceHealth,
   listUserProfiles,
   type ListingCard,
+  type SavedSearch,
+  type SourceHealth as SourceHealthRecord,
 } from "@/lib/dal";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -21,47 +23,73 @@ import type { GarageGroup, OfferKind } from "@/lib/types";
 export const dynamic = "force-dynamic";
 
 type View = "finds" | "pending" | "interested" | "ignored";
-type Sort = "score" | "fit" | "features" | "price" | "monthly" | "mileage" | "distance";
+type Sort = "score" | "fit" | "features" | "price" | "monthly" | "mileage" | "distance" | "newest";
 type Kind = "all" | OfferKind;
 type Lane = "all" | GarageGroup;
 
 const LANES: GarageGroup[] = ["ev", "gas", "lease", "enthusiast", "other"];
+const SORTS: Array<{ value: Sort; label: string }> = [
+  { value: "score", label: "Best" },
+  { value: "price", label: "Price" },
+  { value: "monthly", label: "$ / mo" },
+  { value: "mileage", label: "Miles" },
+  { value: "distance", label: "Closest" },
+  { value: "newest", label: "Newest" },
+  { value: "features", label: "Features" },
+  { value: "fit", label: "Family fit" },
+];
+
+interface Filters {
+  view: View;
+  sort: Sort;
+  kind: Kind;
+  lane: Lane;
+  model: string;
+}
 
 export default async function Home({
   searchParams,
 }: {
-  searchParams: Promise<{ view?: string; sort?: string; kind?: string; lane?: string }>;
+  searchParams: Promise<{ view?: string; sort?: string; kind?: string; lane?: string; model?: string }>;
 }) {
   const user = await currentUser();
   if (!user) redirect("/login");
   const params = await searchParams;
-  const view: View = ["pending", "interested", "ignored"].includes(params.view ?? "") ? (params.view as View) : "finds";
-  const sort: Sort = ["fit", "features", "price", "monthly", "mileage", "distance"].includes(params.sort ?? "") ? (params.sort as Sort) : "score";
-  const kind: Kind = ["used", "new", "lease"].includes(params.kind ?? "") ? (params.kind as Kind) : "all";
-  const lane: Lane = LANES.includes(params.lane as GarageGroup) ? (params.lane as Lane) : "all";
-  const disposition = view === "finds" || view === "pending" ? "neutral" : view;
+  const filters: Filters = {
+    view: ["pending", "interested", "ignored"].includes(params.view ?? "") ? (params.view as View) : "finds",
+    sort: SORTS.some((sort) => sort.value === params.sort) ? (params.sort as Sort) : "score",
+    kind: ["used", "new", "lease"].includes(params.kind ?? "") ? (params.kind as Kind) : "all",
+    lane: LANES.includes(params.lane as GarageGroup) ? (params.lane as Lane) : "all",
+    model: (params.model ?? "").slice(0, 60),
+  };
+  const disposition = filters.view === "finds" || filters.view === "pending" ? "neutral" : filters.view;
   const [rawListings, searches, sourceHealth, people, allSearches] = await Promise.all([
     getListings(
       user.id,
       disposition,
-      view === "pending" ? "pending" : "verified",
-      kind === "all" ? undefined : kind,
-      lane === "all" ? undefined : lane,
+      filters.view === "pending" ? "pending" : "verified",
+      filters.kind === "all" ? undefined : filters.kind,
+      filters.lane === "all" ? undefined : filters.lane,
     ),
     getSavedSearches(user.id),
     getSourceHealth(),
     user.role === "admin" ? listUserProfiles() : Promise.resolve([]),
     user.role === "admin" ? getAllSavedSearches() : Promise.resolve([]),
   ]);
-  const listings = sortListings(rawListings, sort);
   const activeSearches = searches.filter((search) => search.active);
+  const models = modelChips(activeSearches);
+  const activeModel = models.find((model) => model.slug === filters.model);
+  if (filters.model && !activeModel) filters.model = "";
+  const listings = sortListings(
+    activeModel ? rawListings.filter((listing) => matchesModel(listing, activeModel)) : rawListings,
+    filters.sort,
+  );
   const sourceCount = sourceHealth.filter((source) => source.status === "success" || source.status === "empty").length;
-  const priceCeiling = activeSearches.reduce((maximum, search) => Math.max(maximum, search.maxPrice ?? 0), 0);
   const activeOfferCount = listings.filter((listing) => listing.offerRole === "active_offer").length;
   const benchmarkCount = listings.filter((listing) => listing.offerRole === "benchmark").length;
   return (
     <main className="app-shell">
-      <header className="hero">
+      <header className="topbar">
         <nav className="hero-nav" aria-label="AutoHunter account">
           <Link href="/" className="brand-lockup">
             <AutoHunterLockup />
@@ -73,67 +101,55 @@ export default async function Home({
             <form action={signOutAction}><button className="hero-signout" type="submit">Sign out</button></form>
           </div>
         </nav>
-        <div className="hero-grid">
-          <div className="hero-copy">
-            <p className="eyebrow">{INSTANCE_CONFIG.locationLabel} · private vehicle intelligence</p>
-            <h1>Drive what you love.<br /><em>Bring everyone.</em></h1>
-            <p>AutoHunter tracks the rare overlap of car-seat practicality, real highway-assist equipment, driving character, and favorable depreciation. Every claim stays attached to its source.</p>
-            <div className="hero-actions">
-              <a className="button hero-primary" href="#search-studio">Edit search briefs</a>
-              <Link className="hero-report-link" href="/reports">Read daily reports <span aria-hidden="true">↗</span></Link>
-              <span><strong>{activeSearches.length}</strong> searches · {priceCeiling ? `${compactMoney(priceCeiling)} hard ceiling` : "flexible budget"}</span>
-            </div>
-          </div>
-          <aside className="hunt-radar" aria-label={`${listings.length} vehicles in the current queue`}>
-            <div className="radar-face" aria-hidden="true"><span /><i /><strong>{listings.length}</strong><small>matches</small></div>
-            <dl>
-              <div><dt>EV</dt><dd>{listings.filter((listing) => listing.garageGroup === "ev").length}</dd></div>
-              <div><dt>Gas</dt><dd>{listings.filter((listing) => listing.garageGroup === "gas").length}</dd></div>
-              <div><dt>Lease</dt><dd>{listings.filter((listing) => listing.garageGroup === "lease").length}</dd></div>
-            </dl>
-          </aside>
+        <div className="topbar-title">
+          <h1>Your deals</h1>
+          <p>
+            <strong>{listings.length}</strong> {viewLabel(filters.view)} across {activeSearches.length} saved search{activeSearches.length === 1 ? "" : "es"}.
+            {" "}<a href="#search-studio">Edit searches</a> · <Link href="/reports">Daily reports</Link>
+          </p>
         </div>
       </header>
 
       <section className="snapshot-strip" aria-label="Hunt snapshot">
-        <article><span>Current queue</span><strong>{listings.length}</strong><small>{viewLabel(view)}</small></article>
+        <article><span>Current queue</span><strong>{listings.length}</strong><small>{viewLabel(filters.view)}</small></article>
         <article><span>Live offers</span><strong>{activeOfferCount}</strong><small>actionable now</small></article>
         <article><span>Benchmarks</span><strong>{benchmarkCount}</strong><small>signed comparison deals</small></article>
         <article><span>Healthy sources</span><strong>{sourceCount || "—"}</strong><small>{activeSearches.length} private search briefs</small></article>
       </section>
 
-      <nav className="tabs" aria-label="Review queue">
-        <Link className={view === "finds" ? "active" : ""} href={viewHref("finds", lane, kind)}>To review</Link>
-        <Link className={view === "pending" ? "active" : ""} href={viewHref("pending", lane, kind)}>Photo pending</Link>
-        <Link className={view === "interested" ? "active" : ""} href={viewHref("interested", lane, kind)}>Interested</Link>
-        <Link className={view === "ignored" ? "active" : ""} href={viewHref("ignored", lane, kind)}>Passed</Link>
-        <a className="tune-link" href="#search-studio">Tune targets <span aria-hidden="true">↘</span></a>
-      </nav>
+      <div className="control-deck">
+        <nav className="tabs" aria-label="Review queue">
+          <Link className={filters.view === "finds" ? "active" : ""} href={href({ ...filters, view: "finds" })}>To review</Link>
+          <Link className={filters.view === "pending" ? "active" : ""} href={href({ ...filters, view: "pending" })}>Photo pending</Link>
+          <Link className={filters.view === "interested" ? "active" : ""} href={href({ ...filters, view: "interested" })}>Interested</Link>
+          <Link className={filters.view === "ignored" ? "active" : ""} href={href({ ...filters, view: "ignored" })}>Passed</Link>
+        </nav>
+        <nav className="lane-filter" aria-label="Vehicle lanes">
+          {(["all", ...LANES] as Lane[]).map((value) => (
+            <Link key={value} className={filters.lane === value ? "active" : ""} href={href({ ...filters, lane: value })}>{laneLabel(value)}</Link>
+          ))}
+          <span className="chip-divider" aria-hidden="true" />
+          {(["all", "used", "new", "lease"] as const).map((offerKind) => (
+            <Link key={offerKind} className={`kind-chip ${filters.kind === offerKind ? "active" : ""}`} href={href({ ...filters, kind: offerKind })}>{offerKind === "all" ? "any kind" : offerKind}</Link>
+          ))}
+        </nav>
+        {models.length > 1 ? (
+          <nav className="model-filter" aria-label="Your models">
+            <Link className={filters.model === "" ? "active" : ""} href={href({ ...filters, model: "" })}>All models</Link>
+            {models.map((model) => (
+              <Link key={model.slug} className={filters.model === model.slug ? "active" : ""} href={href({ ...filters, model: model.slug })}>{model.label}</Link>
+            ))}
+          </nav>
+        ) : null}
+        <nav className="sort-filter" aria-label="Sort order">
+          <span className="sort-label">Sort</span>
+          {SORTS.map((sort) => (
+            <Link key={sort.value} className={filters.sort === sort.value ? "active" : ""} href={href({ ...filters, sort: sort.value })}>{sort.label}</Link>
+          ))}
+        </nav>
+      </div>
 
-      <nav className="lane-filter" aria-label="Vehicle lanes">
-        {(["all", ...LANES] as Lane[]).map((value) => (
-          <Link key={value} className={lane === value ? "active" : ""} href={laneHref(view, value, kind)}>{laneLabel(value)}</Link>
-        ))}
-      </nav>
-
-      <nav className="kind-filter" aria-label="Filter by offer type">
-        {(["all", "used", "new", "lease"] as const).map((offerKind) => (
-          <Link key={offerKind} className={kind === offerKind ? "active" : ""} href={kindHref(view, lane, offerKind)}>{offerKind}</Link>
-        ))}
-      </nav>
-
-      <section className="toolbar">
-        <p><strong>{view === "pending" ? "Manual claim found; gallery proof pending." : "Evidence first: confirmed, expected, and unknown equipment stay distinct."}</strong> Your Interested and Pass decisions are private, reversible, and remembered.</p>
-        <form>
-          <input type="hidden" name="view" value={view} />
-          <input type="hidden" name="kind" value={kind} />
-          <input type="hidden" name="lane" value={lane} />
-          <label>Sort <select name="sort" defaultValue={sort}><option value="score">Best overall</option><option value="fit">Family fit</option><option value="features">Feature match</option><option value="price">Lowest price</option><option value="monthly">Lowest effective / month</option><option value="mileage">Lowest miles</option><option value="distance">Closest</option></select></label>
-          <button type="submit" className="small-button">Apply</button>
-        </form>
-      </section>
-
-      <ListingSections listings={listings} view={view} lane={lane} />
+      <ListingSections listings={listings} view={filters.view} lane={filters.lane} sourceHealth={sourceHealth} />
 
       <SourceHealth sources={sourceHealth} />
       <SavedSearchPanel searches={searches} />
@@ -143,20 +159,31 @@ export default async function Home({
   );
 }
 
-function ListingSections({ listings, view, lane }: { listings: ListingCard[]; view: View; lane: Lane }) {
+function ListingSections({ listings, view, lane, sourceHealth }: { listings: ListingCard[]; view: View; lane: Lane; sourceHealth: SourceHealthRecord[] }) {
   if (listings.length === 0) {
-    return <section className="listing-grid"><div className="empty"><div className="empty-gate" aria-hidden="true">H</div><h2>Nothing worthy in this lane</h2><p>The radar will not pad the queue with guesses or stale repeats.</p></div></section>;
+    return (
+      <section className="listing-grid">
+        <div className="empty">
+          <div className="empty-gate" aria-hidden="true">H</div>
+          <h2>Nothing in this view</h2>
+          <p>The radar will not pad the queue with guesses or stale repeats. Try All lanes, a different model, or check back after the next daily collection.</p>
+        </div>
+      </section>
+    );
   }
   const groups = lane === "all" ? LANES : [lane];
   return (
     <div className="listing-sections">
       {groups.map((group) => {
         const matching = listings.filter((listing) => listing.garageGroup === group);
-        if (matching.length === 0) return null;
+        if (matching.length === 0) {
+          if (group === "lease" && lane === "lease") return <LeaseInputsNote key={group} sourceHealth={sourceHealth} />;
+          return null;
+        }
         return (
           <section className={`listing-lane ${group}`} key={group}>
             <header><div><p className="eyebrow">{laneEyebrow(group)}</p><h2>{laneLabel(group)}</h2></div><span>{matching.length} in queue</span></header>
-            {group === "lease" ? <LeaseRoleSections listings={matching} view={view} /> : (
+            {group === "lease" ? <LeaseRoleSections listings={matching} view={view} sourceHealth={sourceHealth} /> : (
               <div className="listing-grid">{matching.map((listing) => <ListingCardView key={listing.id} listing={listing} view={view} />)}</div>
             )}
           </section>
@@ -166,14 +193,16 @@ function ListingSections({ listings, view, lane }: { listings: ListingCard[]; vi
   );
 }
 
-function LeaseRoleSections({ listings, view }: { listings: ListingCard[]; view: View }) {
+function LeaseRoleSections({ listings, view, sourceHealth }: { listings: ListingCard[]; view: View; sourceHealth: SourceHealthRecord[] }) {
   const roles = [
     { key: "active_offer", title: "Active offers", note: "Current programs with enough disclosed economics to normalize" },
     { key: "benchmark", title: "Signed benchmarks", note: "Recent completed deals for negotiation context—not live inventory" },
     { key: "market_signal", title: "Market signals", note: "Relevant programs and updates still missing complete terms" },
   ] as const;
+  const hasActiveOffers = listings.some((listing) => listing.offerRole === "active_offer");
   return (
     <div className="lease-role-sections">
+      {!hasActiveOffers ? <LeaseInputsNote sourceHealth={sourceHealth} /> : null}
       {roles.map((role) => {
         const matching = listings.filter((listing) => listing.offerRole === role.key);
         if (!matching.length) return null;
@@ -188,6 +217,60 @@ function LeaseRoleSections({ listings, view }: { listings: ListingCard[]; view: 
   );
 }
 
+// Lease intelligence only arrives from authorized notifications, manual imports, and the OEM
+// incentive feed. When there are no active offers, say why instead of showing a silent gap.
+function LeaseInputsNote({ sourceHealth }: { sourceHealth: SourceHealthRecord[] }) {
+  const importer = sourceHealth.find((source) => source.source === "email_alert");
+  const incentives = sourceHealth.find((source) => source.source === "marketcheck_incentives");
+  const importerLine = !importer
+    ? "The authorized lease-alert importer has not run yet."
+    : importer.status === "success" || importer.status === "empty"
+      ? `The authorized lease-alert importer last ran ${dayLabel(importer.finishedAt)} and found ${importer.acceptedCount} new item${importer.acceptedCount === 1 ? "" : "s"}.`
+      : `The authorized lease-alert importer is currently ${importer.status} (last attempt ${dayLabel(importer.finishedAt)}).`;
+  const incentiveLine = incentives && (incentives.status === "success" || incentives.status === "empty")
+    ? ` The licensed OEM incentive feed is healthy and currently reports ${incentives.discoveredCount === 0 ? "no published lease programs for your models" : `${incentives.discoveredCount} programs`}.`
+    : "";
+  return (
+    <div className="lease-inputs-note">
+      <strong>No active lease offers right now.</strong>
+      <p>{importerLine}{incentiveLine} New authorized alerts and imports land here automatically; signed benchmarks below stay available for negotiation context.</p>
+    </div>
+  );
+}
+
+function modelChips(searches: SavedSearch[]) {
+  const chips = new Map<string, { slug: string; label: string; make: string; model: string; aliases: string[] }>();
+  for (const search of searches) {
+    const slug = `${normalized(search.make)}-${normalized(search.model)}`.replace(/\s+/g, "-");
+    const existing = chips.get(slug);
+    if (existing) {
+      existing.aliases = [...new Set([...existing.aliases, ...(search.aliases ?? [])])];
+      continue;
+    }
+    chips.set(slug, {
+      slug,
+      label: `${search.make} ${search.model}`,
+      make: search.make,
+      model: search.model,
+      aliases: search.aliases ?? [],
+    });
+  }
+  return [...chips.values()].sort((left, right) => left.label.localeCompare(right.label));
+}
+
+function matchesModel(listing: ListingCard, chip: { make: string; model: string; aliases: string[] }) {
+  if (normalized(listing.make) !== normalized(chip.make)) return false;
+  const model = normalized(listing.model);
+  return [chip.model, ...chip.aliases].some((candidate) => {
+    const wanted = normalized(candidate);
+    return wanted && (model === wanted || model.includes(wanted) || wanted.includes(model));
+  });
+}
+
+function normalized(value: string | null | undefined) {
+  return String(value ?? "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+}
+
 function sortListings(listings: ListingCard[], sort: Sort) {
   return [...listings].sort((a, b) => {
     if (sort === "score") return b.dealScore - a.dealScore;
@@ -196,6 +279,7 @@ function sortListings(listings: ListingCard[], sort: Sort) {
     if (sort === "monthly") return nullableSort(a.effectiveMonthly, b.effectiveMonthly);
     if (sort === "price") return nullableSort(a.price, b.price);
     if (sort === "mileage") return nullableSort(a.mileage, b.mileage);
+    if (sort === "newest") return nullableSort(a.daysOnMarket, b.daysOnMarket);
     return nullableSort(a.distanceMiles, b.distanceMiles);
   });
 }
@@ -204,16 +288,15 @@ function nullableSort(a: number | null, b: number | null) {
   return (a ?? Number.POSITIVE_INFINITY) - (b ?? Number.POSITIVE_INFINITY);
 }
 
-function viewHref(view: View, lane: Lane, kind: Kind) {
-  return `/?view=${view}${lane === "all" ? "" : `&lane=${lane}`}${kind === "all" ? "" : `&kind=${kind}`}`;
-}
-
-function laneHref(view: View, lane: Lane, kind: Kind) {
-  return `/?view=${view}${lane === "all" ? "" : `&lane=${lane}`}${kind === "all" ? "" : `&kind=${kind}`}`;
-}
-
-function kindHref(view: View, lane: Lane, kind: Kind) {
-  return `/?view=${view}${lane === "all" ? "" : `&lane=${lane}`}${kind === "all" ? "" : `&kind=${kind}`}`;
+function href(filters: Filters) {
+  const params = new URLSearchParams();
+  if (filters.view !== "finds") params.set("view", filters.view);
+  if (filters.lane !== "all") params.set("lane", filters.lane);
+  if (filters.kind !== "all") params.set("kind", filters.kind);
+  if (filters.model) params.set("model", filters.model);
+  if (filters.sort !== "score") params.set("sort", filters.sort);
+  const query = params.toString();
+  return query ? `/?${query}` : "/";
 }
 
 function laneLabel(lane: Lane) {
@@ -240,11 +323,9 @@ function viewLabel(view: View) {
   return "ready for review";
 }
 
-function compactMoney(value: number) {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 0,
-    notation: value >= 100_000 ? "compact" : "standard",
-  }).format(value);
+function dayLabel(iso: string) {
+  const days = Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000);
+  if (days <= 0) return "today";
+  if (days === 1) return "yesterday";
+  return `${days} days ago`;
 }

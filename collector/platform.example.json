@@ -51,7 +51,7 @@
       "rowsPerSearch": 50,
       "maximumRadiusMiles": 100,
       "maximumSearchCalls": 13,
-      "detailFetchLimit": 3
+      "detailFetchLimit": 20
     },
     "autodev": {
       "enabled": true,

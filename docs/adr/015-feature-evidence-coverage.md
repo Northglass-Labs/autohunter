@@ -62,3 +62,23 @@ budget was spent cheapest-first regardless of whether a fetch could change any e
   remain auditable in one place.
 - No database migration is required: the evidence jsonb shape is unchanged and the new source value
   passes the existing shape check; enforcement lives in the ingest contract and collector.
+
+## Addendum (2026-08-15, same day): persistence, budget, and targeting
+
+Field observation from the first production cycle on this ADR's code: almost every listing still
+showed `unknown` equipment. Three compounding causes were fixed the same day:
+
+1. **Evidence persistence.** The ingest upsert overwrote `feature_evidence` wholesale, so a
+   listing enriched yesterday reverted to `unknown` today when the detail budget did not reach it
+   again. Ingest now merges per feature key — the higher-ranked persisted evidence survives unless
+   the incoming inference is itself `enriched`, which replaces the persisted state entirely
+   (`catcht/src/lib/feature-intelligence.ts`). Feature-match and family-fit scores are recomputed
+   from the merged evidence on the same scale the collector uses.
+2. **Budget respend.** The collector re-fetched the same cheapest listings every cycle. The collector
+   config now carries `enrichedListingIds` (opaque provider listing IDs whose detail evidence is
+   already persisted), and the MarketCheck adapter skips them, so the budget always lands on
+   listings that still need evidence.
+3. **Budget size.** `platform.example.json` (the production config) raises `detailFetchLimit`
+   from 3 to 20 — the clamp ceiling the adapter has always enforced. With persistence and
+   skip-targeting, the whole active queue reaches detail-grade evidence within days and the daily
+   spend then covers only newly discovered listings.

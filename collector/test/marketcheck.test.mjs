@@ -446,3 +446,62 @@ test("spends the detail budget on listings whose summary evidence can upgrade to
   assert.equal(upgraded.featureEvidence[0].status, "confirmed");
   assert.equal(deferred.enrichmentStatus, "budget_deferred");
 });
+
+test("does not respend the detail budget on listings the app already holds enriched", async () => {
+  const family = {
+    ...search,
+    id: "family-bmw-x5-persisted",
+    make: "BMW",
+    model: "X5",
+    trim: null,
+    transmission: "automatic",
+    maxPrice: 70_000,
+    profile: "family_gas",
+    powertrainCategory: "gas",
+    desiredFeatures: ["hands_free_highway"],
+    requiredFeatures: [],
+    priority: 100,
+  };
+  const detailIds = [];
+  const listings = [{
+    id: "mc-x5-already-enriched",
+    heading: "2024 BMW X5 xDrive40i with Highway Assistant",
+    price: 52_000,
+    miles: 9_000,
+    inventory_type: "used",
+    vdp_url: "https://dealer.example/x5-already",
+    dist: 25,
+    media: { photo_links: ["https://images.example/x5-already.jpg"] },
+    build: { year: 2024, make: "BMW", model: "X5", trim: "xDrive40i", transmission: "Automatic" },
+  }, {
+    id: "mc-x5-never-enriched",
+    heading: "2024 BMW X5 xDrive40i",
+    price: 60_000,
+    miles: 20_000,
+    inventory_type: "used",
+    vdp_url: "https://dealer.example/x5-never",
+    dist: 25,
+    media: { photo_links: ["https://images.example/x5-never.jpg"] },
+    build: { year: 2024, make: "BMW", model: "X5", trim: "xDrive40i", transmission: "Automatic" },
+  }];
+  const result = await runMarketCheckAdapter({
+    searches: [family],
+    apiKey: "test-key",
+    minimumIntervalMs: 0,
+    detailFetchLimit: 1,
+    enrichedListingIds: ["mc-x5-already-enriched"],
+    fetchImpl: async (url) => {
+      if (url.pathname.startsWith("/v2/listing/car/")) {
+        detailIds.push(decodeURIComponent(url.pathname.split("/").pop()));
+        return new Response(JSON.stringify({ extra: { features: ["Highway Assistant"] } }), { status: 200 });
+      }
+      return new Response(JSON.stringify({ listings }), { status: 200 });
+    },
+  });
+
+  assert.deepEqual(detailIds, ["mc-x5-never-enriched"]);
+  const skipped = result.offers.find((offer) => offer.sourceListingId === "mc-x5-already-enriched");
+  assert.equal(skipped.enrichmentStatus, "not_requested");
+  const fetched = result.offers.find((offer) => offer.sourceListingId === "mc-x5-never-enriched");
+  assert.equal(fetched.enrichmentStatus, "enriched");
+});

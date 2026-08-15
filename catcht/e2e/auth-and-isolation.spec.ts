@@ -14,7 +14,7 @@ test("anonymous visitors are sent to the invite-only magic-link screen", async (
 test("an invited user can complete a real magic-link flow and sign out", async ({ page, request }) => {
   await signIn(page, request, "admin@example.test");
 
-  await expect(page.getByRole("heading", { name: /drive what you love/i })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: /your deals/i })).toBeVisible();
   await expect(page.getByRole("region", { name: "Hunt snapshot" })).toBeVisible();
   await expect(page.getByRole("navigation", { name: "AutoHunter account" })).toBeVisible();
   await expect(page.getByRole("navigation", { name: "Review queue" })).toBeVisible();
