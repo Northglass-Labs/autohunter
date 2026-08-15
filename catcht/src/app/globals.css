@@ -115,6 +115,16 @@ a, button, input, select, textarea { outline-offset: 3px; }
 .lane-filter a.kind-chip.active { border-color: var(--signal); background: var(--signal-soft); color: #43317c; }
 .chip-divider { width: 1px; height: 20px; flex: 0 0 1px; background: var(--line); }
 .sort-label { color: var(--muted); font-size: 8px; font-weight: 820; letter-spacing: .1em; text-transform: uppercase; }
+.price-filter { display: flex; flex-wrap: wrap; align-items: end; gap: 7px; margin: 2px; border-top: 1px solid var(--line); padding-top: 9px; }
+.price-filter-label { align-self: center; color: var(--muted); font-size: 8px; font-weight: 820; letter-spacing: .1em; text-transform: uppercase; }
+.price-filter label { display: grid; gap: 3px; color: var(--muted); font-size: 8px; font-weight: 720; }
+.money-input { width: 132px; display: flex; align-items: center; border: 1px solid var(--line); border-radius: 9px; background: rgba(255,255,255,.65); }
+.money-input:focus-within { border-color: var(--signal-strong); box-shadow: 0 0 0 2px rgba(121,94,232,.12); }
+.money-input b { padding-left: 9px; color: var(--muted); font-family: var(--font-jetbrains-mono), monospace; font-size: 9px; }
+.money-input input { width: 100%; min-width: 0; border: 0; outline: 0; padding: 7px 8px 7px 4px; background: transparent; color: var(--ink); font-family: var(--font-jetbrains-mono), monospace; font-size: 9px; }
+.price-filter > button, .price-filter > a { border: 1px solid var(--line); border-radius: 9px; padding: 8px 10px; background: var(--ink); color: white; cursor: pointer; font-size: 8px; font-weight: 780; text-decoration: none; }
+.price-filter > a { background: transparent; color: var(--muted); }
+.swipe-queue-hint { display: none; margin: 0 2px; color: var(--muted); font-size: 8px; }
 
 .feature-chips { display: flex; flex-wrap: wrap; gap: 5px; margin: 0 0 11px; padding: 0; list-style: none; }
 .feature-chips li { display: inline-flex; align-items: center; gap: 5px; border: 1px solid #cfe0d4; border-radius: 999px; padding: 5px 9px 5px 6px; background: #e9f4ec; color: #14603f; font-size: 9px; font-weight: 780; }
@@ -151,7 +161,14 @@ a, button, input, select, textarea { outline-offset: 3px; }
 .listing-lane.lease .eyebrow { color: #576cac; }
 .listing-lane.enthusiast .eyebrow { color: #a24b32; }
 .listing-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 15px; }
-.listing-card { min-width: 0; overflow: hidden; border: 1px solid var(--line); border-radius: 19px; background: var(--card); box-shadow: 0 2px 0 rgba(23,32,28,.02); transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease; }
+.decision-swipe { --swipe-offset: 0px; min-width: 0; position: relative; overflow: hidden; border-radius: 19px; touch-action: pan-y; }
+.swipe-underlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: space-between; border-radius: 19px; background: linear-gradient(90deg, #13795f 0 50%, #8e3d3d 50% 100%); color: white; font-size: 11px; font-weight: 850; letter-spacing: .04em; text-transform: uppercase; }
+.swipe-underlay span { padding: 0 22px; }
+.swipe-card-content { position: relative; z-index: 1; height: 100%; transform: translateX(var(--swipe-offset)); transition: transform .2s cubic-bezier(.2,.78,.2,1); }
+.decision-swipe[data-dragging] { user-select: none; }
+.decision-swipe[data-dragging] .swipe-card-content { transition: none; }
+.decision-swipe[data-committing] { pointer-events: none; }
+.listing-card { min-width: 0; height: 100%; overflow: hidden; border: 1px solid var(--line); border-radius: 19px; background: var(--card); box-shadow: 0 2px 0 rgba(23,32,28,.02); transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease; }
 .listing-card:hover { transform: translateY(-3px); border-color: #bbb2a3; box-shadow: 0 17px 42px rgba(38,39,34,.11); }
 .listing-photo { position: relative; height: 178px; overflow: hidden; background: #d7d3ca; }
 .listing-photo::after { position: absolute; inset: auto 0 0; height: 45%; content: ""; pointer-events: none; background: linear-gradient(transparent, rgba(8,12,10,.48)); }
@@ -418,6 +435,11 @@ a, button, input, select, textarea { outline-offset: 3px; }
   .control-deck { gap: 6px; }
   .lane-filter, .model-filter, .sort-filter { overflow-x: auto; flex-wrap: nowrap; padding-bottom: 3px; scrollbar-width: none; }
   .lane-filter a, .model-filter a, .sort-filter a { flex: 0 0 auto; }
+  .price-filter { display: grid; grid-template-columns: 1fr 1fr; align-items: end; }
+  .price-filter-label { grid-column: 1 / -1; }
+  .price-filter label, .money-input { width: 100%; }
+  .price-filter > button, .price-filter > a { text-align: center; }
+  .swipe-queue-hint { display: block; }
   .listing-grid { grid-template-columns: 1fr; }
   .listing-photo { height: min(52vw, 240px); }
   .listing-body h2 { min-height: auto; }

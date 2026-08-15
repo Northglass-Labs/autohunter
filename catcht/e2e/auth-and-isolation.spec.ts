@@ -42,7 +42,13 @@ test("searches, listings, and review decisions remain isolated per user", async 
   const memberX5 = memberPage.locator("article.listing-card", { hasText: "2024 BMW X5 xDrive40i" });
   await expect(adminX5).toBeVisible();
   await expect(memberX5).toBeVisible();
-  await adminX5.getByRole("button", { name: "Interested" }).click();
+  await adminX5.scrollIntoViewIfNeeded();
+  const box = await adminX5.boundingBox();
+  if (!box) throw new Error("admin X5 card has no swipeable bounds");
+  await adminPage.mouse.move(box.x + box.width * 0.2, box.y + box.height * 0.35);
+  await adminPage.mouse.down();
+  await adminPage.mouse.move(box.x + box.width * 0.75, box.y + box.height * 0.35, { steps: 5 });
+  await adminPage.mouse.up();
   await expect(adminX5).toHaveCount(0);
 
   await memberPage.reload();
@@ -56,6 +62,19 @@ test("searches, listings, and review decisions remain isolated per user", async 
 
   await adminContext.close();
   await memberContext.close();
+});
+
+test("queue price caps use shareable URL filters", async ({ page, request }) => {
+  await signIn(page, request, "admin@example.test");
+
+  await expect(page.getByRole("heading", { name: "2024 BMW X5 xDrive40i" })).toBeVisible();
+  await page.getByLabel("Max purchase price").fill("57000");
+  await page.getByRole("button", { name: "Apply price caps" }).click();
+
+  await expect(page).toHaveURL(/maxPrice=57000/);
+  await expect(page.getByRole("heading", { name: "2024 BMW X5 xDrive40i" })).toHaveCount(0);
+  await page.getByRole("link", { name: "Clear price caps" }).click();
+  await expect(page.getByRole("heading", { name: "2024 BMW X5 xDrive40i" })).toBeVisible();
 });
 
 test("a member can create a private search and listing cards keep real images and source links", async ({ page, request }, testInfo) => {
