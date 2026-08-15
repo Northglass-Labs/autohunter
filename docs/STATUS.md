@@ -1,6 +1,25 @@
 # AutoHunter status
 
-Updated 2026-08-15 (evening pass). This is the live progress record for the Northglass rebuild.
+Updated 2026-08-15 (session closeout). This is the live progress record for the Northglass rebuild.
+
+## Session checkpoint (closed 2026-08-15)
+
+- Queue controls, swipe decisions, Auto.dev enablement, and Taycan coverage shipped through PR #6
+  (`c14f7c6`); the wording-only follow-up PR #7 left `main` at `8cced4c`. Final main CI run
+  `31876685707` passed collector, web, database, and desktop/mobile browser jobs.
+- Vercel reports the canonical production deployment ready. Anonymous `/` redirects to `/login`,
+  `/login` returns HTTP 200, and the post-deploy production error scan found zero errors.
+- Hosted Supabase has exactly one active Porsche Taycan target. Collector run `31875578317`
+  completed 29 searches and ingested 232 candidates; Auto.dev remained healthy and the run sent no
+  email.
+- Resume with credential hygiene: rotate the Auto.dev starter key exposed in the interrupted chat,
+  then update both GitHub Actions and the scoped Agent-vault item. No macOS reminder was created
+  because Reminders access remained `Not determined`; the rotation deadline is 2026-08-16.
+- After rotation, obtain positive Gmail-import evidence. The 1Password Environment health check is
+  healthy, but production still has no `gog-authorized-email-v1` source run newer than 2026-08-10.
+- Session cleanup moved regenerated Next.js and Playwright output to Trash, pruned stale remote refs,
+  and removed four local branches whose PRs were already merged. Dependency caches and unrelated
+  running services were preserved.
 
 ## Queue controls and source coverage (2026-08-15, third pass)
 
@@ -231,7 +250,8 @@ truthfully.
    as an incident; do not re-enable the archived predecessor schedule.
 2. Auto.dev is live alongside MarketCheck. The starter key was exposed in the interrupted chat and
    must be rotated on 2026-08-16, then replaced in both GitHub Actions and the scoped Agent-vault
-   item. OEM incentives currently return healthy empty results.
+   item. The attempted macOS reminder was not created because Reminders access remained
+   `Not determined`. OEM incentives currently return healthy empty results.
 3. One photo-verification item still reports `customer_verification_required`. Inventory, queues,
    and reports correctly continue without treating it as verified equipment evidence.
 4. The recurring 1Password desktop prompt is isolated to the optional legacy desktop CLI
