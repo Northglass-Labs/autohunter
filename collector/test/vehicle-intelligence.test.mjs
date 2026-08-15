@@ -37,6 +37,7 @@ test("ships a family catalog split into EV and gas lanes with the named target v
   assert.ok(labels.some((label) => /Mercedes-Benz EQS.*580/i.test(label)));
   assert.ok(labels.some((label) => /Rivian R1S/i.test(label)));
   assert.ok(labels.some((label) => /Audi e-tron GT/i.test(label)));
+  assert.ok(labels.some((label) => /Porsche Taycan/i.test(label)));
   assert.ok(labels.some((label) => /BMW X5.*xDrive40i/i.test(label)));
   assert.ok(labels.some((label) => /BMW X5.*M(50|60)i/i.test(label)));
   assert.ok(active.every((target) => target.maxPrice <= 70_000));

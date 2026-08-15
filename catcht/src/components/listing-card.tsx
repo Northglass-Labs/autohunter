@@ -1,6 +1,7 @@
 import type { ListingCard as Listing } from "@/lib/dal";
 import { setDispositionAction } from "@/app/actions";
 import { INSTANCE_CONFIG } from "@/lib/instance-config";
+import { DecisionSwipeCard } from "./decision-swipe-card";
 
 type ListingView = "finds" | "pending" | "interested" | "ignored";
 
@@ -30,6 +31,7 @@ export function ListingCard({ listing, view }: { listing: Listing; view: Listing
   const manualPending = listing.verificationStatus === "pending";
 
   return (
+    <DecisionSwipeCard listingId={listing.id} view={view}>
     <article className={`listing-card ${listing.offerKind} role-${listing.offerRole} lane-${listing.garageGroup}`}>
       <div className="listing-photo">
         {listing.primaryImageUrl ? (
@@ -40,6 +42,7 @@ export function ListingCard({ listing, view }: { listing: Listing; view: Listing
             alt={`${listing.title} listing photo`}
             loading="lazy"
             referrerPolicy="no-referrer"
+            draggable={false}
           />
         ) : (
           <div className="image-placeholder">
@@ -95,8 +98,8 @@ export function ListingCard({ listing, view }: { listing: Listing; view: Listing
           </a>
           {view === "finds" || view === "pending" ? (
             <>
-              <form action={interested}><button className="button interested">Interested</button></form>
-              <form action={passed}><button className="button secondary">Pass</button></form>
+              <form action={interested} data-disposition="interested"><button className="button interested">Interested</button></form>
+              <form action={passed} data-disposition="ignored"><button className="button secondary">Pass</button></form>
             </>
           ) : (
             <>
@@ -108,6 +111,7 @@ export function ListingCard({ listing, view }: { listing: Listing; view: Listing
         </div>
       </div>
     </article>
+    </DecisionSwipeCard>
   );
 }
 

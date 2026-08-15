@@ -10,6 +10,7 @@ import {
   type SourceHealth as SourceHealthRecord,
 } from "@/lib/dal";
 import Link from "next/link";
+import Form from "next/form";
 import { redirect } from "next/navigation";
 import { signOutAction } from "./actions";
 import { ListingCard as ListingCardView } from "@/components/listing-card";
@@ -19,6 +20,7 @@ import { TeamPanel } from "@/components/team-panel";
 import { AutoHunterLockup } from "@/components/autohunter-brand";
 import { INSTANCE_CONFIG } from "@/lib/instance-config";
 import type { GarageGroup, OfferKind } from "@/lib/types";
+import { matchesQueuePriceCaps, parseMoneyCap } from "@/lib/queue-controls";
 
 export const dynamic = "force-dynamic";
 
@@ -45,12 +47,14 @@ interface Filters {
   kind: Kind;
   lane: Lane;
   model: string;
+  maxPrice: number | null;
+  maxMonthly: number | null;
 }
 
 export default async function Home({
   searchParams,
 }: {
-  searchParams: Promise<{ view?: string; sort?: string; kind?: string; lane?: string; model?: string }>;
+  searchParams: Promise<{ view?: string; sort?: string; kind?: string; lane?: string; model?: string; maxPrice?: string; maxMonthly?: string }>;
 }) {
   const user = await currentUser();
   if (!user) redirect("/login");
@@ -61,6 +65,8 @@ export default async function Home({
     kind: ["used", "new", "lease"].includes(params.kind ?? "") ? (params.kind as Kind) : "all",
     lane: LANES.includes(params.lane as GarageGroup) ? (params.lane as Lane) : "all",
     model: (params.model ?? "").slice(0, 60),
+    maxPrice: parseMoneyCap(params.maxPrice),
+    maxMonthly: parseMoneyCap(params.maxMonthly),
   };
   const disposition = filters.view === "finds" || filters.view === "pending" ? "neutral" : filters.view;
   const [rawListings, searches, sourceHealth, people, allSearches] = await Promise.all([
@@ -80,8 +86,9 @@ export default async function Home({
   const models = modelChips(activeSearches);
   const activeModel = models.find((model) => model.slug === filters.model);
   if (filters.model && !activeModel) filters.model = "";
+  const modelListings = activeModel ? rawListings.filter((listing) => matchesModel(listing, activeModel)) : rawListings;
   const listings = sortListings(
-    activeModel ? rawListings.filter((listing) => matchesModel(listing, activeModel)) : rawListings,
+    modelListings.filter((listing) => matchesQueuePriceCaps(listing, filters)),
     filters.sort,
   );
   const sourceCount = sourceHealth.filter((source) => source.status === "success" || source.status === "empty").length;
@@ -147,6 +154,29 @@ export default async function Home({
             <Link key={sort.value} className={filters.sort === sort.value ? "active" : ""} href={href({ ...filters, sort: sort.value })}>{sort.label}</Link>
           ))}
         </nav>
+        <Form action="/" className="price-filter" scroll={false}>
+          {filters.view !== "finds" ? <input type="hidden" name="view" value={filters.view} /> : null}
+          {filters.lane !== "all" ? <input type="hidden" name="lane" value={filters.lane} /> : null}
+          {filters.kind !== "all" ? <input type="hidden" name="kind" value={filters.kind} /> : null}
+          {filters.model ? <input type="hidden" name="model" value={filters.model} /> : null}
+          {filters.sort !== "score" ? <input type="hidden" name="sort" value={filters.sort} /> : null}
+          <span className="price-filter-label">Price caps</span>
+          <label>
+            <span>Max purchase price</span>
+            <span className="money-input"><b aria-hidden="true">$</b><input name="maxPrice" type="text" inputMode="numeric" pattern="[0-9]*" maxLength={8} defaultValue={filters.maxPrice ?? ""} placeholder="70000" /></span>
+          </label>
+          <label>
+            <span>Max lease effective / mo</span>
+            <span className="money-input"><b aria-hidden="true">$</b><input name="maxMonthly" type="text" inputMode="numeric" pattern="[0-9]*" maxLength={8} defaultValue={filters.maxMonthly ?? ""} placeholder="800" /></span>
+          </label>
+          <button type="submit">Apply price caps</button>
+          {filters.maxPrice !== null || filters.maxMonthly !== null ? (
+            <Link href={href({ ...filters, maxPrice: null, maxMonthly: null })}>Clear price caps</Link>
+          ) : null}
+        </Form>
+        {filters.view === "finds" || filters.view === "pending" ? (
+          <p className="swipe-queue-hint">On touch, swipe a card right for Interested or left for Pass. Buttons stay available.</p>
+        ) : null}
       </div>
 
       <ListingSections listings={listings} view={filters.view} lane={filters.lane} sourceHealth={sourceHealth} />
@@ -295,6 +325,8 @@ function href(filters: Filters) {
   if (filters.kind !== "all") params.set("kind", filters.kind);
   if (filters.model) params.set("model", filters.model);
   if (filters.sort !== "score") params.set("sort", filters.sort);
+  if (filters.maxPrice !== null) params.set("maxPrice", String(filters.maxPrice));
+  if (filters.maxMonthly !== null) params.set("maxMonthly", String(filters.maxMonthly));
   const query = params.toString();
   return query ? `/?${query}` : "/";
 }

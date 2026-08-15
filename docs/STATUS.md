@@ -2,6 +2,30 @@
 
 Updated 2026-08-15 (evening pass). This is the live progress record for the Northglass rebuild.
 
+## Queue controls and source coverage (2026-08-15, third pass)
+
+- Added shareable queue price caps with separate purchase-price and effective-monthly lease
+  boundaries. Malformed URL values fail closed, missing prices do not slip through an active cap,
+  and unlike economics are never compared.
+- Added touch and pointer review gestures in the Finds and Pending queues: right records
+  Interested and left records Pass through the existing authenticated disposition action. Vertical
+  scrolling, links, forms, and already-decided queues remain unaffected; the visible buttons stay
+  available as the accessible fallback.
+- Stored the Auto.dev starter credential in the scoped Agent vault and GitHub Actions secret store
+  without entering repository files or command arguments. Hosted cycle `31875249120` then proved
+  the adapter live: 9 searches, 163 discovered rows, and 74 accepted rows.
+- Added an active Porsche Taycan target matching the existing Audi e-tron GT boundary (used,
+  2022-2025, $70,000 cap, $50,000 target) through an additive production migration. Hosted cycle
+  `31875578317` completed all 29 searches, discovered and ingested 232 accepted candidates across
+  licensed sources, and sent no email; no in-boundary Taycan match was available in that snapshot.
+- The previously failing 1Password Environment health check is healthy again. The fixed email
+  profile was invoked, but its contract intentionally returns no child status and production still
+  has no newer `gog-authorized-email-v1` row than 2026-08-10, so the importer remains unverified.
+- Fresh verification: collector 103/103; web 126/126 unit tests, ESLint, TypeScript and optimized
+  build; 31/31 pgTAP assertions; 14/14 Playwright desktop/mobile stories; both production
+  dependency audits report zero vulnerabilities. Desktop and mobile price-filter layouts were
+  also reviewed from fresh screenshots.
+
 ## Deal-browser UI and evidence persistence (2026-08-15, second pass)
 
 Owner feedback after first phone login: the dashboard buried the deals and feature evidence still
@@ -155,11 +179,12 @@ truthfully.
 
 ## Fresh complete local verification
 
-- Web unit/integration: 110 tests across 31 files pass, including the exported identity contract and
-  the aggregate-only digest response contract.
-- Local database: every migration applies from empty state; 30 pgTAP assertions pass, including the
-  search-ZIP contract, 23-hour cadence, and the hosted-advisor foreign-key index.
-- Browser E2E: 12 desktop/mobile stories pass, including real Mailpit magic links, anonymous
+- Web unit/integration: 126 tests across 33 files pass, including the queue-cap and swipe-decision
+  contracts, exported identity contract, and aggregate-only digest response contract.
+- Local database: every migration applies from empty state; 31 pgTAP assertions pass, including the
+  Taycan target, search-ZIP contract, 23-hour cadence, and hosted-advisor foreign-key index.
+- Browser E2E: 14 desktop/mobile stories pass, including a real swipe disposition, shareable price
+  caps, real Mailpit magic links, anonymous
   redirects, sign-out, queue actions, search creation, invitation, ownership transfer, real HTTPS
   images/links, report archive, and cross-user isolation.
 - GitHub CI requires those database and browser stories in addition to unit, lint, build, and
@@ -167,8 +192,9 @@ truthfully.
   main run `31383917236` passed all three web, collector, and database/browser jobs on production
   commit `cb8805f5040a4b8dfbfecf51383e4dddba5c630c`.
 - Next.js lint, TypeScript, and optimized production build pass.
-- Collector: 89 tests pass, including the fixed 45-day authorized-mail lookback and both sides of
-  the fail-closed legacy-browser permission gate.
+- Collector: 103 tests pass, including the Taycan catalog target, fixed 45-day authorized-mail
+  lookback, feature-evidence enrichment, and both sides of the fail-closed legacy-browser
+  permission gate.
 - Production dependency audits for both packages report zero known vulnerabilities.
 - A sealed standard repository security review found one low-severity privacy issue in the digest
   completion payload: per-profile and mail-provider identifiers could reach public Actions logs.
@@ -203,21 +229,18 @@ truthfully.
 
 1. GitHub Actions now owns the daily 10:17 UTC collection cycle. Treat a missing or stale source run
    as an incident; do not re-enable the archived predecessor schedule.
-2. Auto.dev remains visibly unavailable until an optional production credential is provisioned.
-   MarketCheck is the active licensed inventory provider; OEM incentives currently return healthy
-   empty results.
+2. Auto.dev is live alongside MarketCheck. The starter key was exposed in the interrupted chat and
+   must be rotated on 2026-08-16, then replaced in both GitHub Actions and the scoped Agent-vault
+   item. OEM incentives currently return healthy empty results.
 3. One photo-verification item still reports `customer_verification_required`. Inventory, queues,
    and reports correctly continue without treating it as verified equipment evidence.
 4. The recurring 1Password desktop prompt is isolated to the optional legacy desktop CLI
    integration. Disabling that setting requires a fresh explicit user confirmation; unattended
    Codex, Claude, and Hermes paths no longer rely on it.
-5. **Blocked (2026-08-15):** the 1Password Environment backing the `kind: environment` profiles
-   reports `environment_unavailable`, so the daily 05:45 Hermes Gmail lease import fails even
-   though its profile paths and pins are repaired (last successful import 2026-08-10, ~30 days
-   after setup — service-account expiry is the prime suspect). Renew the service account or
-   re-grant Environment access in the 1Password web UI, run the
-   `autohunter-production-email-importer` profile once, and confirm a fresh
-   `gog-authorized-email-v1` row in `catcht.source_runs`.
+5. The 1Password Environment health check is healthy again, but the fixed-profile response is
+   deliberately opaque and its 2026-08-15 invocation did not produce a fresh source-run row. Keep
+   the Gmail importer on the follow-up list until a scheduled or operator-observed run records a
+   new `gog-authorized-email-v1` row in `catcht.source_runs`.
 
 ## Operating boundaries
 

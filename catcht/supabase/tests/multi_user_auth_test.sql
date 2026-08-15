@@ -1,6 +1,6 @@
 begin;
 
-select plan(18);
+select plan(19);
 
 select has_table('catcht', 'user_profiles', 'profiles form the private membership allowlist');
 select has_table('catcht', 'listing_matches', 'listings can match more than one owned search');
@@ -24,6 +24,11 @@ select col_default_is('catcht', 'user_profiles', 'digest_cadence_hours', '23', '
 select ok(
   to_regclass('catcht.user_listing_decisions_listing_id_idx') is not null,
   'listing-decision foreign-key lookups have a covering index'
+);
+select is(
+  (select count(*)::integer from catcht.saved_searches where make = 'Porsche' and model = 'Taycan' and active),
+  1,
+  'the Taycan target is durably present exactly once'
 );
 
 select * from finish();

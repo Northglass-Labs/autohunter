@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { ListingCard as Listing } from "@/lib/dal";
 
 vi.mock("@/app/actions", () => ({ setDispositionAction: vi.fn() }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
 
 import { ListingCard } from "./listing-card";
 
@@ -157,5 +158,6 @@ describe("ListingCard compact feature chips", () => {
     expect(html).toContain("Hands-free highway");
     expect(html).toContain("2 to verify");
     expect(html).toContain("Evidence &amp; checks");
+    expect(html).toContain("Swipe right for Interested or left for Pass");
   });
 });
