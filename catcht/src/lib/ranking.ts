@@ -13,6 +13,7 @@ export type EligibilityReason =
   | "due_at_signing_over_cap"
   | "annual_miles_below_min"
   | "year_out_of_range"
+  | "required_feature_missing"
   | "search_mismatch";
 
 export interface CandidateEvaluation {
@@ -118,6 +119,9 @@ export function evaluateOffer(
 ): CandidateEvaluation & { verificationStatus: ManualVerificationStatus } {
   if (policy && !matchesSearchIdentity(listing, policy)) {
     return withVehicleScores(rejected("search_mismatch", 0, null, "not_applicable"), listing);
+  }
+  if (policy && missingRequiredFeature(listing, policy)) {
+    return withVehicleScores(rejected("required_feature_missing", 0, null, "not_applicable"), listing);
   }
   const evaluation = listing.offerKind === "lease"
     ? evaluateLeaseOffer(listing, policy)
@@ -282,6 +286,17 @@ function withVehicleScores<T extends CandidateEvaluation & { verificationStatus:
 
 function boundedScore(value: number | undefined) {
   return Number.isFinite(value) ? Math.max(0, Math.min(100, Number(value))) : 0;
+}
+
+// A required feature is satisfied by confirmed or expected evidence. Benchmarks and market
+// signals stay visible as negotiation context, so only active offers are gated.
+function missingRequiredFeature(listing: CandidateOffer, policy: OfferEvaluationPolicy) {
+  if (!policy.requiredFeatures?.length) return false;
+  if ((listing.offerRole ?? "active_offer") !== "active_offer") return false;
+  const evidence = listing.featureEvidence ?? [];
+  return policy.requiredFeatures.some((key) => !evidence.some(
+    (feature) => feature.key === key && (feature.status === "confirmed" || feature.status === "expected"),
+  ));
 }
 
 function matchesSearchIdentity(listing: CandidateOffer, policy: OfferEvaluationPolicy) {

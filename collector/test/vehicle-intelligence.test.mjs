@@ -215,3 +215,198 @@ test("bounds adversarially deep provider option structures", () => {
     extra: { features: nested },
   }));
 });
+
+test("marks summary-text equipment as expected, never confirmed, from headings", () => {
+  const result = inferVehicleIntelligence({
+    ...x5,
+    heading: "2024 BMW X5 M60i Executive w/ Driving Assistance Professional and Integral Active Steering",
+  }, familySearch);
+  const evidence = Object.fromEntries(result.featureEvidence.map((feature) => [feature.key, feature]));
+
+  assert.equal(evidence.adaptive_cruise_lane_centering.status, "expected");
+  assert.equal(evidence.adaptive_cruise_lane_centering.source, "provider_summary");
+  assert.equal(evidence.rear_axle_steering.status, "expected");
+  assert.equal(evidence.rear_axle_steering.source, "provider_summary");
+  assert.equal(evidence.hands_free_highway.status, "unknown");
+  assert.equal(result.featureEvidence.every((feature) => feature.status !== "confirmed"), true);
+});
+
+test("prefers listing-specific summary evidence over model rules, and detail evidence over both", () => {
+  const withSummary = inferVehicleIntelligence({
+    ...x5,
+    heading: "2024 BMW X5 M60i with Integral Active Steering",
+  }, familySearch);
+  const summaryEvidence = Object.fromEntries(withSummary.featureEvidence.map((feature) => [feature.key, feature]));
+  assert.equal(summaryEvidence.rear_axle_steering.status, "expected");
+  assert.equal(summaryEvidence.rear_axle_steering.source, "provider_summary");
+
+  const withDetail = inferVehicleIntelligence({
+    ...x5,
+    heading: "2024 BMW X5 M60i with Integral Active Steering",
+  }, familySearch, { extra: { options: ["Integral Active Steering"] } });
+  const detailEvidence = Object.fromEntries(withDetail.featureEvidence.map((feature) => [feature.key, feature]));
+  assert.equal(detailEvidence.rear_axle_steering.status, "confirmed");
+  assert.equal(detailEvidence.rear_axle_steering.source, "provider_listing");
+});
+
+test("does not promote generic cruise or lane-keep summary text to any evidence tier", () => {
+  const result = inferVehicleIntelligence({
+    year: 2024,
+    make: "Porsche",
+    model: "Cayenne",
+    trim: "S",
+    title: "2024 Porsche Cayenne S",
+    heading: "2024 Porsche Cayenne S with Adaptive Cruise Control and Lane Keep Assist",
+  }, {
+    offerKind: "used",
+    make: "Porsche",
+    model: "Cayenne",
+    desiredFeatures: ["adaptive_cruise_lane_centering", "hands_free_highway"],
+  });
+  const evidence = Object.fromEntries(result.featureEvidence.map((feature) => [feature.key, feature.status]));
+
+  assert.equal(evidence.adaptive_cruise_lane_centering, "unknown");
+  assert.equal(evidence.hands_free_highway, "unknown");
+});
+
+test("reads auxiliary summary texts such as Auto.dev descriptions as expected-tier evidence", () => {
+  const result = inferVehicleIntelligence({
+    year: 2025,
+    make: "Rivian",
+    model: "R1S",
+    title: "2025 Rivian R1S Dual Motor",
+    summaryTexts: ["Includes factory tow package and premium audio."],
+  }, {
+    offerKind: "used",
+    make: "Rivian",
+    model: "R1S",
+    desiredFeatures: ["tow_package"],
+  });
+
+  assert.equal(result.featureEvidence[0].status, "expected");
+  assert.equal(result.featureEvidence[0].source, "provider_summary");
+});
+
+test("maps MarketCheck search-response fields that previously fell through", () => {
+  const result = inferVehicleIntelligence({
+    ...x5,
+    build: { body_type: "SUV", std_seating: 7, fuel_type: "Premium Unleaded" },
+    carfax_1_owner: 1,
+    carfax_clean_title: "true",
+    exterior_color: "Mineral White Metallic",
+    interior_color: "Coffee",
+    dom: 41,
+  }, familySearch);
+
+  assert.equal(result.seatingCapacity, 7);
+  assert.equal(result.oneOwner, true);
+  assert.equal(result.cleanTitle, true);
+  assert.equal(result.exteriorColor, "Mineral White Metallic");
+  assert.equal(result.interiorColor, "Coffee");
+  assert.equal(result.daysOnMarket, 41);
+});
+
+test("marks expected standard equipment for the lease-target three-row family", () => {
+  const cases = [
+    { make: "Lexus", model: "TX" },
+    { make: "Toyota", model: "Grand Highlander" },
+    { make: "Mazda", model: "CX-90" },
+    { make: "Kia", model: "Telluride" },
+    { make: "Hyundai", model: "Palisade" },
+    { make: "Lincoln", model: "Aviator" },
+    { make: "Audi", model: "SQ7" },
+  ];
+  for (const entry of cases) {
+    const result = inferVehicleIntelligence({ year: 2024, ...entry, title: `2024 ${entry.make} ${entry.model}` }, {
+      offerKind: "lease",
+      make: entry.make,
+      model: entry.model,
+      desiredFeatures: ["third_row"],
+    });
+    assert.equal(result.featureEvidence[0].status, "expected", `${entry.make} ${entry.model}`);
+    assert.equal(result.featureEvidence[0].source, "model_rule", `${entry.make} ${entry.model}`);
+  }
+});
+
+test("marks precise expected equipment for SQ7 air suspension, GV80 and XC90 lane centering, and MDX Type S air suspension", () => {
+  const cases = [
+    { listing: { year: 2023, make: "Audi", model: "SQ7" }, key: "air_suspension" },
+    { listing: { year: 2024, make: "Genesis", model: "GV80", trim: "3.5T" }, key: "adaptive_cruise_lane_centering" },
+    { listing: { year: 2023, make: "Volvo", model: "XC90", trim: "Recharge" }, key: "adaptive_cruise_lane_centering" },
+    { listing: { year: 2023, make: "Acura", model: "MDX", trim: "Type S" }, key: "air_suspension" },
+  ];
+  for (const entry of cases) {
+    const result = inferVehicleIntelligence({ title: "listing", ...entry.listing }, {
+      offerKind: "used",
+      make: entry.listing.make,
+      model: entry.listing.model,
+      desiredFeatures: [entry.key],
+    });
+    assert.equal(result.featureEvidence[0].status, "expected", `${entry.listing.make} ${entry.listing.model} ${entry.key}`);
+  }
+});
+
+test("does not mark expected air suspension on a non-Type-S MDX", () => {
+  const result = inferVehicleIntelligence({ year: 2023, make: "Acura", model: "MDX", trim: "A-Spec", title: "MDX A-Spec" }, {
+    offerKind: "used",
+    make: "Acura",
+    model: "MDX",
+    desiredFeatures: ["air_suspension"],
+  });
+  assert.equal(result.featureEvidence[0].status, "unknown");
+});
+
+test("recognizes newly covered ADAS systems at the correct capability tier", () => {
+  const handsFree = [
+    { make: "Lincoln", model: "Aviator", text: "Lincoln BlueCruise hands-free highway driving" },
+    { make: "Nissan", model: "Ariya", text: "ProPILOT Assist 2.1" },
+  ];
+  for (const entry of handsFree) {
+    const result = inferVehicleIntelligence({ year: 2024, ...entry, title: `2024 ${entry.make} ${entry.model}` }, {
+      offerKind: "used",
+      make: entry.make,
+      model: entry.model,
+      desiredFeatures: ["hands_free_highway", "adaptive_cruise_lane_centering"],
+    }, { extra: { features: [entry.text] } });
+    const evidence = Object.fromEntries(result.featureEvidence.map((feature) => [feature.key, feature.status]));
+    assert.equal(evidence.hands_free_highway, "confirmed", entry.text);
+    assert.equal(evidence.adaptive_cruise_lane_centering, "confirmed", entry.text);
+  }
+
+  const handsOn = [
+    { make: "Nissan", model: "Pathfinder", text: "ProPILOT Assist" },
+    { make: "Volkswagen", model: "Atlas", text: "Travel Assist" },
+    { make: "Porsche", model: "Cayenne", text: "Porsche InnoDrive" },
+    { make: "BMW", model: "X5", text: "Active Driving Assistant Pro" },
+    { make: "BMW", model: "X5", text: "ZDY Driving Assistance Professional Package" },
+  ];
+  for (const entry of handsOn) {
+    const result = inferVehicleIntelligence({ year: 2024, ...entry, title: `2024 ${entry.make} ${entry.model}` }, {
+      offerKind: "used",
+      make: entry.make,
+      model: entry.model,
+      desiredFeatures: ["hands_free_highway", "adaptive_cruise_lane_centering"],
+    }, { extra: { features: [entry.text] } });
+    const evidence = Object.fromEntries(result.featureEvidence.map((feature) => [feature.key, feature.status]));
+    assert.equal(evidence.adaptive_cruise_lane_centering, "confirmed", entry.text);
+    assert.equal(evidence.hands_free_highway, "unknown", entry.text);
+  }
+});
+
+test("decodes the verified BMW ZDH package code as rear-axle steering evidence", () => {
+  const result = inferVehicleIntelligence({
+    year: 2020,
+    make: "BMW",
+    model: "X5",
+    trim: "M50i",
+    title: "2020 BMW X5 M50i",
+  }, {
+    offerKind: "used",
+    make: "BMW",
+    model: "X5",
+    trim: "M50i",
+    desiredFeatures: ["rear_axle_steering"],
+  }, { extra: { options_packages: ["ZDH Dynamic Handling Package"] } });
+
+  assert.equal(result.featureEvidence[0].status, "confirmed");
+});

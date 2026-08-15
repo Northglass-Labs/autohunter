@@ -344,3 +344,105 @@ test("caps inventory queries and reports partial coverage instead of overrunning
   assert.equal(result.run.searchedCount, 13);
   assert.equal(result.run.messageCode, "query_budget_capped_13of14");
 });
+
+test("carries expected-tier summary evidence for listings the detail budget never reaches", async () => {
+  const family = {
+    ...search,
+    id: "family-bmw-x5-summary",
+    make: "BMW",
+    model: "X5",
+    trim: null,
+    transmission: "automatic",
+    maxPrice: 70_000,
+    profile: "family_gas",
+    powertrainCategory: "gas",
+    desiredFeatures: ["adaptive_cruise_lane_centering"],
+    requiredFeatures: [],
+    priority: 100,
+  };
+  const result = await runMarketCheckAdapter({
+    searches: [family],
+    apiKey: "test-key",
+    minimumIntervalMs: 0,
+    detailFetchLimit: 0,
+    fetchImpl: async () => new Response(JSON.stringify({ listings: [{
+      id: "mc-x5-summary",
+      heading: "2024 BMW X5 xDrive40i w/ Driving Assistance Professional",
+      price: 56_000,
+      miles: 12_000,
+      inventory_type: "used",
+      vdp_url: "https://dealer.example/x5-summary",
+      dist: 25,
+      media: { photo_links: ["https://images.example/x5-summary.jpg"] },
+      build: { year: 2024, make: "BMW", model: "X5", trim: "xDrive40i", transmission: "Automatic" },
+    }] }), { status: 200 }),
+  });
+
+  assert.equal(result.offers.length, 1);
+  const evidence = result.offers[0].featureEvidence.find((feature) => feature.key === "adaptive_cruise_lane_centering");
+  assert.equal(evidence.status, "expected");
+  assert.equal(evidence.source, "provider_summary");
+  assert.equal(result.offers[0].enrichmentStatus, "budget_deferred");
+});
+
+test("spends the detail budget on listings whose summary evidence can upgrade to confirmed", async () => {
+  const family = {
+    ...search,
+    id: "family-bmw-x5-upgrade",
+    make: "BMW",
+    model: "X5",
+    trim: null,
+    transmission: "automatic",
+    maxPrice: 70_000,
+    profile: "family_gas",
+    powertrainCategory: "gas",
+    desiredFeatures: ["hands_free_highway"],
+    requiredFeatures: [],
+    priority: 100,
+  };
+  const detailIds = [];
+  const listings = [{
+    id: "mc-x5-cheap-plain",
+    heading: "2024 BMW X5 xDrive40i",
+    price: 51_000,
+    miles: 12_000,
+    inventory_type: "used",
+    vdp_url: "https://dealer.example/x5-cheap-plain",
+    dist: 25,
+    media: { photo_links: ["https://images.example/x5-cheap.jpg"] },
+    build: { year: 2024, make: "BMW", model: "X5", trim: "xDrive40i", transmission: "Automatic" },
+  }, {
+    id: "mc-x5-summary-hit",
+    heading: "2024 BMW X5 xDrive40i with Highway Assistant",
+    price: 59_000,
+    miles: 15_000,
+    inventory_type: "used",
+    vdp_url: "https://dealer.example/x5-summary-hit",
+    dist: 25,
+    media: { photo_links: ["https://images.example/x5-hit.jpg"] },
+    build: { year: 2024, make: "BMW", model: "X5", trim: "xDrive40i", transmission: "Automatic" },
+  }];
+  const result = await runMarketCheckAdapter({
+    searches: [family],
+    apiKey: "test-key",
+    minimumIntervalMs: 0,
+    detailFetchLimit: 1,
+    fetchImpl: async (url) => {
+      if (url.pathname.startsWith("/v2/listing/car/")) {
+        detailIds.push(decodeURIComponent(url.pathname.split("/").pop()));
+        return new Response(JSON.stringify({
+          extra: { features: ["Highway Assistant"] },
+          build: { body_type: "SUV", seating_capacity: 5 },
+        }), { status: 200 });
+      }
+      return new Response(JSON.stringify({ listings }), { status: 200 });
+    },
+  });
+
+  assert.deepEqual(detailIds, ["mc-x5-summary-hit"]);
+  const upgraded = result.offers.find((offer) => offer.sourceListingId === "mc-x5-summary-hit");
+  const deferred = result.offers.find((offer) => offer.sourceListingId === "mc-x5-cheap-plain");
+  assert.equal(upgraded.enrichmentStatus, "enriched");
+  assert.equal(upgraded.featureEvidence[0].status, "confirmed");
+  assert.equal(deferred.enrichmentStatus, "budget_deferred");
+});

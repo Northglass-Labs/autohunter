@@ -25,6 +25,8 @@ const FEATURE_PATTERNS = Object.freeze({
     /\benhanced highway assist\b/i,
     /\bautonomy\+\b/i,
     /\bdrive pilot\b/i,
+    /\bblue ?cruise\b/i,
+    /\bpro ?pilot assist 2\.\d\b/i,
   ],
   adaptive_cruise_lane_centering: [
     /\bdriving assistance professional\b/i,
@@ -33,13 +35,22 @@ const FEATURE_PATTERNS = Object.freeze({
     /\bdriver assistance package plus\b/i,
     /\bpilot assist\b/i,
     /\bsuper cruise\b/i,
+    /\bblue ?cruise\b/i,
+    /\bpro ?pilot assist\b/i,
+    /\btravel assist\b/i,
+    /\binnodrive\b/i,
+    /\bactive driving assistant pro(?:fessional)?\b/i,
+    /\bzdy\b/i,
+    /\b5au\b/i,
   ],
   rear_axle_steering: [
     /\bintegral active steering\b/i,
     /\brear[- ]axle steering\b/i,
     /\brear[- ]wheel steering\b/i,
     /\ball[- ]wheel steering\b/i,
+    /\bdynamic rear steering\b/i,
     /\b2vh\b/i,
+    /\bzdh\b/i,
   ],
   air_suspension: [
     /\bair suspension\b/i,
@@ -117,6 +128,7 @@ export const FAMILY_LEASE_TARGETS = Object.freeze([
 export function inferVehicleIntelligence(listing, search = {}, detail = null, options = {}) {
   const desired = uniqueFeatureKeys([...(search.desiredFeatures ?? []), ...(search.requiredFeatures ?? [])]);
   const detailText = detailStrings(detail);
+  const summaryText = summaryStrings(listing);
   const expected = expectedFeatureRules(listing);
   const featureEvidence = desired.map((key) => {
     const matching = matchingDetailEvidence(key, detailText);
@@ -127,6 +139,16 @@ export function inferVehicleIntelligence(listing, search = {}, detail = null, op
         status: "confirmed",
         source: "provider_listing",
         evidence: matching.slice(0, 300),
+      };
+    }
+    const summaryMatch = matchingDetailEvidence(key, summaryText);
+    if (summaryMatch) {
+      return {
+        key,
+        label: FEATURE_LABELS[key],
+        status: "expected",
+        source: "provider_summary",
+        evidence: `Listing summary: "${summaryMatch.slice(0, 200)}" — confirm on the window sticker or VIN build sheet.`,
       };
     }
     const rule = expected.get(key);
@@ -150,7 +172,7 @@ export function inferVehicleIntelligence(listing, search = {}, detail = null, op
 
   const build = detail?.build ?? listing?.build ?? {};
   const bodyStyle = cleanText(build.body_type ?? build.body_style ?? listing.bodyStyle, 100);
-  const seatingCapacity = boundedInteger(build.seating_capacity ?? listing.seatingCapacity, 2, 15);
+  const seatingCapacity = boundedInteger(build.seating_capacity ?? build.std_seating ?? listing.seatingCapacity, 2, 15);
   const powertrainCategory = normalizedPowertrain(
     search.powertrainCategory,
     build.powertrain_type,
@@ -174,12 +196,12 @@ export function inferVehicleIntelligence(listing, search = {}, detail = null, op
     featureEvidence,
     featureMatchScore,
     familyFitScore,
-    daysOnMarket: daysOnMarket(detail),
+    daysOnMarket: daysOnMarket(detail, listing),
     priceChange: boundedSignedNumber(detail?.price_change ?? detail?.price_change_amount ?? listing.priceChange),
-    oneOwner: booleanOrNull(detail?.carfax_1_owner ?? detail?.one_owner ?? listing.oneOwner),
-    cleanTitle: booleanOrNull(detail?.carfax_clean_title ?? detail?.clean_title ?? listing.cleanTitle),
-    exteriorColor: cleanText(build.exterior_color ?? detail?.exterior_color ?? listing.exteriorColor, 100),
-    interiorColor: cleanText(build.interior_color ?? detail?.interior_color ?? listing.interiorColor, 100),
+    oneOwner: booleanOrNull(detail?.carfax_1_owner ?? detail?.one_owner ?? listing.carfax_1_owner ?? listing.one_owner ?? listing.oneOwner),
+    cleanTitle: booleanOrNull(detail?.carfax_clean_title ?? detail?.clean_title ?? listing.carfax_clean_title ?? listing.clean_title ?? listing.cleanTitle),
+    exteriorColor: cleanText(build.exterior_color ?? detail?.exterior_color ?? listing.exterior_color ?? listing.exteriorColor, 100),
+    interiorColor: cleanText(build.interior_color ?? detail?.interior_color ?? listing.interior_color ?? listing.interiorColor, 100),
     enrichmentStatus: options.enrichmentStatus ?? (detail ? "enriched" : "not_requested"),
   };
 }
@@ -193,6 +215,85 @@ function matchingDetailEvidence(key, detailText) {
   return longitudinal && lateral ? combined : undefined;
 }
 
+// Declarative exact model-year rules for expected standard equipment. Every entry must describe
+// factory-standard fitment for the matched make/model/trim/years — optional packages never belong
+// here. First matching rule wins per feature key; keep trim-specific entries above general ones.
+// modelMatch: "exact" (default) | "prefix" | "includes"; modelAliases add alternate spellings.
+export const EXPECTED_EQUIPMENT_RULES = Object.freeze([
+  { make: "bmw", model: "x5", trimPattern: /\bm60i\b/, yearMin: 2024, features: {
+    rear_axle_steering: "Integral Active Steering is standard on the 2024+ X5 M60i; verify the VIN build sheet.",
+  } },
+  { make: "bmw", model: "x7", trimPattern: /\bm60i\b/, yearMin: 2023, features: {
+    rear_axle_steering: "Integral Active Steering is standard on the 2023+ X7 M60i; verify the VIN build sheet.",
+  } },
+  { make: "bmw", model: "x7", yearMin: 2023, features: {
+    third_row: "The X7 is a standard three-row SUV; verify the seating configuration in listing photos.",
+    air_suspension: "Two-axle air suspension is standard on the 2023+ X7; verify the VIN build sheet.",
+  } },
+  { make: "rivian", model: "r1s", yearMin: 2025, features: {
+    hands_free_highway: "2025+ Gen 2 R1S supports Enhanced Highway Assist; verify software activation and any Autonomy+ subscription or purchased entitlement.",
+  } },
+  { make: "rivian", model: "r1s", features: {
+    third_row: "The R1S has standard three-row seating; confirm seat condition in listing photos.",
+    adaptive_cruise_lane_centering: "Rivian Highway Assist hardware is standard; verify current software capability.",
+  } },
+  { make: "mercedes benz", model: "eqs", modelMatch: "prefix", yearMin: 2022, features: {
+    adaptive_cruise_lane_centering: "EQS Driver Assistance includes DISTRONIC and Active Steering Assist; verify the market-specific build sheet.",
+    rear_axle_steering: "EQS rear-axle steering is expected for this model year; verify the fitted steering angle and activation on the VIN build sheet.",
+    air_suspension: "AIRMATIC is expected on the EQS; verify the VIN build sheet and suspension condition.",
+  } },
+  { make: "mercedes benz", model: "gls", modelMatch: "includes", features: {
+    third_row: "The GLS is a standard three-row SUV; verify the seating configuration in listing photos.",
+    air_suspension: "AIRMATIC is expected on the GLS; verify the VIN build sheet and suspension condition.",
+  } },
+  { make: "mercedes benz", model: "gls", modelMatch: "includes", yearMin: 2021, features: {
+    surround_view: "The Surround View System is standard equipment on the 2021+ GLS; verify camera operation at inspection.",
+  } },
+  { make: "acura", model: "mdx", trimPattern: /\btype s\b/, features: {
+    air_suspension: "Adaptive air suspension is standard on the MDX Type S; verify the VIN build sheet and suspension condition.",
+  } },
+  { make: "acura", model: "mdx", features: {
+    third_row: "The MDX includes a third row; verify the exact second-row configuration and car-seat access.",
+  } },
+  { make: "volvo", model: "xc90", modelMatch: "prefix", yearMin: 2021, features: {
+    adaptive_cruise_lane_centering: "Pilot Assist is standard on the 2021+ XC90; verify operation on the exact vehicle.",
+  } },
+  { make: "volvo", model: "xc90", modelMatch: "prefix", features: {
+    third_row: "The XC90 is normally configured with a third row; verify seating count on the listing.",
+  } },
+  { make: "cadillac", model: "escalade", features: {
+    third_row: "The Escalade includes three-row seating; verify the exact second-row configuration.",
+  } },
+  { make: "lexus", model: "tx", modelMatch: "prefix", trimPattern: /\b500h\b/, features: {
+    rear_axle_steering: "Dynamic Rear Steering is standard on the TX 500h F SPORT Performance; verify the VIN build sheet.",
+  } },
+  { make: "lexus", model: "tx", modelMatch: "prefix", features: {
+    third_row: "The Lexus TX is a standard three-row SUV; verify the seating configuration in listing photos.",
+  } },
+  { make: "toyota", model: "grand highlander", modelMatch: "prefix", features: {
+    third_row: "The Grand Highlander is a standard three-row SUV; verify the seating configuration in listing photos.",
+  } },
+  { make: "mazda", model: "cx 90", modelAliases: ["cx90"], modelMatch: "prefix", features: {
+    third_row: "The CX-90 is a standard three-row SUV; verify the seating configuration in listing photos.",
+  } },
+  { make: "kia", model: "telluride", features: {
+    third_row: "The Telluride is a standard three-row SUV; verify the seating configuration in listing photos.",
+  } },
+  { make: "hyundai", model: "palisade", features: {
+    third_row: "The Palisade is a standard three-row SUV; verify the seating configuration in listing photos.",
+  } },
+  { make: "lincoln", model: "aviator", features: {
+    third_row: "The Aviator is a standard three-row SUV; verify the seating configuration in listing photos.",
+  } },
+  { make: "audi", model: "sq7", features: {
+    third_row: "The SQ7 is a standard three-row SUV; verify the seating configuration in listing photos.",
+    air_suspension: "Adaptive air suspension is standard on the SQ7; verify the VIN build sheet and suspension condition.",
+  } },
+  { make: "genesis", model: "gv80", features: {
+    adaptive_cruise_lane_centering: "Highway Driving Assist is standard on the GV80; verify the fitted HDA generation on the exact vehicle.",
+  } },
+]);
+
 function expectedFeatureRules(listing) {
   const result = new Map();
   const year = Number(listing?.year);
@@ -200,40 +301,19 @@ function expectedFeatureRules(listing) {
   const model = normalized(listing?.model);
   const trim = normalized(listing?.trim ?? listing?.title);
 
-  if (make === "bmw" && model === "x5" && year >= 2024 && /\bm60i\b/.test(trim)) {
-    result.set("rear_axle_steering", "Integral Active Steering is standard on the 2024+ X5 M60i; verify the VIN build sheet.");
-  }
-  if (make === "bmw" && model === "x7" && year >= 2023 && /\bm60i\b/.test(trim)) {
-    result.set("rear_axle_steering", "Integral Active Steering is standard on the 2023+ X7 M60i; verify the VIN build sheet.");
-  }
-  if (make === "bmw" && model === "x7" && year >= 2023) {
-    result.set("third_row", "The X7 is a standard three-row SUV; verify the seating configuration in listing photos.");
-    result.set("air_suspension", "Two-axle air suspension is standard on the 2023+ X7; verify the VIN build sheet.");
-  }
-  if (make === "rivian" && model === "r1s") {
-    result.set("third_row", "The R1S has standard three-row seating; confirm seat condition in listing photos.");
-    result.set("adaptive_cruise_lane_centering", "Rivian Highway Assist hardware is standard; verify current software capability.");
-    if (year >= 2025) {
-      result.set("hands_free_highway", "2025+ Gen 2 R1S supports Enhanced Highway Assist; verify software activation and any Autonomy+ subscription or purchased entitlement.");
+  for (const rule of EXPECTED_EQUIPMENT_RULES) {
+    if (rule.make !== make) continue;
+    const models = [rule.model, ...(rule.modelAliases ?? [])];
+    const matchesModel = models.some((candidate) => rule.modelMatch === "prefix"
+      ? model.startsWith(candidate)
+      : rule.modelMatch === "includes" ? model.includes(candidate) : model === candidate);
+    if (!matchesModel) continue;
+    if (rule.trimPattern && !rule.trimPattern.test(trim)) continue;
+    if (rule.yearMin !== undefined && !(year >= rule.yearMin)) continue;
+    if (rule.yearMax !== undefined && !(year <= rule.yearMax)) continue;
+    for (const [key, note] of Object.entries(rule.features)) {
+      if (!result.has(key)) result.set(key, note);
     }
-  }
-  if (make === "mercedes benz" && model.startsWith("eqs") && year >= 2022) {
-    result.set("adaptive_cruise_lane_centering", "EQS Driver Assistance includes DISTRONIC and Active Steering Assist; verify the market-specific build sheet.");
-    result.set("rear_axle_steering", "EQS rear-axle steering is expected for this model year; verify the fitted steering angle and activation on the VIN build sheet.");
-    result.set("air_suspension", "AIRMATIC is expected on the EQS; verify the VIN build sheet and suspension condition.");
-  }
-  if (make === "mercedes benz" && model.includes("gls")) {
-    result.set("third_row", "The GLS is a standard three-row SUV; verify the seating configuration in listing photos.");
-    result.set("air_suspension", "AIRMATIC is expected on the GLS; verify the VIN build sheet and suspension condition.");
-  }
-  if (make === "acura" && model === "mdx") {
-    result.set("third_row", "The MDX includes a third row; verify the exact second-row configuration and car-seat access.");
-  }
-  if (make === "volvo" && model === "xc90") {
-    result.set("third_row", "The XC90 is normally configured with a third row; verify seating count on the listing.");
-  }
-  if (make === "cadillac" && model === "escalade") {
-    result.set("third_row", "The Escalade includes three-row seating; verify the exact second-row configuration.");
   }
   return result;
 }
@@ -246,6 +326,22 @@ function detailStrings(detail) {
     ...flattenStrings(detail?.extra?.options_packages),
     ...flattenStrings(detail?.build?.options),
     ...flattenStrings(detail?.build?.features),
+  ], 200, 500);
+}
+
+// Search-response text (dealer headings, summary arrays) is provider-authored but is not
+// window-sticker-grade, so it can only ever produce `expected` evidence — never `confirmed`.
+function summaryStrings(listing) {
+  return uniqueStrings([
+    ...flattenStrings(listing?.heading),
+    ...flattenStrings(listing?.title),
+    ...flattenStrings(listing?.summaryTexts),
+    ...flattenStrings(listing?.extra?.options),
+    ...flattenStrings(listing?.extra?.features),
+    ...flattenStrings(listing?.extra?.high_value_features),
+    ...flattenStrings(listing?.extra?.options_packages),
+    ...flattenStrings(listing?.build?.options),
+    ...flattenStrings(listing?.build?.features),
   ], 200, 500);
 }
 
@@ -317,11 +413,11 @@ function normalizedGarageGroup(explicit, profile, offerKind, powertrain) {
   return "other";
 }
 
-function daysOnMarket(detail) {
+function daysOnMarket(detail, listing) {
   const firstSeen = detail?.first_seen_at_mc_date ?? detail?.first_seen_at_source_date;
-  if (!firstSeen) return null;
+  if (!firstSeen) return boundedInteger(listing?.dom, 0, 10_000);
   const timestamp = new Date(firstSeen).getTime();
-  if (!Number.isFinite(timestamp)) return null;
+  if (!Number.isFinite(timestamp)) return boundedInteger(listing?.dom, 0, 10_000);
   return Math.max(0, Math.floor((Date.now() - timestamp) / 86_400_000));
 }
 

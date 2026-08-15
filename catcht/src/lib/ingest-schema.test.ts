@@ -254,3 +254,39 @@ describe("ingestCandidateSchema", () => {
     }).success).toBe(false);
   });
 });
+
+describe("summary-tier feature evidence", () => {
+  const summaryEvidence = {
+    key: "adaptive_cruise_lane_centering",
+    label: "Adaptive cruise + lane centering",
+    status: "expected",
+    source: "provider_summary",
+    evidence: 'Listing summary: "Driving Assistance Professional" — confirm on the window sticker.',
+  };
+
+  it("accepts expected-tier evidence sourced from provider summary text", () => {
+    expect(ingestCandidateSchema.safeParse({
+      ...candidate,
+      garageGroup: "gas",
+      powertrainCategory: "gas",
+      featureEvidence: [summaryEvidence],
+    }).success).toBe(true);
+  });
+
+  it("rejects confirmed status from any source except provider detail evidence", () => {
+    for (const source of ["provider_summary", "model_rule", "search_target"]) {
+      expect(ingestCandidateSchema.safeParse({
+        ...candidate,
+        garageGroup: "gas",
+        powertrainCategory: "gas",
+        featureEvidence: [{ ...summaryEvidence, status: "confirmed", source }],
+      }).success).toBe(false);
+    }
+    expect(ingestCandidateSchema.safeParse({
+      ...candidate,
+      garageGroup: "gas",
+      powertrainCategory: "gas",
+      featureEvidence: [{ ...summaryEvidence, status: "confirmed", source: "provider_listing" }],
+    }).success).toBe(true);
+  });
+});

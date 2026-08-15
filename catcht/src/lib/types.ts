@@ -36,7 +36,7 @@ export type VehicleFeatureKey =
   | "surround_view"
   | "tow_package";
 export type FeatureEvidenceStatus = "confirmed" | "expected" | "unknown";
-export type FeatureEvidenceSource = "provider_listing" | "model_rule" | "search_target";
+export type FeatureEvidenceSource = "provider_listing" | "provider_summary" | "model_rule" | "search_target";
 export type EnrichmentStatus = "not_requested" | "enriched" | "budget_deferred" | "unavailable" | "failed";
 
 export interface VehicleFeatureEvidence {

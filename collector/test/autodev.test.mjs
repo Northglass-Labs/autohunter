@@ -174,3 +174,24 @@ test("emits a match for every owned search that accepts the same Auto.dev vehicl
   assert.deepEqual(result.offers.map((offer) => offer.searchId).sort(), ["owner-one-r1s", "owner-two-r1s"]);
   assert.equal(new Set(result.offers.map((offer) => offer.sourceListingId)).size, 1);
 });
+
+test("marks retail-description equipment as expected-tier summary evidence without a detail call", () => {
+  const towSearch = { ...search, desiredFeatures: ["tow_package", "hands_free_highway"] };
+  const candidate = normalizeAutoDevListing({
+    ...providerListing,
+    retailListing: {
+      ...providerListing.retailListing,
+      description: "One-owner R1S with factory tow package and premium interior.",
+    },
+  }, towSearch, new Date("2026-08-10T12:00:00.000Z"), {
+    zipLookup: () => ({ latitude: 40, longitude: -75 }),
+  });
+
+  assert.ok(candidate);
+  const evidence = Object.fromEntries(candidate.featureEvidence.map((feature) => [feature.key, feature]));
+  assert.equal(evidence.tow_package.status, "expected");
+  assert.equal(evidence.tow_package.source, "provider_summary");
+  assert.notEqual(evidence.hands_free_highway.status, "confirmed");
+  assert.equal(candidate.enrichmentStatus, "not_requested");
+  assert.equal("summaryTexts" in candidate, false);
+});

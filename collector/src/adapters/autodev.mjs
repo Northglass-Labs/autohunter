@@ -143,9 +143,11 @@ export function normalizeAutoDevListing(listing, search, now = new Date(), { zip
       body_type: cleanText(vehicle.bodyStyle, 100),
       seating_capacity: integer(vehicle.seats),
     },
+    summaryTexts: [cleanText(retail.description, 2_000)].filter(Boolean),
   };
   const intelligence = inferVehicleIntelligence(candidate, search, null, { enrichmentStatus: "not_requested" });
   delete candidate.build;
+  delete candidate.summaryTexts;
   return Object.assign(candidate, intelligence);
 }
 
