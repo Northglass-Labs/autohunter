@@ -128,7 +128,7 @@ export function SavedSearchPanel({ searches }: SavedSearchPanelProps) {
             </>
           )}
           <label className="span-2">Desired features<input name="desiredFeatures" placeholder="hands_free_highway, rear_axle_steering" /></label>
-          <label className="span-2">Required features, optional<input name="requiredFeatures" placeholder="adaptive_cruise_lane_centering" /></label>
+          <label className="span-2">Required features, optional — hides offers without confirmed or expected evidence<input name="requiredFeatures" placeholder="adaptive_cruise_lane_centering" /></label>
           <label className="span-2">Why it belongs<textarea name="rationale" maxLength={500} placeholder="Family utility, highway tech, driving character, and value thesis." /></label>
           <label>Priority (0–100)<input name="priority" inputMode="numeric" placeholder="80" /></label>
         </div>

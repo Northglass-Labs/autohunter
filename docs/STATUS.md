@@ -1,6 +1,39 @@
 # AutoHunter status
 
-Updated 2026-08-10. This is the live progress record for the Northglass rebuild.
+Updated 2026-08-15. This is the live progress record for the Northglass rebuild.
+
+## Feature-evidence coverage sprint (2026-08-15)
+
+- Repaired the local `car-hunt` → `autohunt` folder-rename fallout: 1pass-agent-plugin profile
+  working directories and stale integrity pins were re-pointed and re-pinned to reviewed `main`
+  content, the superseded `dev.car-hunt.email-alert-importer` and `dev.catcht.collector`
+  LaunchAgents were booted out and archived, and the local Supabase kong/edge containers were
+  recreated so their bind mounts leave the dead path. Repo, remotes, Vercel, DNS, and the daily
+  GitHub Actions cycle were unaffected.
+- Added the `provider_summary` evidence tier per ADR-015: feature patterns now run over provider
+  search-response text (dealer headings, summary option arrays, Auto.dev retail descriptions) and
+  can mark equipment `expected` on every accepted listing in the first pass. `confirmed` remains
+  detail-evidence-only and the ingest contract now rejects confirmed evidence from any other
+  source.
+- Fixed dropped MarketCheck search-response fields: `std_seating`, root-level `carfax_1_owner`,
+  `carfax_clean_title`, `exterior_color`, `interior_color`, and `dom` now populate seating, owner,
+  title, color, and days-on-market intelligence without a detail fetch.
+- Replaced the expected-equipment rule ladder with the exported declarative
+  `EXPECTED_EQUIPMENT_RULES` table and extended precise factory-standard coverage to the lease
+  targets (Lexus TX, Grand Highlander, CX-90, Telluride, Palisade, Aviator), SQ7, GV80, XC90
+  Pilot Assist, MDX Type S, TX 500h Dynamic Rear Steering, and 2021+ GLS surround view.
+- Broadened ADAS recognition: BlueCruise and ProPILOT Assist 2.x are hands-free when explicitly
+  evidenced; bare ProPILOT Assist, Travel Assist, InnoDrive, and Active Driving Assistant Pro are
+  hands-on lane centering; verified BMW package codes ZDH/ZDY/5AU decode alongside 2VH.
+- `required_features` is now a real eligibility gate with the visible reason
+  `required_feature_missing` (satisfied by confirmed or expected evidence; benchmarks and market
+  signals stay visible). All stored searches currently have empty required features, so behavior
+  changes only when an owner opts in.
+- The MarketCheck detail budget now targets upgrade value (summary-expected features first) instead
+  of cheapest-first, so the three daily detail fetches land where they can newly confirm equipment.
+- Verification for this sprint: collector 102/102 tests; web 116/116 unit tests, ESLint,
+  TypeScript + production build, 30/30 pgTAP assertions, 12/12 desktop/mobile Playwright stories;
+  both production dependency audits report zero vulnerabilities.
 
 ## Active objective
 
@@ -111,8 +144,9 @@ truthfully.
   redirects, sign-out, queue actions, search creation, invitation, ownership transfer, real HTTPS
   images/links, report archive, and cross-user isolation.
 - GitHub CI requires those database and browser stories in addition to unit, lint, build, and
-  dependency gates. Actions are commit-pinned and checkout credentials are not persisted. Public
-  run `31374662816` passed all three web, collector, and database/browser jobs.
+  dependency gates. Actions are commit-pinned and checkout credentials are not persisted. Final
+  main run `31383917236` passed all three web, collector, and database/browser jobs on production
+  commit `cb8805f5040a4b8dfbfecf51383e4dddba5c630c`.
 - Next.js lint, TypeScript, and optimized production build pass.
 - Collector: 89 tests pass, including the fixed 45-day authorized-mail lookback and both sides of
   the fail-closed legacy-browser permission gate.
@@ -134,8 +168,11 @@ truthfully.
 - The additive migrations are applied to the existing Supabase project. The private application
   role is least-privilege; deletion and Auth-token mutation attempts are denied. Its historical
   internal identifier remains only because the encrypted production URL cannot be reconstructed.
-- The dashboard currently has 165 canonical licensed listings, all with source links and 164 with a
-  primary listing photograph, plus per-user matches and source-health evidence.
+- At the final 2026-08-10 cutover audit, the dashboard retained 182 canonical licensed listings,
+  all with source links and 181 with a primary listing photograph, plus per-user matches and
+  source-health evidence. Treat these as a dated snapshot and query production before quoting a
+  current inventory count.
+- Two green Uptime Kuma monitors watch the canonical origin against the production revision.
 - Anonymous `/` redirects to `/login`; the login page returns 200; collector, ingest, and digest
   routes reject missing machine credentials; security headers are present.
 - A browser accessibility audit found no WCAG A/AA violations. One automated contrast check remains
@@ -155,6 +192,13 @@ truthfully.
 4. The recurring 1Password desktop prompt is isolated to the optional legacy desktop CLI
    integration. Disabling that setting requires a fresh explicit user confirmation; unattended
    Codex, Claude, and Hermes paths no longer rely on it.
+5. **Blocked (2026-08-15):** the 1Password Environment backing the `kind: environment` profiles
+   reports `environment_unavailable`, so the daily 05:45 Hermes Gmail lease import fails even
+   though its profile paths and pins are repaired (last successful import 2026-08-10, ~30 days
+   after setup — service-account expiry is the prime suspect). Renew the service account or
+   re-grant Environment access in the 1Password web UI, run the
+   `autohunter-production-email-importer` profile once, and confirm a fresh
+   `gog-authorized-email-v1` row in `catcht.source_runs`.
 
 ## Operating boundaries
 

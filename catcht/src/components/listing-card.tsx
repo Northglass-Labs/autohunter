@@ -219,7 +219,7 @@ function enrichmentLabel(status: Listing["enrichmentStatus"]) {
   if (status === "enriched") return "Listing packages and features inspected";
   if (status === "budget_deferred") return "Base listing saved; package detail queued for a later cycle";
   if (status === "unavailable" || status === "failed") return "Package detail unavailable; unknown equipment stays unknown";
-  return "Model-year rules shown as expected; listing evidence still needed";
+  return "Model-year rules and listing-summary text shown as expected; window-sticker evidence still needed";
 }
 
 function sourceLabel(source: string) {

@@ -359,3 +359,69 @@ describe("shouldRecommend", () => {
     expect(shouldRecommend({ ...verified, price: 13_000 }, { disposition: "neutral", lastEmailedAt: recent, lastEmailedPrice: 14_200 })).toBe(true);
   });
 });
+
+describe("required feature gate", () => {
+  const base = {
+    ...verified,
+    offerKind: "used" as const,
+    make: "BMW",
+    model: "X5",
+    transmissionClaim: "Automatic",
+    price: 58_000,
+    mileage: 22_000,
+    distanceMiles: 40,
+    requiresManualVerification: false,
+    manualEvidence: [],
+  };
+  const policy = {
+    offerKind: "used" as const,
+    make: "BMW",
+    model: "X5",
+    transmission: "automatic" as const,
+    radiusMiles: 100,
+    maxPrice: 70_000,
+    maxMileage: 80_000,
+    requiredFeatures: ["third_row"] as const,
+  };
+  const evidence = (status: "confirmed" | "expected" | "unknown") => [{
+    key: "third_row" as const,
+    label: "Third row",
+    status,
+    source: status === "confirmed" ? ("provider_listing" as const) : status === "expected" ? ("model_rule" as const) : ("search_target" as const),
+    evidence: "test evidence",
+  }];
+
+  it("rejects an active offer whose required feature has no credible evidence", () => {
+    expect(evaluateOffer({ ...base, featureEvidence: evidence("unknown") }, policy))
+      .toMatchObject({ eligible: false, reason: "required_feature_missing" });
+    expect(evaluateOffer({ ...base, featureEvidence: [] }, policy))
+      .toMatchObject({ eligible: false, reason: "required_feature_missing" });
+  });
+
+  it("accepts confirmed or expected evidence for a required feature", () => {
+    expect(evaluateOffer({ ...base, featureEvidence: evidence("confirmed") }, policy)).toMatchObject({ eligible: true });
+    expect(evaluateOffer({ ...base, featureEvidence: evidence("expected") }, policy)).toMatchObject({ eligible: true });
+  });
+
+  it("leaves offers without a required-feature policy unaffected", () => {
+    expect(evaluateOffer({ ...base, featureEvidence: evidence("unknown") }, { ...policy, requiredFeatures: [] }))
+      .toMatchObject({ eligible: true });
+  });
+
+  it("does not gate lease benchmarks that exist only as negotiation context", () => {
+    const benchmark = {
+      ...base,
+      offerKind: "lease" as const,
+      condition: "new" as const,
+      offerRole: "benchmark" as const,
+      price: null,
+      mileage: null,
+      monthlyPayment: 620,
+      dueAtSigning: 2_500,
+      termMonths: 36,
+      parseConfidence: 0.9,
+      featureEvidence: evidence("unknown"),
+    };
+    expect(evaluateOffer(benchmark, { ...policy, offerKind: "lease" as const }).eligible).toBe(true);
+  });
+});

@@ -21,6 +21,8 @@ exact endorsement **a Northglass Product**.
 - Never mark a benchmark or market signal as a current lease offer.
 - Never turn generic adaptive cruise or lane-departure warning text into lane centering or
   hands-free capability. Equipment is `confirmed`, `expected`, or `unknown` with evidence.
+  Summary text (headings, descriptions) marks at most `expected`; only listing-detail evidence
+  confirms, and `EXPECTED_EQUIPMENT_RULES` entries must be factory-standard fitment only.
 - Recheck make/model/trim/year/price/mileage/radius and lease limits after provider normalization.
 - Keep provider queries bounded, cache shared detail requests, expire stale offers, and preserve
   one per-search match when one canonical vehicle fits multiple users.

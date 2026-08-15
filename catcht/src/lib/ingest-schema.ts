@@ -53,8 +53,16 @@ const featureEvidenceSchema = z.object({
   key: featureKeySchema,
   label: z.string().trim().min(1).max(100),
   status: z.enum(["confirmed", "expected", "unknown"]),
-  source: z.enum(["provider_listing", "model_rule", "search_target"]),
+  source: z.enum(["provider_listing", "provider_summary", "model_rule", "search_target"]),
   evidence: z.string().trim().min(1).max(500),
+}).superRefine((evidence, context) => {
+  if (evidence.status === "confirmed" && evidence.source !== "provider_listing") {
+    context.addIssue({
+      code: "custom",
+      path: ["source"],
+      message: "Confirmed equipment requires provider detail evidence",
+    });
+  }
 });
 
 const safetyRatingSchema = z.number().int().min(1).max(5).nullable();

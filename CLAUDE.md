@@ -29,11 +29,14 @@ typed report contract represented in `/reports`; email decision links require a 
 - `active_offer` means current and economically comparable.
 - `benchmark` means a completed deal useful for negotiation, never available inventory.
 - `market_signal` means relevant but economically incomplete research.
-- Equipment is confirmed only from provider detail/window-sticker-like evidence. Exact model-year
-  rules may mark expected equipment; everything else stays unknown.
-- Audi adaptive cruise assist, Genesis HDA II, Volvo Pilot Assist, and Porsche InnoDrive are
-  hands-on systems. Cadillac Super Cruise, BMW Highway Assistant, and supported Rivian Enhanced
-  Highway Assist can be hands-free only when explicitly evidenced or precisely model-year expected.
+- Equipment is confirmed only from provider detail/window-sticker-like evidence. Provider summary
+  text (headings, descriptions) and exact model-year rules may mark expected equipment; everything
+  else stays unknown. The ingest contract rejects confirmed evidence from any other source.
+- Audi adaptive cruise assist, Genesis HDA (any generation), Volvo Pilot Assist, Porsche InnoDrive,
+  VW Travel Assist, bare Nissan ProPILOT Assist, and BMW Active Driving Assistant Pro are hands-on
+  systems. Cadillac Super Cruise, BMW Highway Assistant, Ford/Lincoln BlueCruise, Nissan ProPILOT
+  Assist 2.x, and supported Rivian Enhanced Highway Assist can be hands-free only when explicitly
+  evidenced or precisely model-year expected.
 - Source failure, entitlement limits, and radius/query caps are visible states—not empty success.
 - NHTSA ratings are conservative model-group context. Model-year campaign counts never imply that a
   specific VIN has an unrepaired recall; only the linked official VIN check establishes that.

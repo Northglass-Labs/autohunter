@@ -314,9 +314,14 @@ export async function runMarketCheckAdapter({
     }
   }
 
+  // Spend the metered detail budget where it can change evidence: summary-expected features can
+  // upgrade to confirmed, unknown features can still resolve, already-confirmed features gain nothing.
+  const upgradeValue = (offer) => (offer.featureEvidence ?? [])
+    .reduce((sum, feature) => sum + (feature.status === "expected" ? 2 : feature.status === "unknown" ? 1 : 0), 0);
   const enrichmentCandidates = offers
     .filter((offer) => hasVehicleIntelligence(searchesById.get(offer.searchId) ?? {}))
-    .sort((left, right) => (searchesById.get(right.searchId)?.priority ?? 0) - (searchesById.get(left.searchId)?.priority ?? 0)
+    .sort((left, right) => upgradeValue(right) - upgradeValue(left)
+      || (searchesById.get(right.searchId)?.priority ?? 0) - (searchesById.get(left.searchId)?.priority ?? 0)
       || (left.price ?? Number.POSITIVE_INFINITY) - (right.price ?? Number.POSITIVE_INFINITY));
   const boundedDetailLimit = Math.max(0, Math.min(20, detailFetchLimit));
   const detailCache = new Map();
