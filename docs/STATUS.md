@@ -5,7 +5,7 @@ Updated 2026-08-15 (evening pass). This is the live progress record for the Nort
 ## Queue controls and source coverage (2026-08-15, third pass)
 
 - Added shareable queue price caps with separate purchase-price and effective-monthly lease
-  boundaries. Malformed URL values fail closed, missing prices do not slip through an active cap,
+  boundaries. Malformed URL values are rejected, missing prices do not slip through an active cap,
   and unlike economics are never compared.
 - Added touch and pointer review gestures in the Finds and Pending queues: right records
   Interested and left records Pass through the existing authenticated disposition action. Vertical
