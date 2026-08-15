@@ -144,8 +144,9 @@ truthfully.
   redirects, sign-out, queue actions, search creation, invitation, ownership transfer, real HTTPS
   images/links, report archive, and cross-user isolation.
 - GitHub CI requires those database and browser stories in addition to unit, lint, build, and
-  dependency gates. Actions are commit-pinned and checkout credentials are not persisted. Public
-  run `31374662816` passed all three web, collector, and database/browser jobs.
+  dependency gates. Actions are commit-pinned and checkout credentials are not persisted. Final
+  main run `31383917236` passed all three web, collector, and database/browser jobs on production
+  commit `cb8805f5040a4b8dfbfecf51383e4dddba5c630c`.
 - Next.js lint, TypeScript, and optimized production build pass.
 - Collector: 89 tests pass, including the fixed 45-day authorized-mail lookback and both sides of
   the fail-closed legacy-browser permission gate.
@@ -167,8 +168,11 @@ truthfully.
 - The additive migrations are applied to the existing Supabase project. The private application
   role is least-privilege; deletion and Auth-token mutation attempts are denied. Its historical
   internal identifier remains only because the encrypted production URL cannot be reconstructed.
-- The dashboard currently has 165 canonical licensed listings, all with source links and 164 with a
-  primary listing photograph, plus per-user matches and source-health evidence.
+- At the final 2026-08-10 cutover audit, the dashboard retained 182 canonical licensed listings,
+  all with source links and 181 with a primary listing photograph, plus per-user matches and
+  source-health evidence. Treat these as a dated snapshot and query production before quoting a
+  current inventory count.
+- Two green Uptime Kuma monitors watch the canonical origin against the production revision.
 - Anonymous `/` redirects to `/login`; the login page returns 200; collector, ingest, and digest
   routes reject missing machine credentials; security headers are present.
 - A browser accessibility audit found no WCAG A/AA violations. One automated contrast check remains
