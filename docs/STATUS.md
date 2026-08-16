@@ -5,8 +5,10 @@ for the Northglass rebuild.
 
 ## Follow-up checkpoint (2026-08-16)
 
-- `main` remains clean and synchronized with `origin/main` at `6fdc59b`; no application behavior
-  changed during this diagnostic pass.
+- This checkpoint records a diagnostic pass performed against `6fdc59b`, when `main` was clean and
+  no application behavior had changed. It then merged as part of PR #9 (`0e0ae12`), which does
+  change behavior: failed email import cycles now post a visible `email_alert` source run with a
+  stage-coded reason instead of exiting silently.
 - The Auto.dev starter key has not been rotated yet. Current provider documentation requires the
   developer dashboard, and no controllable browser session was available. Agent-vault health is
   ready and no credential value was read, copied, or changed.
