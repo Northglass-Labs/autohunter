@@ -53,21 +53,54 @@ export async function runGogEmailCycle({
   if (typeof ingestSecret !== "string" || ingestSecret.length < 16 || ingestSecret.length > 4_096) {
     throw new Error("AutoHunter ingest credentials are unavailable");
   }
-  const searches = await remoteSearches(origin, ingestSecret, fetchImpl);
-  const messages = await readGogMessages(query, execFileImpl);
-  const result = await runEmailAlertAdapter({ messages, searches });
-  let accepted = 0;
-  if (result.offers.length === 0) {
-    accepted += await ingest(origin, ingestSecret, { candidates: [], sourceRuns: [result.run] }, fetchImpl);
-  } else {
-    for (let index = 0; index < result.offers.length; index += 50) {
-      accepted += await ingest(origin, ingestSecret, {
-        candidates: result.offers.slice(index, index + 50),
-        sourceRuns: index === 0 ? [result.run] : [],
-      }, fetchImpl);
+  const startedAt = new Date().toISOString();
+  let stage = "collector_config";
+  let runReported = false;
+  try {
+    const searches = await remoteSearches(origin, ingestSecret, fetchImpl);
+    stage = "gmail_retrieval";
+    const messages = await readGogMessages(query, execFileImpl);
+    stage = "ingest";
+    const result = await runEmailAlertAdapter({ messages, searches });
+    let accepted = 0;
+    if (result.offers.length === 0) {
+      accepted += await ingest(origin, ingestSecret, { candidates: [], sourceRuns: [result.run] }, fetchImpl);
+      runReported = true;
+    } else {
+      for (let index = 0; index < result.offers.length; index += 50) {
+        accepted += await ingest(origin, ingestSecret, {
+          candidates: result.offers.slice(index, index + 50),
+          sourceRuns: index === 0 ? [result.run] : [],
+        }, fetchImpl);
+        runReported = true;
+      }
     }
+    return { messages: messages.length, accepted, status: result.run.status };
+  } catch (error) {
+    if (!runReported) await reportFailedRun(origin, ingestSecret, startedAt, stage, fetchImpl);
+    throw error;
   }
-  return { messages: messages.length, accepted, status: result.run.status };
+}
+
+async function reportFailedRun(origin, secret, startedAt, stage, fetchImpl) {
+  try {
+    await ingest(origin, secret, {
+      candidates: [],
+      sourceRuns: [{
+        adapter: "gog-authorized-email-v1",
+        source: "email_alert",
+        status: "failed",
+        startedAt,
+        finishedAt: new Date().toISOString(),
+        searchedCount: 0,
+        discoveredCount: 0,
+        acceptedCount: 0,
+        messageCode: `${stage}_failed`,
+      }],
+    }, fetchImpl);
+  } catch {
+    // Best-effort visibility only: the original cycle error must stay primary.
+  }
 }
 
 async function readGogMessages(query, execFileImpl) {

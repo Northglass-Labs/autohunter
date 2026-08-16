@@ -1,6 +1,28 @@
 # AutoHunter status
 
-Updated 2026-08-15 (session closeout). This is the live progress record for the Northglass rebuild.
+Updated 2026-08-16 (credential and importer follow-up in progress). This is the live progress record
+for the Northglass rebuild.
+
+## Follow-up checkpoint (2026-08-16)
+
+- `main` remains clean and synchronized with `origin/main` at `6fdc59b`; no application behavior
+  changed during this diagnostic pass.
+- The Auto.dev starter key has not been rotated yet. Current provider documentation requires the
+  developer dashboard, and no controllable browser session was available. Agent-vault health is
+  ready and no credential value was read, copied, or changed.
+- The authorized Gmail boundary is healthy: GOG v0.34.0 opened its file keyring, exchanged the
+  stored OAuth refresh token successfully, and found four messages under the bounded
+  `AutoHunter/Lease Inputs` query without exposing or persisting their bodies.
+- A timestamped `autohunter-production-email-importer` run at 2026-08-16 04:07:38 UTC produced a
+  production `308` followed by `401` on `/api/collector/config`. The canonical route does not
+  redirect, so this is positive evidence that the trusted Environment's non-secret `APP_URL` still
+  targets a predecessor hostname; the redirect drops the authorization header before the canonical
+  request. The profile's integrity pins and Environment health check both pass.
+- No new `gog-authorized-email-v1` source-run row was written; the latest production row remains
+  2026-08-10 08:24:01 UTC. Resume by unlocking 1Password, confirming and replacing only `APP_URL`
+  with `https://autohunter.northglass.io`, then rerun the importer and verify a fresh source-run row.
+  Separately connect an authenticated Auto.dev dashboard session to rotate the exposed key and
+  replace it in GitHub Actions and the scoped Agent-vault item without moving it through chat.
 
 ## Session checkpoint (closed 2026-08-15)
 
@@ -249,18 +271,20 @@ truthfully.
 1. GitHub Actions now owns the daily 10:17 UTC collection cycle. Treat a missing or stale source run
    as an incident; do not re-enable the archived predecessor schedule.
 2. Auto.dev is live alongside MarketCheck. The starter key was exposed in the interrupted chat and
-   must be rotated on 2026-08-16, then replaced in both GitHub Actions and the scoped Agent-vault
-   item. The attempted macOS reminder was not created because Reminders access remained
-   `Not determined`. OEM incentives currently return healthy empty results.
+   its 2026-08-16 rotation is still pending because the provider dashboard was not available to the
+   agent. Replace it in both GitHub Actions and the scoped Agent-vault item after the interactive
+   provider rotation. The attempted macOS reminder was not created because Reminders access
+   remained `Not determined`. OEM incentives currently return healthy empty results.
 3. One photo-verification item still reports `customer_verification_required`. Inventory, queues,
    and reports correctly continue without treating it as verified equipment evidence.
 4. The recurring 1Password desktop prompt is isolated to the optional legacy desktop CLI
    integration. Disabling that setting requires a fresh explicit user confirmation; unattended
    Codex, Claude, and Hermes paths no longer rely on it.
-5. The 1Password Environment health check is healthy again, but the fixed-profile response is
-   deliberately opaque and its 2026-08-15 invocation did not produce a fresh source-run row. Keep
-   the Gmail importer on the follow-up list until a scheduled or operator-observed run records a
-   new `gog-authorized-email-v1` row in `catcht.source_runs`.
+5. The 1Password Environment and GOG OAuth checks are healthy, but a timestamped fixed-profile run
+   produced `308` then `401` at the collector-config boundary. Confirm that the Environment's
+   non-secret `APP_URL` is canonical, correct it if it still names a predecessor host, then keep the
+   Gmail importer on the follow-up list until an operator-observed run records a new
+   `gog-authorized-email-v1` row in `catcht.source_runs`.
 
 ## Operating boundaries
 
