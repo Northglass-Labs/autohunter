@@ -1,7 +1,27 @@
 # AutoHunter status
 
-Updated 2026-08-16 (credential and importer follow-up in progress). This is the live progress record
-for the Northglass rebuild.
+Updated 2026-08-20 (MarketCheck quota incident). This is the live progress record for the
+Northglass rebuild.
+
+## INCIDENT — MarketCheck monthly quota exhausted (2026-08-17 → open)
+
+- Evidence: the 2026-08-17 cycle ran dry mid-flight (inventory succeeded with 157 accepted, then
+  the incentives adapter hit `rate_limited` two calls in); every scheduled cycle since Aug 18
+  dies `rate_limited` on its first request. No MarketCheck ingest since Aug 17 10:48 UTC; the
+  remaining 146 MarketCheck listings expire ~Aug 21 10:48 UTC. Auto.dev (154 listings) and NHTSA
+  remain green, so the queue degrades to single-source rather than going dark. Listing expiry is
+  deliberate truth-keeping and is not being extended.
+- Probable cause: the 2026-08-15 `detailFetchLimit` raise (3→20; ~40 provider calls/day) plus
+  five same-day verification cycles (~200 calls) overran the plan's monthly window.
+- Mitigation shipped: `detailFetchLimit` lowered to 8 (≈28 calls/day ≈ 870/month), which still
+  converges the remaining unenriched queue in ~2–3 weeks via the enriched-skip list. Service
+  resumes automatically when the provider window resets; do not dispatch manual cycles while the
+  source is `rate_limited` (each attempt burns ~2 calls and cannot succeed).
+- Operator actions: read the actual plan tier, usage, and reset date off the MarketCheck
+  dashboard (agents cannot see it) and adjust `detailFetchLimit` to the plan's real headroom or
+  upgrade the plan if 20-detail velocity is wanted. Still outstanding alongside: the 1P
+  Environment `APP_URL` fix (email imports stuck since Aug 10) and the Auto.dev key rotation
+  (due Aug 16).
 
 ## Follow-up checkpoint (2026-08-16)
 
