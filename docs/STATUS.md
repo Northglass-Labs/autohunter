@@ -1,24 +1,53 @@
 # AutoHunter status
 
-## Active work — $40k S-Class searches including S580 (2026-09-08)
+## Completed — $40k S-Class searches including S580 (2026-09-08)
 
-Owner raised the S-Class asking-price ceiling to $40,000 and requested S580 coverage through
-2025. The S580 starts with model year 2021; preserve 2018–2020 S560/S450 searches and add a
-2021–2025 S580 sedan search. Keep existing location, radius, mileage and equipment preferences.
+The owner's S560 and S450 searches now allow up to $40,000 asking price, retaining their
+2018–2020 model years and lower preferred target prices. A new active S580 sedan search covers
+2021–2025: the S580 starts with model year 2021, despite the requested 2020 lower bound.
+All three use the existing area, 250-mile radius and provisional 120,000-mile discovery ceiling.
+S580 targets $35,000 and prioritizes evidence for rear steering, assistance, cameras and seats.
+Its gasoline/mild-hybrid feed descriptions are accepted, while S580e and wrong body/year/price/
+mileage values are rejected. W222-only package assumptions are not copied to the S580.
 
-Plan: write failing preset/provider coverage; update presets, generation-specific buying checks,
-guide and queue shortcut; verify all required gates; deploy and update only the owner's three
-Mercedes searches; run one bounded collection-only refresh and verify matches/source health.
-ADR-017 records year-band grouping so older S-Class inventory cannot occupy the S580 result cap.
-S580 fuel labels vary between gasoline and mild hybrid; exact trim/year/body filters establish
-identity without importing W222 package assumptions. No schema or authentication change is needed.
+The presets, queue shortcut and protected buying guide show the expanded hunt. S580 cards and
+emails carry inspection checks for the 48-volt system, MBUX and suspension. ADR-017 records
+separate bounded year-band queries for body-restricted searches, preserving one shared S560/S450
+request and giving S580 its own. MarketCheck single-search queries include explicit trim aliases.
+Provider request/detail budgets, authentication, schema and daily digest cadence are unchanged.
 
-Implementation checkpoint: 136 web tests, 120 collector tests, 39 pgTAP checks and all 18
-Mailpit-backed desktop/mobile browser stories pass locally. Lint/build and both production
-dependency audits pass. Failing tests first reproduced the old ceiling, missing S580 preset,
-missing S580 email checks and lost trim aliases in provider queries. The guide, queue shortcut
-and presets now show the new cap, with separate W223 inspection checks. Next: CI/release,
-owner-scoped activation and one collection-only refresh; no production searches changed yet.
+Release: [PR #14](https://github.com/Northglass-Labs/autohunter/pull/14) merged as `8be5df8`.
+Vercel production `dpl_5x8JMGkYy3zxJM8G46AjtZkcNsYS` is READY at the canonical origin. Fresh
+HTTP checks return 200 for login and redirect anonymous queue/guide requests to login. The initial
+10-minute production error/fatal log query returned no entries. A before/after row hash confirms
+all 35 unrelated saved searches unchanged; browser roles still have no private-schema access.
+
+Fresh verification: 136 web tests, 120 collector tests, 39 pgTAP checks and all 18 real
+Mailpit-backed desktop/mobile Playwright stories pass. Lint, production build and production/full
+CI dependency audits pass with zero vulnerabilities. CI run
+[34200601832](https://github.com/Northglass-Labs/autohunter/actions/runs/34200601832) passed every job.
+Failing tests first reproduced the old ceiling, missing S580 preset/email checks and lost provider
+query aliases. The mobile preset and guide were visually checked; local Supabase was stopped
+with its data preserved in Docker volumes after verification.
+
+Collection-only run [34201247661](https://github.com/Northglass-Labs/autohunter/actions/runs/34201247661)
+succeeded; the digest step was skipped and no emails were sent. Both inventory providers queried
+11 groups: MarketCheck accepted 163 candidates and Auto.dev 99. Fresh eligible S-Class matches:
+
+| Search | Matches | Asking-price range |
+|---|---:|---:|
+| S560, 2018–2020 | 22 | $23,995–$37,995 |
+| S450, 2018–2020 | 13 | $23,490–$38,995 |
+| S580, 2021–2025 | 0 | No eligible match in this refresh |
+
+Zero S580 matches is a result of this bounded inventory refresh, not a claim about the whole
+market. MarketCheck's 100-mile plan cap remains visible despite the saved 250-mile radius;
+Auto.dev completed successfully and authorized email inputs remain stale since August 10.
+The new search remains active for future scheduled collections. Buyers should verify option
+build sheets, current availability, condition and an itemized total price before pursuing a lead.
+
+The earlier W222 checkpoint below is historical; this section supersedes its $25,000 limits and
+initial four-lead count. Homarr continues to point to the same canonical app.
 
 ## Completed — W222 value hunt and product polish (2026-09-08)
 
