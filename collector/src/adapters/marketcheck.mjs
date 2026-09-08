@@ -54,6 +54,7 @@ export function buildMarketCheckGroups(searches) {
       normalizedVehicleText(search.make),
       search.zip,
       search.bodyStyle ?? "any",
+      ...(search.bodyStyle ? [search.yearMin ?? "any", search.yearMax ?? "any"] : []),
     ].join("\u0000");
     const existing = groups.get(key) ?? {
       offerKind: search.offerKind,
@@ -113,7 +114,9 @@ export function buildMarketCheckUrl(searchOrGroup, { apiKey, rows = 20, maximumR
     sort_by: "price",
     sort_order: "asc",
   };
-  if (searches.length === 1 && searches[0].trim) params.trim = searches[0].trim;
+  if (searches.length === 1 && searches[0].trim) {
+    params.trim = [...new Set([searches[0].trim, ...(searches[0].trimAliases ?? [])])].join(",");
+  }
   if (maximumPrice !== null) params.price_range = `0-${maximumPrice}`;
   if (group.offerKind === "used" && maximumMileage !== null) params.miles_range = `0-${maximumMileage}`;
   if (minimumYear !== null || maximumYear !== null) {

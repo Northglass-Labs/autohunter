@@ -2,28 +2,38 @@ import { expect, test, type APIRequestContext, type Page } from "@playwright/tes
 
 const mailpitUrl = process.env.MAILPIT_URL ?? "http://127.0.0.1:55424";
 
-test("S-Class presets expose readable equipment controls and save a private sedan hunt", async ({ page, request }, testInfo) => {
-  await signIn(page, request, "admin@example.test");
-  await page.getByRole("button", { name: "Use S560 preset" }).click();
-  await expect(page.getByLabel("Max price", { exact: true })).toHaveValue("25000");
-  await expect(page.getByLabel("Body style", { exact: true })).toHaveValue("sedan");
-  await expect(page.getByRole("checkbox", { name: "Apple CarPlay", exact: true })).toBeChecked();
-  await expect(page.getByRole("checkbox", { name: "Ventilated front seats", exact: true })).toBeChecked();
-  await page.locator(".search-form").screenshot({ path: testInfo.outputPath("s560-preset.png") });
-  await page.getByLabel("Search name").fill(`S560 value ${testInfo.project.name}`);
-  await page.getByLabel("ZIP code").fill("10001");
-  await page.getByRole("button", { name: /add saved search/i }).click();
-  await expect(page.getByRole("status")).toContainText("now on the radar");
-  await page.reload();
-  const saved = page.locator(".saved-search", { hasText: `S560 value ${testInfo.project.name}` });
-  await expect(saved).toContainText("sedan");
-  await expect(saved).toContainText("$25,000");
-  await page.getByRole("link", { name: "W222 buying guide" }).first().click();
-  await expect(page.getByRole("heading", { name: "The S-Class value hunt" })).toBeVisible();
-  await expect(page.getByText(/independent inspection/i).first()).toBeVisible();
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
-  await page.screenshot({ path: testInfo.outputPath("w222-guide.png"), fullPage: true });
-});
+for (const variant of ["560", "580"] as const) {
+  test(`S${variant} preset exposes equipment controls and saves a private sedan hunt`, async ({ page, request }, testInfo) => {
+    await signIn(page, request, "admin@example.test");
+    await page.getByRole("button", { name: `Use S${variant} preset` }).click();
+    await expect(page.getByLabel("Max price", { exact: true })).toHaveValue("40000");
+    await expect(page.getByLabel("Minimum model year")).toHaveValue(variant === "580" ? "2021" : "2018");
+    await expect(page.getByLabel("Maximum model year")).toHaveValue(variant === "580" ? "2025" : "2020");
+    await expect(page.getByLabel("Body style", { exact: true })).toHaveValue("sedan");
+    await expect(page.getByRole("checkbox", { name: "Apple CarPlay", exact: true })).toBeChecked();
+    await expect(page.getByRole("checkbox", { name: "Ventilated front seats", exact: true })).toBeChecked();
+    if (variant === "580") {
+      await expect(page.getByRole("checkbox", { name: "Rear-axle steering", exact: true })).toBeChecked();
+      await expect(page.getByRole("checkbox", { name: "MAGIC BODY CONTROL", exact: true })).not.toBeChecked();
+    }
+    await page.locator(".search-form").screenshot({ path: testInfo.outputPath(`s${variant}-preset.png`) });
+    await page.getByLabel("Search name").fill(`S${variant} value ${testInfo.project.name}`);
+    await page.getByLabel("ZIP code").fill("10001");
+    await page.getByRole("button", { name: /add saved search/i }).click();
+    await expect(page.getByRole("status")).toContainText("now on the radar");
+    await page.reload();
+    const saved = page.locator(".saved-search", { hasText: `S${variant} value ${testInfo.project.name}` });
+    await expect(saved).toContainText("sedan");
+    await expect(saved).toContainText("$40,000");
+    await expect(saved).toContainText(variant === "580" ? "2021–2025" : "2018–2020");
+    await page.getByRole("link", { name: "S-Class buying guide" }).first().click();
+    await expect(page.getByRole("heading", { name: "The S-Class value hunt" })).toBeVisible();
+    await expect(page.getByText(/independent inspection/i).first()).toBeVisible();
+    await expect(page.getByRole("heading", { name: "S580: the newer W223" })).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    await page.screenshot({ path: testInfo.outputPath("w222-guide.png"), fullPage: true });
+  });
+}
 
 test("anonymous visitors are sent to the invite-only magic-link screen", async ({ page }) => {
   await page.goto("/");

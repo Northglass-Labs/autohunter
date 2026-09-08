@@ -4,7 +4,7 @@ import { useActionState, useState } from "react";
 import { addSavedSearchAction, setSavedSearchActiveAction, type AddSavedSearchState } from "@/app/actions";
 import type { SavedSearch } from "@/lib/dal";
 import Link from "next/link";
-import { w222Preset } from "@/lib/search-presets";
+import { sClassPreset } from "@/lib/search-presets";
 import { BODY_STYLES, VEHICLE_FEATURE_KEYS, VEHICLE_FEATURE_LABELS } from "@/lib/vehicle-features";
 import type { VehicleFeatureKey } from "@/lib/types";
 
@@ -17,15 +17,15 @@ interface SavedSearchPanelProps {
 export function SavedSearchPanel({ searches }: SavedSearchPanelProps) {
   const [offerKind, setOfferKind] = useState<SavedSearch["offerKind"]>("used");
   const [garageGroup, setGarageGroup] = useState<SavedSearch["garageGroup"]>("other");
-  const [preset, setPreset] = useState<ReturnType<typeof w222Preset> | null>(null);
+  const [preset, setPreset] = useState<ReturnType<typeof sClassPreset> | null>(null);
   const [formVersion, setFormVersion] = useState(0);
   const [desired, setDesired] = useState<VehicleFeatureKey[]>([]);
   const [required, setRequired] = useState<VehicleFeatureKey[]>([]);
   const [state, formAction, pending] = useActionState(addSavedSearchAction, initialState);
   const isLease = offerKind === "lease";
   const existingLocation = searches.find((search) => search.offerKind === "used" && search.active && search.zip);
-  function applyPreset(variant: "560" | "450") {
-    const next = w222Preset(variant);
+  function applyPreset(variant: "560" | "450" | "580") {
+    const next = sClassPreset(variant);
     setPreset(next);
     setDesired(next.desiredFeatures ?? []);
     setRequired([]);
@@ -44,10 +44,10 @@ export function SavedSearchPanel({ searches }: SavedSearchPanelProps) {
           every enabled source, remembers your decisions, and only resurfaces meaningful changes.
         </p>
         <div className="search-presets" aria-label="Search presets">
-          <strong>S-Class under $25k</strong>
-          <p>2018–2020 sedans. Start with the V8 S560 or compare the V6 S450. Options stay on the checklist until there is evidence.</p>
-          <div><button type="button" onClick={() => applyPreset("560")}>Use S560 preset</button><button type="button" onClick={() => applyPreset("450")}>Use S450 preset</button></div>
-          <Link href="/guides/w222">W222 buying guide</Link>
+          <strong>S-Class under $40k</strong>
+          <p>2018–2020 S560/S450 or 2021–2025 S580 sedans. Options stay on the checklist until there is evidence.</p>
+          <div><button type="button" onClick={() => applyPreset("560")}>Use S560 preset</button><button type="button" onClick={() => applyPreset("580")}>Use S580 preset</button><button type="button" onClick={() => applyPreset("450")}>Use S450 preset</button></div>
+          <Link href="/guides/w222">S-Class buying guide</Link>
         </div>
         <div className="saved-search-list" aria-label="Saved searches">
           {searches.map((search) => {

@@ -1,5 +1,25 @@
 # AutoHunter status
 
+## Active work — $40k S-Class searches including S580 (2026-09-08)
+
+Owner raised the S-Class asking-price ceiling to $40,000 and requested S580 coverage through
+2025. The S580 starts with model year 2021; preserve 2018–2020 S560/S450 searches and add a
+2021–2025 S580 sedan search. Keep existing location, radius, mileage and equipment preferences.
+
+Plan: write failing preset/provider coverage; update presets, generation-specific buying checks,
+guide and queue shortcut; verify all required gates; deploy and update only the owner's three
+Mercedes searches; run one bounded collection-only refresh and verify matches/source health.
+ADR-017 records year-band grouping so older S-Class inventory cannot occupy the S580 result cap.
+S580 fuel labels vary between gasoline and mild hybrid; exact trim/year/body filters establish
+identity without importing W222 package assumptions. No schema or authentication change is needed.
+
+Implementation checkpoint: 136 web tests, 120 collector tests, 39 pgTAP checks and all 18
+Mailpit-backed desktop/mobile browser stories pass locally. Lint/build and both production
+dependency audits pass. Failing tests first reproduced the old ceiling, missing S580 preset,
+missing S580 email checks and lost trim aliases in provider queries. The guide, queue shortcut
+and presets now show the new cap, with separate W223 inspection checks. Next: CI/release,
+owner-scoped activation and one collection-only refresh; no production searches changed yet.
+
 ## Completed — W222 value hunt and product polish (2026-09-08)
 
 Production: PR #12 (`ed630bf`) and the dealer-title follow-up PR #13 (`7496c0e`) are merged.
