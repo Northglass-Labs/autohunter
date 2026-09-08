@@ -32,7 +32,8 @@ plain-text candidates, price changes, inspection guidance and honest source fres
 
 Release gate: 131 web unit tests, 116 collector tests, 39 pgTAP checks, and all 16 Mailpit-backed
 desktop/mobile Playwright stories pass; lint and production build pass. Both production dependency
-audits report zero vulnerabilities after updating the collector's transitive Browserslist to 4.28.9.
+audits report zero vulnerabilities after updating transitive Browserslist to 4.28.9 in both trees.
+The broader CI audit also required the same patch in web development tooling; it is now clean.
 New coverage also rejects DISTRONIC plus lane-keeping alone as proof of lane centering. The live
 additive migration is recorded as `20260908064749_w222_body_style`; browser roles still have no
 `catcht` schema access and all 35 pre-existing searches are preserved. Owner-specific activation
