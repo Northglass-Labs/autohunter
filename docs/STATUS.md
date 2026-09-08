@@ -2,6 +2,19 @@
 
 ## Active work — W222 value hunt and product polish (2026-09-08)
 
+Live checkpoint: PR #12 merged as `ed630bf`; Vercel production deployment
+`dpl_GfVYyc71hoaSWM7FijbwtGPksKZH` is READY on the canonical origin. Protected guide redirects
+anonymous visitors to login; the post-deploy runtime error scan is clean. Both owner-specific
+presets are active, preserving the existing area and all other users' searches.
+
+Collection-only run `34197218704` passed (digest step skipped): 10 groups per inventory provider,
+MarketCheck 132 accepted and Auto.dev 94 accepted. Four eligible W222 candidates were persisted:
+2019 S560 $23,995/106,778 miles; 2018 S560 $24,600/100,234 miles; 2020 S450
+$23,490/106,442 miles; 2018 S450 $23,790/84,053 miles. Desired option packages remain unknown;
+phone integration has explicit detail evidence. Dealer availability and condition need checking.
+Live validation exposed two URL-shaped dealer headings. A tested title fallback is being shipped
+for both future normalization and existing queue/email records; no additional provider run is needed.
+
 Objective: add well-optioned 2018–2020 S560 sedan searches below a $25,000 asking-price
 ceiling, with S450 as a companion target; validate the supplied buying guide, improve the
 search/queue/email experience, and add the production link to HomeLab Homarr.

@@ -232,7 +232,9 @@ export function normalizeMarketCheckListing(listing, search, now = new Date(), d
     make,
     model,
     trim: text(build.trim, 150),
-    title: text(listing.heading, 300) ?? `${year} ${make} ${model}`,
+    title: text(listing.heading, 300) && !/https?:\/\/|www\./i.test(listing.heading)
+      ? text(listing.heading, 300)
+      : [year, make, model, text(build.trim, 150)].filter(Boolean).join(" ").slice(0, 300),
     price,
     mileage,
     distanceMiles,
