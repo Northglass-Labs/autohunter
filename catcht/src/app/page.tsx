@@ -126,7 +126,7 @@ export default async function Home({
       </section>
 
       <div className="control-deck">
-        {models.some((model) => model.slug === "mercedes-benz-s-class") ? <div className="hunt-shortcut"><div><strong>S-Class value hunt</strong><span>2018–2020 · up to $25,000 · S560 + S450 sedans</span></div><Link href={href({ ...filters, view: "finds", lane: "gas", kind: "used", model: "mercedes-benz-s-class", maxPrice: 25000, maxMonthly: null })}>Review S-Class finds</Link><Link href="/guides/w222">W222 buying guide</Link></div> : null}
+        {models.some((model) => model.slug === "mercedes-benz-s-class") ? <div className="hunt-shortcut"><div><strong>S-Class value hunt</strong><span>S560 + S450 2018–2020 · S580 2021–2025 · up to $40,000</span></div><Link href={href({ ...filters, view: "finds", lane: "gas", kind: "used", model: "mercedes-benz-s-class", maxPrice: 40000, maxMonthly: null })}>Review S-Class finds</Link><Link href="/guides/w222">S-Class buying guide</Link></div> : null}
         <nav className="tabs" aria-label="Review queue">
           <Link className={filters.view === "finds" ? "active" : ""} href={href({ ...filters, view: "finds" })}>To review</Link>
           <Link className={filters.view === "pending" ? "active" : ""} href={href({ ...filters, view: "pending" })}>Photo pending</Link>

@@ -15,8 +15,9 @@ evidence, decisions, and report history through the rebrand.
 - Separate EV, gas/PHEV, lease, and enthusiast lanes with per-user saved searches.
 - Real listing photos and direct links to the original dealer or authorized source.
 - Hard model, trim, body-style, year, price, mileage, distance, payment, drive-off, and annual-mile filters.
-- One-click 2018–2020 S560/S450 sedan presets under $25,000, readable equipment checkboxes, and
-  a protected [W222 buying guide](https://autohunter.northglass.io/guides/w222) with Mercedes sources.
+- One-click 2018–2020 S560/S450 and 2021–2025 S580 sedan presets under $40,000, readable equipment
+  checkboxes, and a protected [S-Class buying guide](https://autohunter.northglass.io/guides/w222)
+  with Mercedes sources and separate W222/W223 checks.
 - Equipment evidence that keeps **confirmed**, **expected**, and **unknown** claims distinct.
 - Explicit recognition of manufacturer systems such as BMW Highway Assistant, Cadillac Super
   Cruise, Rivian Enhanced Highway Assist, Audi adaptive cruise assist, Genesis HDA II, Volvo Pilot

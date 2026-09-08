@@ -58,6 +58,17 @@ const listing: ListingCard = {
 };
 
 describe("renderDigestEmail", () => {
+  it("includes generation-appropriate S580 checks in HTML and plain text", () => {
+    const s580: ListingCard = { ...listing, title: "2021 Mercedes-Benz S580", make: "Mercedes-Benz", model: "S-Class",
+      trim: "S580 4MATIC", year: 2021, bodyStyle: "Sedan", price: 39900, garageGroup: "gas", powertrainCategory: "hybrid" };
+    const message = renderDigestEmail([s580], "2026-09-08", { appUrl: "https://autohunter.example.com", recipientId: "driver",
+      actionSecret: "a".repeat(32), brandName: "AutoHunter", maxPrice: 40000 });
+    for (const body of [message.html, message.text]) {
+      expect(body).toContain("48-volt");
+      expect(body).toContain("MBUX");
+      expect(body).toContain("/guides/w222");
+    }
+  });
   it("gives S-Class buyers the actual car, equipment uncertainty, price change and inspection checks in both email formats", () => {
     const s560: ListingCard = { ...listing, title: "2019 Mercedes-Benz S560 4MATIC", make: "Mercedes-Benz", model: "S-Class",
       trim: "S560 4MATIC", year: 2019, bodyStyle: "Sedan", verificationStatus: "not_applicable", garageGroup: "gas",

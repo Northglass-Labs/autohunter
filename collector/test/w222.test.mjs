@@ -17,13 +17,13 @@ const states = (listing = car, detail = null) => Object.fromEntries(
   inferVehicleIntelligence(listing, search, detail).featureEvidence.map((feature) => [feature.key, feature]),
 );
 
-test("S560 and S450 value targets keep the sedan, year and $25k boundaries", () => {
-  const targets = FAMILY_VEHICLE_TARGETS.filter((item) => item.model === "S-Class");
+test("S560 and S450 value targets keep their years and expand to the $40k ceiling", () => {
+  const targets = FAMILY_VEHICLE_TARGETS.filter((item) => item.model === "S-Class" && ["S 450", "S 560"].includes(item.trim));
   assert.equal(targets.length, 2);
   assert.deepEqual(targets.map((item) => item.trim).sort(), ["S 450", "S 560"]);
   for (const item of targets) {
     assert.equal(item.bodyStyle, "sedan");
-    assert.equal(item.maxPrice, 25000);
+    assert.equal(item.maxPrice, 40000);
     assert.equal(item.maxMileage, 120000);
     assert.equal(item.yearMin, 2018);
     assert.equal(item.yearMax, 2020);

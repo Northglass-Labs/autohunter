@@ -116,9 +116,9 @@ function target(overrides) {
 
 export const FAMILY_VEHICLE_TARGETS = Object.freeze([
   ...["560", "450"].map((variant) => target({
-    name: `S${variant} sedan under $25k`, make: "Mercedes-Benz", model: "S-Class",
+    name: `S${variant} sedan under $40k`, make: "Mercedes-Benz", model: "S-Class",
     trim: `S ${variant}`, trimAliases: [`S${variant}`], bodyStyle: "sedan",
-    yearMin: 2018, yearMax: 2020, maxPrice: 25_000, targetPrice: variant === "560" ? 22_500 : 20_000,
+    yearMin: 2018, yearMax: 2020, maxPrice: 40_000, targetPrice: variant === "560" ? 22_500 : 20_000,
     maxMileage: 120_000, profile: "family_gas", garageGroup: "gas", powertrainCategory: "gas",
     desiredFeatures: ["adaptive_cruise_lane_centering", "surround_view", "ventilated_front_seats", "massaging_front_seats",
       "apple_carplay", "android_auto", "warmth_comfort", "amg_line", "burmester_3d", "magic_body_control"],
@@ -127,6 +127,15 @@ export const FAMILY_VEHICLE_TARGETS = Object.freeze([
       ? "Facelift V8 value hunt. Prefer Driver Assistance and Premium package evidence; verify history, suspension, diagnostics and maintenance before purchase. AWD and RWD eligible."
       : "Facelift V6 companion to the S560. Prioritize equipment and condition; a low asking price does not establish low ownership cost. AWD and RWD eligible.",
   })),
+  target({
+    name: "S580 sedan under $40k", make: "Mercedes-Benz", model: "S-Class", trim: "S 580", trimAliases: ["S580", "S 580 4MATIC", "S580 4MATIC"],
+    bodyStyle: "sedan", yearMin: 2021, yearMax: 2025, maxPrice: 40_000, targetPrice: 35_000,
+    maxMileage: 120_000, profile: "family_gas", garageGroup: "gas", powertrainCategory: "any",
+    desiredFeatures: ["adaptive_cruise_lane_centering", "surround_view", "ventilated_front_seats", "massaging_front_seats",
+      "apple_carplay", "android_auto", "amg_line", "rear_axle_steering", "air_suspension"],
+    requiredFeatures: [], priority: 100,
+    rationale: "W223 S580 mild-hybrid V8 value hunt. Verify options, service history, 48-volt system, MBUX and suspension with a Mercedes specialist. Asking price excludes tax, fees and repairs.",
+  }),
   target({ name: "EQS 450+ sedan", make: "Mercedes-Benz", model: "EQS", trim: "EQS 450+", yearMin: 2022, yearMax: 2025, targetPrice: 48_000, profile: "family_ev", garageGroup: "ev", powertrainCategory: "ev", desiredFeatures: ["adaptive_cruise_lane_centering", "rear_axle_steering", "air_suspension", "surround_view"], requiredFeatures: [], priority: 82, rationale: "Huge depreciation, long-range comfort, and unusually useful rear-seat space." }),
   target({ name: "EQS 580 sedan", make: "Mercedes-Benz", model: "EQS", trim: "EQS 580 4MATIC", trimAliases: ["EQS 580"], yearMin: 2022, yearMax: 2025, targetPrice: 55_000, profile: "family_ev", garageGroup: "ev", powertrainCategory: "ev", desiredFeatures: ["adaptive_cruise_lane_centering", "rear_axle_steering", "air_suspension", "surround_view"], requiredFeatures: [], priority: 88, rationale: "Dream-adjacent luxury and performance after severe first-owner depreciation." }),
   target({ name: "EQS 450+ SUV", make: "Mercedes-Benz", model: "EQS SUV", trim: "EQS 450+", aliases: ["EQS450+ SUV"], yearMin: 2023, yearMax: 2025, targetPrice: 58_000, profile: "family_ev", garageGroup: "ev", powertrainCategory: "ev", desiredFeatures: ["adaptive_cruise_lane_centering", "rear_axle_steering", "air_suspension", "third_row", "surround_view"], requiredFeatures: [], priority: 94, rationale: "EQS comfort with the family-friendly cargo opening and optional third row." }),

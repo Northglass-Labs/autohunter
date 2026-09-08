@@ -9,7 +9,8 @@ const API_URL = "https://api.auto.dev/listings";
 export function buildAutoDevGroups(searches) {
   const groups = new Map();
   for (const search of searches.filter((candidate) => candidate.offerKind === "used" || candidate.offerKind === "new")) {
-    const key = [search.offerKind, normalized(search.make), search.zip, search.bodyStyle ?? "any"].join("\u0000");
+    const key = [search.offerKind, normalized(search.make), search.zip, search.bodyStyle ?? "any",
+      ...(search.bodyStyle ? [search.yearMin ?? "any", search.yearMax ?? "any"] : [])].join("\u0000");
     const group = groups.get(key) ?? {
       offerKind: search.offerKind,
       make: search.make,

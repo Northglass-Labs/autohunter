@@ -79,7 +79,7 @@ export function ListingCard({ listing, view }: { listing: Listing; view: Listing
 
         <details className="card-more">
           <summary>Evidence &amp; checks</summary>
-          {buyingChecks.length ? <section className="buying-checks" aria-label="S-Class buying checks"><strong>Before you pursue this S-Class</strong><ul>{buyingChecks.map((check) => <li key={check}>{check}</li>)}</ul><Link href="/guides/w222">W222 buying guide →</Link></section> : null}
+          {buyingChecks.length ? <section className="buying-checks" aria-label="S-Class buying checks"><strong>Before you pursue this S-Class</strong><ul>{buyingChecks.map((check) => <li key={check}>{check}</li>)}</ul><Link href="/guides/w222">S-Class buying guide →</Link></section> : null}
           {listing.featureEvidence.length ? <FeatureEvidence listing={listing} /> : null}
           {listing.safetyEvidence ? <SafetyEvidence listing={listing} /> : null}
           {listing.packageNames.length ? (

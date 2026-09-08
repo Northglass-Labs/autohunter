@@ -227,7 +227,7 @@ function plainTextListing(listing: ListingCard, appUrl: string) {
     listing.packageNames.length ? `Listed packages: ${listing.packageNames.join(", ")}` : null,
     ...listing.featureEvidence.map((feature) => `${feature.label}: ${feature.status} — ${feature.evidence}`),
     ...checks,
-    checks.length ? `W222 buying guide: ${appUrl}/guides/w222` : null,
+    checks.length ? `S-Class buying guide: ${appUrl}/guides/w222` : null,
     listing.safetyEvidence ? `${listing.safetyEvidence.recallCampaignCount} model-year recall campaigns; check this VIN for open status.` : null,
     listing.url,
   ].filter(Boolean).join("\n");
