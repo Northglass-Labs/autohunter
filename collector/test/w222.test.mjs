@@ -103,6 +103,13 @@ const ad = {
 };
 const auto = (listing) => normalizeAutoDevListing(listing, search, new Date(), { zipLookup: () => ({ latitude: 40, longitude: -75 }) });
 
+test("URL-shaped dealer headings fall back to the actual vehicle identity", () => {
+  for (const heading of [mc.vdp_url, "www.dealer.example/inventory/s560", "   "]) {
+    assert.equal(normalizeMarketCheckListing({ ...mc, heading }, search).title, "2019 Mercedes-Benz S-Class S 560 4MATIC");
+  }
+  assert.equal(normalizeMarketCheckListing({ ...mc, heading: "Used 2019 Mercedes-Benz S560" }, search).title, "Used 2019 Mercedes-Benz S560");
+});
+
 test("normalization accepts both S560 spellings and rejects hybrids, coupes, unknown body and hard-bound violations", () => {
   for (const trim of ["S560", "S 560", "S560 4MATIC", "S 560 4MATIC"]) {
     assert.ok(normalizeMarketCheckListing({ ...mc, build: { ...mc.build, trim } }, search), trim);

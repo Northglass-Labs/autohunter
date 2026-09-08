@@ -1,4 +1,5 @@
 import "server-only";
+import { vehicleTitle } from "./vehicle-title";
 import { getDb } from "./db";
 import type {
   CandidateOffer,
@@ -94,7 +95,7 @@ function card(row: Record<string, unknown>): ListingCard {
   return {
     id: String(row.id),
     vin: row.vin ? String(row.vin) : null,
-    title: String(row.title),
+    title: vehicleTitle(row.title, row),
     year: row.year === null || row.year === undefined ? null : Number(row.year),
     make: String(row.make),
     model: String(row.model),
@@ -1116,7 +1117,7 @@ function candidateFromRow(row: ListingRow): CandidateListing {
     make: String(row.make),
     model: String(row.model),
     trim: row.trim ? String(row.trim) : null,
-    title: String(row.title),
+    title: vehicleTitle(row.title, row),
     price: requiredNumber(row.price, "price"),
     mileage: requiredNumber(row.mileage, "mileage"),
     distanceMiles: requiredNumber(row.distance_miles, "distance_miles"),
