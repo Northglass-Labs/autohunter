@@ -1,5 +1,48 @@
 # AutoHunter status
 
+## Active work — W222 value hunt and product polish (2026-09-08)
+
+Objective: add well-optioned 2018–2020 S560 sedan searches below a $25,000 asking-price
+ceiling, with S450 as a companion target; validate the supplied buying guide, improve the
+search/queue/email experience, and add the production link to HomeLab Homarr.
+
+Plan:
+1. Validate US-market equipment against Mercedes brochures and inspect live search/source state.
+2. Write failing coverage, then add bounded sedan searches and conservative option evidence.
+3. Replace feature-code entry with readable controls; show equipment and buying checks clearly
+   in listing cards and daily emails; verify desktop and mobile flows.
+4. Run all required gates, deploy the scoped app/search changes, and verify live state.
+5. Back up Homarr, add its AutoHunter tile, verify persistence/link/icon, and reconcile HomeLab docs.
+
+Initial evidence: AutoHunter and HomeLab worktrees clean on main; hosted AutoHunter database
+active. Historical quota/importer incidents below require live verification before reuse.
+Purchase tax/fees and maintenance reserve are outside the $25,000 asking-price cap. Optional
+equipment remains unknown until supported by listing evidence; no powertrain reliability ranking
+is inferred from marketing material. No architecture rewrite is planned.
+
+Checkpoint: Mercedes 2018/2019/2020 US brochures establish standard wired smartphone integration,
+optional Premium/Driver Assistance/Warmth & Comfort/AMG Line/3D audio, and the RWD-only MAGIC
+BODY CONTROL boundary (2019/2020 S560 only). ADR-016 records explicit sedan filtering and conservative
+evidence. Both live inventory providers succeeded September 7; MarketCheck reports a 100-mile
+plan cap. The August quota incident is historical; authorized email imports remain stale since
+August 10. Fresh collector coverage passes 116 tests. New preset, body-style database, and email
+tests first reproduced failures; implementation is now in full web/database/browser validation.
+The UI has readable equipment controls and a protected buying guide; emails include complete
+plain-text candidates, price changes, inspection guidance and honest source freshness.
+
+Release gate: 131 web unit tests, 116 collector tests, 39 pgTAP checks, and all 16 Mailpit-backed
+desktop/mobile Playwright stories pass; lint and production build pass. Both production dependency
+audits report zero vulnerabilities after updating transitive Browserslist to 4.28.9 in both trees.
+The broader CI audit also required the same patch in web development tooling; it is now clean.
+New coverage also rejects DISTRONIC plus lane-keeping alone as proof of lane centering. The live
+additive migration is recorded as `20260908064749_w222_body_style`; browser roles still have no
+`catcht` schema access and all 35 pre-existing searches are preserved. Owner-specific activation
+and the Git/Vercel release are next. Manual workflow dispatch now defaults to collection only.
+
+Homarr is complete: private Home & Apps tile, all three layouts, verified backup and restart
+persistence, valid SVG/link, and no changes to old tiles. HomeLab commit `d85f2bd` records rollback
+and the unchanged 147/153 fleet baseline; authenticated visual inspection requires Homarr login.
+
 Updated 2026-08-20 (MarketCheck quota incident). This is the live progress record for the
 Northglass rebuild.
 

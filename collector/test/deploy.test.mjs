@@ -18,6 +18,9 @@ test("scheduler templates collect daily while the app owns the digest cooldown",
   assert.match(github, /^\s*schedule:\s*$/m);
   assert.match(github, /^\s*- cron: ["']17 10 \* \* \*["']\s*$/m);
   assert.match(github, /^\s*workflow_dispatch:\s*$/m);
+  assert.match(github, /collection_only:\s*\n\s+description:.*\n\s+type: boolean\s*\n\s+default: true/);
+  assert.match(github, /- run: npm run platform:collect\s*\n\s+if:.*github\.event_name == 'workflow_dispatch'.*inputs\.collection_only/);
+  assert.match(github, /- run: npm run platform:cycle\s*\n\s+if:.*github\.event_name == 'schedule'.*!inputs\.collection_only/);
   assert.match(github, /^permissions:\s*\n\s+contents: read\s*$/m);
   assert.match(github, /^\s+timeout-minutes: 15\s*$/m);
   assert.match(github, /uses: actions\/checkout@[0-9a-f]{40}/);

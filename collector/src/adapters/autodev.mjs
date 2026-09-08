@@ -1,6 +1,7 @@
 import { isIP } from "node:net";
 import zipcodes from "zipcodes";
 import { inferVehicleIntelligence } from "../vehicle-intelligence.mjs";
+import { matchesBodyStyle, matchesTrim } from "../vehicle-filters.mjs";
 import { readBoundedJson } from "../app-client.mjs";
 
 const API_URL = "https://api.auto.dev/listings";
@@ -8,7 +9,7 @@ const API_URL = "https://api.auto.dev/listings";
 export function buildAutoDevGroups(searches) {
   const groups = new Map();
   for (const search of searches.filter((candidate) => candidate.offerKind === "used" || candidate.offerKind === "new")) {
-    const key = [search.offerKind, normalized(search.make), search.zip].join("\u0000");
+    const key = [search.offerKind, normalized(search.make), search.zip, search.bodyStyle ?? "any"].join("\u0000");
     const group = groups.get(key) ?? {
       offerKind: search.offerKind,
       make: search.make,
@@ -86,7 +87,8 @@ export function normalizeAutoDevListing(listing, search, now = new Date(), { zip
   if (inventoryType !== search.offerKind
     || !matchesVehicle(make, search.make)
     || !matchesVehicle(model, search.model, search.aliases)
-    || (search.trim && !matchesVehicle(trim, search.trim, search.trimAliases))
+    || !matchesTrim(trim, search.trim, search.trimAliases)
+    || !matchesBodyStyle(vehicle.bodyStyle, search.bodyStyle)
     || (search.yearMin !== null && search.yearMin !== undefined && year < search.yearMin)
     || (search.yearMax !== null && search.yearMax !== undefined && year > search.yearMax)
     || (search.maxPrice !== null && search.maxPrice !== undefined && price > search.maxPrice)
@@ -138,6 +140,7 @@ export function normalizeAutoDevListing(listing, search, now = new Date(), { zip
       model,
       trim,
       transmission: transmissionClaim,
+      drivetrain: cleanText(vehicle.drivetrain, 100),
       fuel_type: cleanText(vehicle.fuel ?? vehicle.engine, 100),
       powertrain_type: cleanText(vehicle.fuel ?? vehicle.engine, 100),
       body_type: cleanText(vehicle.bodyStyle, 100),

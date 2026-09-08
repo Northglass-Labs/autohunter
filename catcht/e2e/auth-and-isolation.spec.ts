@@ -2,6 +2,29 @@ import { expect, test, type APIRequestContext, type Page } from "@playwright/tes
 
 const mailpitUrl = process.env.MAILPIT_URL ?? "http://127.0.0.1:55424";
 
+test("S-Class presets expose readable equipment controls and save a private sedan hunt", async ({ page, request }, testInfo) => {
+  await signIn(page, request, "admin@example.test");
+  await page.getByRole("button", { name: "Use S560 preset" }).click();
+  await expect(page.getByLabel("Max price", { exact: true })).toHaveValue("25000");
+  await expect(page.getByLabel("Body style", { exact: true })).toHaveValue("sedan");
+  await expect(page.getByRole("checkbox", { name: "Apple CarPlay", exact: true })).toBeChecked();
+  await expect(page.getByRole("checkbox", { name: "Ventilated front seats", exact: true })).toBeChecked();
+  await page.locator(".search-form").screenshot({ path: testInfo.outputPath("s560-preset.png") });
+  await page.getByLabel("Search name").fill(`S560 value ${testInfo.project.name}`);
+  await page.getByLabel("ZIP code").fill("10001");
+  await page.getByRole("button", { name: /add saved search/i }).click();
+  await expect(page.getByRole("status")).toContainText("now on the radar");
+  await page.reload();
+  const saved = page.locator(".saved-search", { hasText: `S560 value ${testInfo.project.name}` });
+  await expect(saved).toContainText("sedan");
+  await expect(saved).toContainText("$25,000");
+  await page.getByRole("link", { name: "W222 buying guide" }).first().click();
+  await expect(page.getByRole("heading", { name: "The S-Class value hunt" })).toBeVisible();
+  await expect(page.getByText(/independent inspection/i).first()).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  await page.screenshot({ path: testInfo.outputPath("w222-guide.png"), fullPage: true });
+});
+
 test("anonymous visitors are sent to the invite-only magic-link screen", async ({ page }) => {
   await page.goto("/");
 
@@ -9,6 +32,8 @@ test("anonymous visitors are sent to the invite-only magic-link screen", async (
   await expect(page.getByRole("heading", { level: 1, name: /family car search, without the noise/i })).toBeVisible();
   await expect(page.getByLabel(/email/i)).toBeVisible();
   await expect(page.getByRole("button", { name: /email me a sign-in link/i })).toBeVisible();
+  await page.goto("/guides/w222");
+  await expect(page).toHaveURL(/\/login(?:\?|$)/);
 });
 
 test("an invited user can complete a real magic-link flow and sign out", async ({ page, request }) => {

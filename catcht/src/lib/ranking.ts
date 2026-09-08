@@ -1,3 +1,4 @@
+import { matchesBodyStyle, matchesTrim } from "./vehicle-filters";
 import type { CandidateLeaseOffer, CandidateListing, CandidateOffer, ManualPhotoEvidence, OfferKind, RecommendationHistory, VehicleFeatureKey } from "./types";
 import { effectiveMonthlyCost, leaseDealScore } from "./offer-economics";
 import { SEARCH_POLICY } from "./search-policy";
@@ -32,6 +33,8 @@ export interface OfferEvaluationPolicy {
   model: string;
   trim?: string | null;
   aliases?: string[];
+  trimAliases?: string[];
+  bodyStyle?: string | null;
   transmission: "any" | "manual" | "automatic";
   radiusMiles?: number | null;
   maxPrice?: number | null;
@@ -306,7 +309,8 @@ function matchesSearchIdentity(listing: CandidateOffer, policy: OfferEvaluationP
   const model = normalized(listing.model);
   const models = [policy.model, ...(policy.aliases ?? [])].map(normalized).filter(Boolean);
   if (!models.some((candidate) => model === candidate || model.includes(candidate))) return false;
-  if (policy.trim && !normalized(listing.trim).includes(normalized(policy.trim))) return false;
+  if (!matchesTrim(listing.trim, policy.trim, policy.trimAliases)) return false;
+  if (!matchesBodyStyle(listing.bodyStyle, policy.bodyStyle)) return false;
   if (listing.offerKind === "lease" && policy.region) {
     const region = normalized(listing.region ?? listing.location);
     if (!region.includes(normalized(policy.region))) return false;

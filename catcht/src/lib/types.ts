@@ -1,3 +1,5 @@
+import type { VEHICLE_FEATURE_KEYS } from "./vehicle-features";
+
 export type ListingSource =
   | "cargurus"
   | "autotrader"
@@ -27,14 +29,7 @@ export type VehicleCondition = "used" | "new" | "cpo" | "unknown";
 export type GarageGroup = "ev" | "gas" | "lease" | "enthusiast" | "other";
 export type PowertrainCategory = "ev" | "gas" | "phev" | "hybrid" | "any";
 export type SearchProfile = "enthusiast" | "family_ev" | "family_gas" | "lease" | "general";
-export type VehicleFeatureKey =
-  | "hands_free_highway"
-  | "adaptive_cruise_lane_centering"
-  | "rear_axle_steering"
-  | "air_suspension"
-  | "third_row"
-  | "surround_view"
-  | "tow_package";
+export type VehicleFeatureKey = (typeof VEHICLE_FEATURE_KEYS)[number];
 export type FeatureEvidenceStatus = "confirmed" | "expected" | "unknown";
 export type FeatureEvidenceSource = "provider_listing" | "provider_summary" | "model_rule" | "search_target";
 export type EnrichmentStatus = "not_requested" | "enriched" | "budget_deferred" | "unavailable" | "failed";

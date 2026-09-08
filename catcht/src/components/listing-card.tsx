@@ -2,6 +2,8 @@ import type { ListingCard as Listing } from "@/lib/dal";
 import { setDispositionAction } from "@/app/actions";
 import { INSTANCE_CONFIG } from "@/lib/instance-config";
 import { DecisionSwipeCard } from "./decision-swipe-card";
+import Link from "next/link";
+import { buyingChecksFor } from "@/lib/buying-checks";
 
 type ListingView = "finds" | "pending" | "interested" | "ignored";
 
@@ -29,6 +31,7 @@ export function ListingCard({ listing, view }: { listing: Listing; view: Listing
   const review = setDispositionAction.bind(null, listing.id, "neutral");
   const isLease = listing.offerKind === "lease";
   const manualPending = listing.verificationStatus === "pending";
+  const buyingChecks = buyingChecksFor(listing);
 
   return (
     <DecisionSwipeCard listingId={listing.id} view={view}>
@@ -76,6 +79,7 @@ export function ListingCard({ listing, view }: { listing: Listing; view: Listing
 
         <details className="card-more">
           <summary>Evidence &amp; checks</summary>
+          {buyingChecks.length ? <section className="buying-checks" aria-label="S-Class buying checks"><strong>Before you pursue this S-Class</strong><ul>{buyingChecks.map((check) => <li key={check}>{check}</li>)}</ul><Link href="/guides/w222">W222 buying guide →</Link></section> : null}
           {listing.featureEvidence.length ? <FeatureEvidence listing={listing} /> : null}
           {listing.safetyEvidence ? <SafetyEvidence listing={listing} /> : null}
           {listing.packageNames.length ? (
@@ -183,12 +187,12 @@ function VerificationStrip({ listing }: { listing: Listing }) {
 function FeatureEvidence({ listing }: { listing: Listing }) {
   return (
     <section className="feature-evidence" aria-label="Desired equipment evidence">
-      <div className="feature-heading"><strong>Family equipment</strong><span>{Math.round(listing.featureMatchScore)}% matched</span></div>
+      <div className="feature-heading"><strong>Equipment evidence</strong><span>{Math.round(listing.featureMatchScore)}% matched</span></div>
       <ul>
         {listing.featureEvidence.map((feature) => (
           <li key={feature.key} className={feature.status} title={feature.evidence}>
             <span aria-hidden="true">{feature.status === "confirmed" ? "✓" : feature.status === "expected" ? "~" : "?"}</span>
-            <span><strong>{feature.label}</strong><small>{feature.status}</small></span>
+            <span><strong>{feature.label}</strong><small>{feature.status}</small><small className="evidence-note">{feature.evidence}</small></span>
           </li>
         ))}
       </ul>
