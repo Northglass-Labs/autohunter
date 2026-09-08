@@ -1,65 +1,75 @@
 # AutoHunter status
 
-## Active work — W222 value hunt and product polish (2026-09-08)
+## Completed — W222 value hunt and product polish (2026-09-08)
 
-Live checkpoint: PR #12 merged as `ed630bf`; Vercel production deployment
-`dpl_GfVYyc71hoaSWM7FijbwtGPksKZH` is READY on the canonical origin. Protected guide redirects
-anonymous visitors to login; the post-deploy runtime error scan is clean. Both owner-specific
-presets are active, preserving the existing area and all other users' searches.
+Production: PR #12 (`ed630bf`) and the dealer-title follow-up PR #13 (`7496c0e`) are merged.
+Vercel deployment `dpl_FY4aSwsHsUs4iXqUD9Z7Qoi3BFGG` is READY at
+<https://autohunter.northglass.io>. Fresh HTTP checks return 200 for login and redirect anonymous
+queue/guide requests to login. The post-deploy 10-minute production error/fatal log query returned
+no entries; this is a bounded observation, not a claim of exhaustive production coverage.
 
-Collection-only run `34197218704` passed (digest step skipped): 10 groups per inventory provider,
-MarketCheck 132 accepted and Auto.dev 94 accepted. Four eligible W222 candidates were persisted:
-2019 S560 $23,995/106,778 miles; 2018 S560 $24,600/100,234 miles; 2020 S450
-$23,490/106,442 miles; 2018 S450 $23,790/84,053 miles. Desired option packages remain unknown;
-phone integration has explicit detail evidence. Dealer availability and condition need checking.
-Live validation exposed two URL-shaped dealer headings. A tested title fallback is being shipped
-for both future normalization and existing queue/email records; no additional provider run is needed.
+Two owner-specific searches are active: 2018–2020 S560 and S450 used gasoline sedans, up to
+$25,000 asking price, with a provisional discovery ceiling of 120,000 miles. They inherit the
+owner's existing search area and 250-mile radius. AWD and RWD are eligible; coupes and S560e
+hybrids are excluded. Ten desired features favor equipment worth investigating; no optional
+package is required while descriptions remain incomplete. Other users' searches are unchanged.
 
-Objective: add well-optioned 2018–2020 S560 sedan searches below a $25,000 asking-price
-ceiling, with S450 as a companion target; validate the supplied buying guide, improve the
-search/queue/email experience, and add the production link to HomeLab Homarr.
+Mercedes US brochures for 2018–2020 establish standard wired CarPlay/Android Auto and optional
+Premium, Driver Assistance, Warmth & Comfort, AMG Line Exterior and High-End 3D audio. MAGIC BODY
+CONTROL is unavailable with 4MATIC, and restricted to the S560 sedan in the 2019/2020 brochures.
+The supplied blanket powertrain reliability ranking is not established by these sources. The
+protected [buying guide](https://autohunter.northglass.io/guides/w222) records sources and inspection
+steps. ADR-016 records body-style filtering and conservative equipment evidence. Generic adaptive
+cruise plus lane-keeping text cannot establish lane centering; listing summaries only establish
+expected equipment, and optional packages are never treated as factory-standard fitment.
 
-Plan:
-1. Validate US-market equipment against Mercedes brochures and inspect live search/source state.
-2. Write failing coverage, then add bounded sedan searches and conservative option evidence.
-3. Replace feature-code entry with readable controls; show equipment and buying checks clearly
-   in listing cards and daily emails; verify desktop and mobile flows.
-4. Run all required gates, deploy the scoped app/search changes, and verify live state.
-5. Back up Homarr, add its AutoHunter tile, verify persistence/link/icon, and reconcile HomeLab docs.
+The interface now has readable equipment controls, one-click presets, visible evidence and
+S-Class inspection checks. HTML and plain-text emails include complete candidate details,
+price changes, mobile-friendly actions and source freshness. Sources older than 48 hours cannot
+appear healthy. URL-shaped dealer titles fall back to year/make/model/trim both during future
+normalization and when existing queue/email records are read; original stored source titles are
+preserved. Manual workflow dispatch defaults to collection only; the daily digest schedule is
+unchanged and its next run will use the revised renderer.
 
-Initial evidence: AutoHunter and HomeLab worktrees clean on main; hosted AutoHunter database
-active. Historical quota/importer incidents below require live verification before reuse.
-Purchase tax/fees and maintenance reserve are outside the $25,000 asking-price cap. Optional
-equipment remains unknown until supported by listing evidence; no powertrain reliability ranking
-is inferred from marketing material. No architecture rewrite is planned.
+The additive live migration is `20260908064749_w222_body_style`. Browser-facing anon and
+authenticated roles still have no `catcht` schema access, and all 35 pre-existing searches remain.
+Collection-only run [34197218704](https://github.com/Northglass-Labs/autohunter/actions/runs/34197218704)
+passed with the digest step skipped: 10 groups per inventory provider, MarketCheck 132 accepted
+and Auto.dev 94 accepted. Four eligible W222 leads were persisted:
 
-Checkpoint: Mercedes 2018/2019/2020 US brochures establish standard wired smartphone integration,
-optional Premium/Driver Assistance/Warmth & Comfort/AMG Line/3D audio, and the RWD-only MAGIC
-BODY CONTROL boundary (2019/2020 S560 only). ADR-016 records explicit sedan filtering and conservative
-evidence. Both live inventory providers succeeded September 7; MarketCheck reports a 100-mile
-plan cap. The August quota incident is historical; authorized email imports remain stale since
-August 10. Fresh collector coverage passes 116 tests. New preset, body-style database, and email
-tests first reproduced failures; implementation is now in full web/database/browser validation.
-The UI has readable equipment controls and a protected buying guide; emails include complete
-plain-text candidates, price changes, inspection guidance and honest source freshness.
+| Lead | Asking price | Mileage |
+|---|---:|---:|
+| 2019 S560 | $23,995 | 106,778 |
+| 2018 S560 | $24,600 | 100,234 |
+| 2020 S450 | $23,490 | 106,442 |
+| 2018 S450 | $23,790 | 84,053 |
 
-Release gate: 131 web unit tests, 116 collector tests, 39 pgTAP checks, and all 16 Mailpit-backed
-desktop/mobile Playwright stories pass; lint and production build pass. Both production dependency
-audits report zero vulnerabilities after updating transitive Browserslist to 4.28.9 in both trees.
-The broader CI audit also required the same patch in web development tooling; it is now clean.
-New coverage also rejects DISTRONIC plus lane-keeping alone as proof of lane centering. The live
-additive migration is recorded as `20260908064749_w222_body_style`; browser roles still have no
-`catcht` schema access and all 35 pre-existing searches are preserved. Owner-specific activation
-and the Git/Vercel release are next. Manual workflow dispatch now defaults to collection only.
+The 2019 S560 dealer page independently corroborates its price, mileage and 4MATIC configuration.
+Desired option packages remain unknown on these leads; phone integration has explicit detail
+evidence. A build sheet, current availability, itemized total price, service history and independent
+Mercedes inspection are the next buying steps. MarketCheck reports a 100-mile plan cap despite
+the saved 250-mile radius; the UI exposes this coverage limit. Authorized email imports remain
+stale since August 10. Today's inventory providers succeeded, superseding the old quota incident.
 
-Homarr is complete: private Home & Apps tile, all three layouts, verified backup and restart
-persistence, valid SVG/link, and no changes to old tiles. HomeLab commit `d85f2bd` records rollback
-and the unchanged 147/153 fleet baseline; authenticated visual inspection requires Homarr login.
+Fresh release verification: 133 web tests, 117 collector tests, 39 pgTAP checks and all 16 real
+Mailpit-backed desktop/mobile Playwright stories pass. Lint and production build pass; both
+production and full CI dependency audits report zero vulnerabilities. PR #13 CI run
+[34197776587](https://github.com/Northglass-Labs/autohunter/actions/runs/34197776587) passed all jobs.
+Desktop/mobile preset, guide and synthetic email layouts were inspected. This refresh sent no
+email; email delivery was exercised only in local Mailpit tests.
 
-Updated 2026-08-20 (MarketCheck quota incident). This is the live progress record for the
-Northglass rebuild.
+Homarr is complete: a private Home & Apps tile with all three responsive layouts, verified
+database/config backups and restart persistence. Existing tiles are preserved. HomeLab commits
+`d85f2bd` and `f040494` record the change, rollback and icon correction: the app-origin image policy
+blocks external embedding, so the tile uses the byte-identical canonical public repository SVG,
+verified to load in a browser. The dashboard and destination login return 200. Visual inspection
+of the private board remains limited by Homarr login. HomeLab's fleet baseline is recorded in
+`docs/validation-notes/2026-09-08-autohunter-homarr.md` in that repository.
 
-## INCIDENT — MarketCheck monthly quota exhausted (2026-08-17 → open)
+Historical checkpoints below preserve earlier diagnoses. Use the completed checkpoint above for
+the current release state.
+
+## Historical incident — MarketCheck quota exhaustion (2026-08-17; healthy again 2026-09-08)
 
 - Evidence: the 2026-08-17 cycle ran dry mid-flight (inventory succeeded with 157 accepted, then
   the incentives adapter hit `rate_limited` two calls in); every scheduled cycle since Aug 18
