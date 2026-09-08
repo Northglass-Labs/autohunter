@@ -1,4 +1,4 @@
-export function vehicleTitle(title: unknown, vehicle: { year?: unknown; make?: unknown; model?: unknown; trim?: unknown }) {
+export function vehicleTitle(title: unknown, vehicle: Record<string, unknown>) {
   const heading = typeof title === "string" ? title.trim() : "";
   if (heading && !/https?:\/\/|www\./i.test(heading)) return heading;
   return [vehicle.year, vehicle.make, vehicle.model, vehicle.trim]
