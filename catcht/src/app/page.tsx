@@ -1,3 +1,4 @@
+import { isSourceHealthy } from "@/lib/source-health-summary";
 import { currentUser } from "@/lib/auth";
 import {
   getAllSavedSearches,
@@ -91,7 +92,7 @@ export default async function Home({
     modelListings.filter((listing) => matchesQueuePriceCaps(listing, filters)),
     filters.sort,
   );
-  const sourceCount = sourceHealth.filter((source) => source.status === "success" || source.status === "empty").length;
+  const sourceCount = sourceHealth.filter((source) => isSourceHealthy(source)).length;
   const activeOfferCount = listings.filter((listing) => listing.offerRole === "active_offer").length;
   const benchmarkCount = listings.filter((listing) => listing.offerRole === "benchmark").length;
   return (
@@ -119,12 +120,13 @@ export default async function Home({
 
       <section className="snapshot-strip" aria-label="Hunt snapshot">
         <article><span>Current queue</span><strong>{listings.length}</strong><small>{viewLabel(filters.view)}</small></article>
-        <article><span>Live offers</span><strong>{activeOfferCount}</strong><small>actionable now</small></article>
+        <article><span>Live offers</span><strong>{activeOfferCount}</strong><small>check availability with the source</small></article>
         <article><span>Benchmarks</span><strong>{benchmarkCount}</strong><small>signed comparison deals</small></article>
-        <article><span>Healthy sources</span><strong>{sourceCount || "—"}</strong><small>{activeSearches.length} private search briefs</small></article>
+        <article><span>Healthy sources</span><strong>{sourceCount}</strong><small>{activeSearches.length} private search briefs</small></article>
       </section>
 
       <div className="control-deck">
+        {models.some((model) => model.slug === "mercedes-benz-s-class") ? <div className="hunt-shortcut"><div><strong>S-Class value hunt</strong><span>2018–2020 · up to $25,000 · S560 + S450 sedans</span></div><Link href={href({ ...filters, view: "finds", lane: "gas", kind: "used", model: "mercedes-benz-s-class", maxPrice: 25000, maxMonthly: null })}>Review S-Class finds</Link><Link href="/guides/w222">W222 buying guide</Link></div> : null}
         <nav className="tabs" aria-label="Review queue">
           <Link className={filters.view === "finds" ? "active" : ""} href={href({ ...filters, view: "finds" })}>To review</Link>
           <Link className={filters.view === "pending" ? "active" : ""} href={href({ ...filters, view: "pending" })}>Photo pending</Link>
@@ -342,7 +344,7 @@ function laneLabel(lane: Lane) {
 
 function laneEyebrow(lane: GarageGroup) {
   if (lane === "ev") return "Depreciated electric family cars";
-  if (lane === "gas") return "Driver-focused family haulers";
+  if (lane === "gas") return "Comfort, equipment and purchase value";
   if (lane === "lease") return "Authorized alerts and dealer offers";
   if (lane === "enthusiast") return "Preserved manual-car watchlist";
   return "Additional matches";

@@ -12,7 +12,7 @@ describe("SourceHealth", () => {
       searchedCount: 6,
       discoveredCount: 3,
       acceptedCount: 2,
-      finishedAt: "2026-07-14T12:00:00.000Z",
+      finishedAt: new Date().toISOString(),
     }]} />);
 
     expect(html).toContain("2 accepted from 3 · 100-mile coverage cap");

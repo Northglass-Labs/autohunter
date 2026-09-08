@@ -6,6 +6,14 @@ export const FEATURE_KEYS = Object.freeze([
   "third_row",
   "surround_view",
   "tow_package",
+  "apple_carplay",
+  "android_auto",
+  "ventilated_front_seats",
+  "massaging_front_seats",
+  "warmth_comfort",
+  "amg_line",
+  "burmester_3d",
+  "magic_body_control",
 ]);
 
 const FEATURE_LABELS = Object.freeze({
@@ -16,9 +24,25 @@ const FEATURE_LABELS = Object.freeze({
   third_row: "Third row",
   surround_view: "Surround-view camera",
   tow_package: "Tow package",
+  apple_carplay: "Apple CarPlay",
+  android_auto: "Android Auto",
+  ventilated_front_seats: "Ventilated front seats",
+  massaging_front_seats: "Massaging front seats",
+  warmth_comfort: "Warmth & Comfort Package",
+  amg_line: "AMG Line Exterior",
+  burmester_3d: "Burmester High-End 3D audio",
+  magic_body_control: "MAGIC BODY CONTROL",
 });
 
 const FEATURE_PATTERNS = Object.freeze({
+  apple_carplay: [/\b(?:apple )?carplay\b/i],
+  android_auto: [/\bandroid auto\b/i],
+  ventilated_front_seats: [/\b(?:ventilated|cooled) front seats\b/i, /\bfront (?:ventilated|cooled) seats\b/i],
+  massaging_front_seats: [/\b(?:active )?multicontour front seats\b/i, /\bmassaging front seats\b/i, /\bfront seats? with (?:hot stone )?massage\b/i],
+  warmth_comfort: [/\bwarmth (?:&|and) comfort package\b/i],
+  amg_line: [/\bamg line(?: exterior)?\b/i],
+  burmester_3d: [/\bburmester (?:high[- ]end )?3d (?:surround sound|audio)\b/i],
+  magic_body_control: [/\bmagic body control\b/i],
   hands_free_highway: [
     /\bhighway assistant\b/i,
     /\bsuper cruise\b/i,
@@ -91,6 +115,18 @@ function target(overrides) {
 }
 
 export const FAMILY_VEHICLE_TARGETS = Object.freeze([
+  ...["560", "450"].map((variant) => target({
+    name: `S${variant} sedan under $25k`, make: "Mercedes-Benz", model: "S-Class",
+    trim: `S ${variant}`, trimAliases: [`S${variant}`], bodyStyle: "sedan",
+    yearMin: 2018, yearMax: 2020, maxPrice: 25_000, targetPrice: variant === "560" ? 22_500 : 20_000,
+    maxMileage: 120_000, profile: "family_gas", garageGroup: "gas", powertrainCategory: "gas",
+    desiredFeatures: ["adaptive_cruise_lane_centering", "surround_view", "ventilated_front_seats", "massaging_front_seats",
+      "apple_carplay", "android_auto", "warmth_comfort", "amg_line", "burmester_3d", "magic_body_control"],
+    requiredFeatures: [], priority: variant === "560" ? 100 : 85,
+    rationale: variant === "560"
+      ? "Facelift V8 value hunt. Prefer Driver Assistance and Premium package evidence; verify history, suspension, diagnostics and maintenance before purchase. AWD and RWD eligible."
+      : "Facelift V6 companion to the S560. Prioritize equipment and condition; a low asking price does not establish low ownership cost. AWD and RWD eligible.",
+  })),
   target({ name: "EQS 450+ sedan", make: "Mercedes-Benz", model: "EQS", trim: "EQS 450+", yearMin: 2022, yearMax: 2025, targetPrice: 48_000, profile: "family_ev", garageGroup: "ev", powertrainCategory: "ev", desiredFeatures: ["adaptive_cruise_lane_centering", "rear_axle_steering", "air_suspension", "surround_view"], requiredFeatures: [], priority: 82, rationale: "Huge depreciation, long-range comfort, and unusually useful rear-seat space." }),
   target({ name: "EQS 580 sedan", make: "Mercedes-Benz", model: "EQS", trim: "EQS 580 4MATIC", trimAliases: ["EQS 580"], yearMin: 2022, yearMax: 2025, targetPrice: 55_000, profile: "family_ev", garageGroup: "ev", powertrainCategory: "ev", desiredFeatures: ["adaptive_cruise_lane_centering", "rear_axle_steering", "air_suspension", "surround_view"], requiredFeatures: [], priority: 88, rationale: "Dream-adjacent luxury and performance after severe first-owner depreciation." }),
   target({ name: "EQS 450+ SUV", make: "Mercedes-Benz", model: "EQS SUV", trim: "EQS 450+", aliases: ["EQS450+ SUV"], yearMin: 2023, yearMax: 2025, targetPrice: 58_000, profile: "family_ev", garageGroup: "ev", powertrainCategory: "ev", desiredFeatures: ["adaptive_cruise_lane_centering", "rear_axle_steering", "air_suspension", "third_row", "surround_view"], requiredFeatures: [], priority: 94, rationale: "EQS comfort with the family-friendly cargo opening and optional third row." }),
@@ -127,12 +163,13 @@ export const FAMILY_LEASE_TARGETS = Object.freeze([
 ]);
 
 export function inferVehicleIntelligence(listing, search = {}, detail = null, options = {}) {
+  listing = { ...listing, build: { ...listing?.build, ...detail?.build } };
   const desired = uniqueFeatureKeys([...(search.desiredFeatures ?? []), ...(search.requiredFeatures ?? [])]);
   const detailText = detailStrings(detail);
   const summaryText = summaryStrings(listing);
   const expected = expectedFeatureRules(listing);
   const featureEvidence = desired.map((key) => {
-    const matching = matchingDetailEvidence(key, detailText);
+    const matching = matchingDetailEvidence(key, detailText, listing);
     if (matching) {
       return {
         key,
@@ -142,7 +179,7 @@ export function inferVehicleIntelligence(listing, search = {}, detail = null, op
         evidence: matching.slice(0, 300),
       };
     }
-    const summaryMatch = matchingDetailEvidence(key, summaryText);
+    const summaryMatch = matchingDetailEvidence(key, summaryText, listing);
     if (summaryMatch) {
       return {
         key,
@@ -207,12 +244,35 @@ export function inferVehicleIntelligence(listing, search = {}, detail = null, op
   };
 }
 
-function matchingDetailEvidence(key, detailText) {
-  const direct = detailText.find((value) => FEATURE_PATTERNS[key]?.some((pattern) => pattern.test(value)));
+function isW222Sedan(listing) {
+  return normalized(listing?.make) === "mercedes benz"
+    && normalized(listing?.model) === "s class"
+    && /\bs ?(?:450|560)\b/.test(normalized(listing?.trim))
+    && !/\bs ?560 ?e\b/.test(normalized(listing?.trim))
+    && Number(listing?.year) >= 2018 && Number(listing?.year) <= 2020
+    && /\b(?:sedan|saloon)\b/i.test(listing?.build?.body_type ?? listing?.build?.body_style ?? listing?.bodyStyle ?? "");
+}
+
+function matchingDetailEvidence(key, detailText, listing) {
+  // Catalog prose and explicit denials cannot establish that an option is fitted.
+  const positive = detailText.filter((value) => !/\b(?:no|without|not equipped|not fitted|not available|available with|available as|optional)\b|:\s*false\b/i.test(value));
+  if (key === "magic_body_control" && /\b(?:4matic|awd|4wd|all wheel drive)\b/.test(normalized(
+    `${listing?.trim ?? ""} ${listing?.title ?? ""} ${listing?.build?.drivetrain ?? ""}`,
+  ))) return undefined;
+  if (key === "magic_body_control" && isW222Sedan(listing) && Number(listing.year) >= 2019
+    && /\bs ?450\b/.test(normalized(listing.trim))) return undefined;
+  const direct = positive.find((value) => FEATURE_PATTERNS[key]?.some((pattern) => pattern.test(value)));
+  if (direct) return direct;
+  if (isW222Sedan(listing)) {
+    const packagePattern = key === "adaptive_cruise_lane_centering" ? /\bdriver assistance package\b/i
+      : ["surround_view", "ventilated_front_seats", "massaging_front_seats"].includes(key) ? /\bpremium package\b/i : null;
+    const packageEvidence = packagePattern && positive.find((value) => packagePattern.test(value));
+    if (packageEvidence) return `${packageEvidence} — US 2018–2020 S-Class sedan package content`;
+  }
   if (direct || key !== "adaptive_cruise_lane_centering") return direct;
-  const combined = detailText.join(" · ");
-  const longitudinal = /\b(?:adaptive cruise control|active cruise control|smart cruise control|active distance assist distronic)\b/i.test(combined);
-  const lateral = /\b(?:lane centering|lane following assist|active lane keep(?:ing)?|active steering assist)\b/i.test(combined);
+  const combined = positive.join(" · ");
+  const longitudinal = /\b(?:adaptive cruise control|active cruise control|smart cruise control|active distance assist distronic|distronic(?: plus)?)\b/i.test(combined);
+  const lateral = /\b(?:lane centering|lane following assist|active steering assist)\b/i.test(combined);
   return longitudinal && lateral ? combined : undefined;
 }
 
@@ -221,6 +281,10 @@ function matchingDetailEvidence(key, detailText) {
 // here. First matching rule wins per feature key; keep trim-specific entries above general ones.
 // modelMatch: "exact" (default) | "prefix" | "includes"; modelAliases add alternate spellings.
 export const EXPECTED_EQUIPMENT_RULES = Object.freeze([
+  { make: "mercedes benz", model: "s class", trimPattern: /\bs ?(?:450|560)\b/, yearMin: 2018, yearMax: 2020, bodyStyle: "sedan", features: {
+    apple_carplay: "Wired Apple CarPlay is standard on US 2018–2020 S-Class sedans; test a phone through the correct USB port.",
+    android_auto: "Wired Android Auto is standard on US 2018–2020 S-Class sedans; verify phone compatibility and operation.",
+  } },
   { make: "bmw", model: "x5", trimPattern: /\bm60i\b/, yearMin: 2024, features: {
     rear_axle_steering: "Integral Active Steering is standard on the 2024+ X5 M60i; verify the VIN build sheet.",
   } },
@@ -309,6 +373,7 @@ function expectedFeatureRules(listing) {
       ? model.startsWith(candidate)
       : rule.modelMatch === "includes" ? model.includes(candidate) : model === candidate);
     if (!matchesModel) continue;
+    if (rule.bodyStyle && !isW222Sedan(listing)) continue;
     if (rule.trimPattern && !rule.trimPattern.test(trim)) continue;
     if (rule.yearMin !== undefined && !(year >= rule.yearMin)) continue;
     if (rule.yearMax !== undefined && !(year <= rule.yearMax)) continue;

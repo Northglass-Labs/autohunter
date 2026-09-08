@@ -1,17 +1,10 @@
+import { VEHICLE_FEATURE_KEYS, BODY_STYLES } from "./vehicle-features";
 import { z } from "zod";
 
 export const entityIdSchema = z.uuid();
 export const dispositionInputSchema = z.enum(["neutral", "interested", "ignored"]);
 
-const featureKeySchema = z.enum([
-  "hands_free_highway",
-  "adaptive_cruise_lane_centering",
-  "rear_axle_steering",
-  "air_suspension",
-  "third_row",
-  "surround_view",
-  "tow_package",
-]);
+const featureKeySchema = z.enum(VEHICLE_FEATURE_KEYS);
 
 const nullableText = (max: number) => z.preprocess(
   (value) => typeof value === "string" && value.trim() === "" ? null : value,
@@ -42,6 +35,7 @@ export const savedSearchInputSchema = z.object({
   make: z.string().trim().min(1).max(100),
   model: z.string().trim().min(1).max(150),
   trim: nullableText(150).default(null),
+  bodyStyle: z.preprocess((value) => value === "" ? null : value, z.enum(BODY_STYLES).nullable().optional()),
   zip: nullableText(5).default(null),
   radiusMiles: nullableInteger(1, 500).default(null),
   region: nullableText(150).default(null),

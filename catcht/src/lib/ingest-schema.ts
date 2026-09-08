@@ -1,3 +1,4 @@
+import { VEHICLE_FEATURE_KEYS } from "./vehicle-features";
 import { z } from "zod";
 
 const sourceSchema = z.enum([
@@ -39,15 +40,7 @@ const manualEvidenceSchema = z.object({
   verifierModel: z.string().min(1).max(100).optional(),
 });
 
-const featureKeySchema = z.enum([
-  "hands_free_highway",
-  "adaptive_cruise_lane_centering",
-  "rear_axle_steering",
-  "air_suspension",
-  "third_row",
-  "surround_view",
-  "tow_package",
-]);
+const featureKeySchema = z.enum(VEHICLE_FEATURE_KEYS);
 
 const featureEvidenceSchema = z.object({
   key: featureKeySchema,

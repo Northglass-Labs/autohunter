@@ -58,6 +58,25 @@ const listing: ListingCard = {
 };
 
 describe("renderDigestEmail", () => {
+  it("gives S-Class buyers the actual car, equipment uncertainty, price change and inspection checks in both email formats", () => {
+    const s560: ListingCard = { ...listing, title: "2019 Mercedes-Benz S560 4MATIC", make: "Mercedes-Benz", model: "S-Class",
+      trim: "S560 4MATIC", year: 2019, bodyStyle: "Sedan", verificationStatus: "not_applicable", garageGroup: "gas",
+      price: 23900, mileage: 90000, priceChange: -1100, featureEvidence: [{ key: "surround_view", label: "Surround-view camera",
+        status: "unknown", source: "search_target", evidence: "Window sticker needed" }] };
+    const message = renderDigestEmail([s560], "2026-09-08", { appUrl: "https://autohunter.example.com", recipientId: "driver",
+      actionSecret: "a".repeat(32), brandName: "AutoHunter", maxPrice: 25000 });
+    for (const body of [message.html, message.text]) {
+      expect(body).toContain("$23,900");
+      expect(body).toContain("$1,100 price drop");
+      expect(body).toContain("independent inspection");
+      expect(body).toContain("Surround-view camera");
+      expect(body).toContain("unknown");
+      expect(body).toContain("/guides/w222");
+    }
+    expect(message.text).toContain(s560.url);
+    expect(message.html).toContain('name="viewport"');
+    expect(message.html).toContain("preview-text");
+  });
   it("renders the real listing photo and signed decision links", () => {
     const message = renderDigestEmail([listing], "2026-07-11", {
       appUrl: "https://autohunter.example.com",
@@ -146,9 +165,9 @@ describe("renderDigestEmail", () => {
       maxPrice: 15_000,
     });
 
-    expect(message.subject).toContain("quiet run");
+    expect(message.subject).toContain("no new matches");
     expect(message.subject).toContain("Shift Scout");
-    expect(message.html).toContain("Nothing worthy made the cut");
+    expect(message.html).toContain("No new matches today");
   });
 
   it("renders lease economics without calling a monthly payment a purchase price", () => {
@@ -262,7 +281,7 @@ describe("renderDigestEmail", () => {
       searchedCount: 3,
       discoveredCount: 18,
       acceptedCount: 4,
-      finishedAt: "2026-08-10T11:01:00.000Z",
+      finishedAt: new Date().toISOString(),
     }];
 
     const message = renderDigestEmail([listing], "2026-08-10", {

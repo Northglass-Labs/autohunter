@@ -41,6 +41,7 @@ const search: SavedSearch = {
   make: "Rivian",
   model: "R1S",
   trim: null,
+  bodyStyle: null,
   zip: "10001",
   radiusMiles: 100,
   region: null,

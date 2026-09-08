@@ -402,6 +402,7 @@ export interface SavedSearch {
   yearMax: number | null;
   targetPrice: number | null;
   trimAliases: string[];
+  bodyStyle: string | null;
   desiredFeatures: VehicleFeatureKey[];
   requiredFeatures: VehicleFeatureKey[];
   rationale: string | null;
@@ -431,6 +432,7 @@ export interface SavedSearchInput {
   targetPrice?: number | null;
   aliases?: string[];
   trimAliases?: string[];
+  bodyStyle?: string | null;
   desiredFeatures?: VehicleFeatureKey[];
   requiredFeatures?: VehicleFeatureKey[];
   rationale?: string | null;
@@ -466,6 +468,7 @@ function savedSearch(row: Record<string, unknown>): SavedSearch {
     yearMax: row.year_max === null || row.year_max === undefined ? null : Number(row.year_max),
     targetPrice: row.target_price === null || row.target_price === undefined ? null : Number(row.target_price),
     trimAliases: Array.isArray(row.trim_aliases) ? row.trim_aliases.map(String) : [],
+    bodyStyle: row.body_style ? String(row.body_style) : null,
     desiredFeatures: Array.isArray(row.desired_features) ? row.desired_features.map(String) as VehicleFeatureKey[] : [],
     requiredFeatures: Array.isArray(row.required_features) ? row.required_features.map(String) as VehicleFeatureKey[] : [],
     rationale: row.rationale ? String(row.rationale) : null,
@@ -520,7 +523,7 @@ export async function addSavedSearch(userId: string, input: SavedSearchInput) {
       owner_id, name, offer_kind, make, model, trim, zip, radius_miles, region, transmission,
       max_price, max_mileage, max_effective_monthly, max_due_at_signing, min_annual_miles,
       profile, garage_group, powertrain_category, year_min, year_max, target_price,
-      aliases, trim_aliases, desired_features, required_features, rationale, priority
+      aliases, trim_aliases, desired_features, required_features, rationale, priority, body_style
     ) values (
       ${userId}::uuid, ${input.name}, ${input.offerKind}, ${input.make}, ${input.model}, ${trim},
       ${input.zip ?? null}, ${input.radiusMiles ?? null}, ${region}, ${input.transmission},
@@ -529,7 +532,7 @@ export async function addSavedSearch(userId: string, input: SavedSearchInput) {
       ${input.profile ?? "general"}, ${input.garageGroup ?? "other"}, ${input.powertrainCategory ?? "any"},
       ${input.yearMin ?? null}, ${input.yearMax ?? null}, ${input.targetPrice ?? null},
       ${input.aliases ?? []}, ${input.trimAliases ?? []}, ${input.desiredFeatures ?? []},
-      ${input.requiredFeatures ?? []}, ${input.rationale ?? null}, ${input.priority ?? 50}
+      ${input.requiredFeatures ?? []}, ${input.rationale ?? null}, ${input.priority ?? 50}, ${input.bodyStyle ?? null}
     )
     on conflict do nothing
     returning id
@@ -1202,6 +1205,8 @@ function evaluationPolicyFromRow(row: Record<string, unknown>): OfferEvaluationP
     model: String(row.model),
     trim: row.trim ? String(row.trim) : null,
     aliases: Array.isArray(row.aliases) ? row.aliases.map(String) : [],
+    trimAliases: Array.isArray(row.trim_aliases) ? row.trim_aliases.map(String) : [],
+    bodyStyle: row.body_style ? String(row.body_style) : null,
     transmission: row.transmission as OfferEvaluationPolicy["transmission"],
     radiusMiles: row.radius_miles === null ? null : Number(row.radius_miles),
     maxPrice: row.max_price === null ? null : Number(row.max_price),

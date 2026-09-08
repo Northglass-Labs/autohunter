@@ -14,7 +14,9 @@ evidence, decisions, and report history through the rebrand.
 
 - Separate EV, gas/PHEV, lease, and enthusiast lanes with per-user saved searches.
 - Real listing photos and direct links to the original dealer or authorized source.
-- Hard model, trim, year, price, mileage, distance, payment, drive-off, and annual-mile filters.
+- Hard model, trim, body-style, year, price, mileage, distance, payment, drive-off, and annual-mile filters.
+- One-click 2018–2020 S560/S450 sedan presets under $25,000, readable equipment checkboxes, and
+  a protected [W222 buying guide](https://autohunter.northglass.io/guides/w222) with Mercedes sources.
 - Equipment evidence that keeps **confirmed**, **expected**, and **unknown** claims distinct.
 - Explicit recognition of manufacturer systems such as BMW Highway Assistant, Cadillac Super
   Cruise, Rivian Enhanced Highway Assist, Audi adaptive cruise assist, Genesis HDA II, Volvo Pilot
@@ -25,6 +27,8 @@ evidence, decisions, and report history through the rebrand.
 - Invite-only Supabase magic links; no password database and no open signup.
 - Daily email and in-app reports with a bottom line, new/changed finds, normalized lease sections,
   caveats, and a source-health snapshot.
+- Complete plain-text email candidates, price-drop context and S-Class inspection checks. Sources
+  whose latest result is over 48 hours old are visibly stale rather than counted as healthy.
 - Canonical VIN/source deduplication while preserving private per-user matches and decisions.
 - Bounded NHTSA 5-Star and model-year recall context, with a direct official VIN-recall check and no
   bulk VIN lookup.
@@ -144,6 +148,10 @@ The hosted scheduler invokes the licensed inventory cycle at 10:17 UTC. Report e
 23-hour minimum interval so ordinary scheduler jitter does not skip a calendar day, while the
 profile-scoped run key keeps retries idempotent. The optional Gmail bridge is a separate read-only,
 fixed-profile operation and is not required by the web product.
+Manual GitHub workflow dispatch defaults to `collection_only=true`, which runs `platform:collect`
+and never invokes the digest endpoint. Daily scheduled cycles retain the existing digest cadence.
+Use collection-only mode for deliberate live verification after changing searches; provider request
+and detail limits still apply.
 
 ## Security and privacy
 

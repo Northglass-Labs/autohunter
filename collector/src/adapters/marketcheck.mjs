@@ -1,4 +1,5 @@
 import { inferVehicleIntelligence } from "../vehicle-intelligence.mjs";
+import { matchesBodyStyle, matchesTrim } from "../vehicle-filters.mjs";
 import { readBoundedJson } from "../app-client.mjs";
 
 const API_URL = "https://api.marketcheck.com/v2/search/car/active";
@@ -52,6 +53,7 @@ export function buildMarketCheckGroups(searches) {
       search.offerKind,
       normalizedVehicleText(search.make),
       search.zip,
+      search.bodyStyle ?? "any",
     ].join("\u0000");
     const existing = groups.get(key) ?? {
       offerKind: search.offerKind,
@@ -204,7 +206,8 @@ export function normalizeMarketCheckListing(listing, search, now = new Date(), d
     inventoryType !== search.offerKind
     || !matchesRequestedVehicle(make, search.make)
     || !matchesRequestedVehicle(model, search.model, search.aliases)
-    || (search.trim && !matchesRequestedVehicle(text(build.trim, 150), search.trim, search.trimAliases))
+    || !matchesTrim(build.trim, search.trim, search.trimAliases)
+    || !matchesBodyStyle(build.body_type ?? build.body_style, search.bodyStyle)
     || (search.yearMin !== null && search.yearMin !== undefined && year < search.yearMin)
     || (search.yearMax !== null && search.yearMax !== undefined && year > search.yearMax)
     || (search.maxPrice !== null && search.maxPrice !== undefined && price > search.maxPrice)

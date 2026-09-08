@@ -4,6 +4,11 @@ on:
   schedule:
     - cron: "17 10 * * *"
   workflow_dispatch:
+    inputs:
+      collection_only:
+        description: Collect inventory without sending email
+        type: boolean
+        default: true
 
 permissions:
   contents: read
@@ -43,9 +48,17 @@ jobs:
           test -n "$AUTOHUNTER_CRON_SECRET"
           test -n "$MARKETCHECK_API_KEY"
       - run: npm run platform:cycle
+        if: github.event_name == 'schedule' || !inputs.collection_only
         env:
           AUTOHUNTER_APP_URL: ${{ secrets.AUTOHUNTER_APP_URL }}
           AUTOHUNTER_INGEST_SECRET: ${{ secrets.AUTOHUNTER_INGEST_SECRET }}
           AUTOHUNTER_CRON_SECRET: ${{ secrets.AUTOHUNTER_CRON_SECRET }}
+          MARKETCHECK_API_KEY: ${{ secrets.MARKETCHECK_API_KEY }}
+          AUTODEV_API_KEY: ${{ secrets.AUTODEV_API_KEY }}
+      - run: npm run platform:collect
+        if: github.event_name == 'workflow_dispatch' && inputs.collection_only
+        env:
+          AUTOHUNTER_APP_URL: ${{ secrets.AUTOHUNTER_APP_URL }}
+          AUTOHUNTER_INGEST_SECRET: ${{ secrets.AUTOHUNTER_INGEST_SECRET }}
           MARKETCHECK_API_KEY: ${{ secrets.MARKETCHECK_API_KEY }}
           AUTODEV_API_KEY: ${{ secrets.AUTODEV_API_KEY }}
