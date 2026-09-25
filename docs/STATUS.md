@@ -1,5 +1,14 @@
 # AutoHunter status
 
+## 2026-09-25 dependency/security maintenance
+
+Next.js and matching ESLint configuration are now 16.3.6, Vitest 4.1.11,
+Sharp 0.35.4 and collector adm-zip 0.6.1. Fresh npm audits: catcht 5 to 0,
+collector 3 to 0 vulnerable dependency entries. Unit tests, lint and production
+build passed; collector tests passed with its native SQLite binding rebuilt.
+Database/E2E release checks remain unrun: their script resets local Supabase and
+restarts its gateway, so they require a disposable test environment. No deploy.
+
 ## Completed — $40k S-Class searches including S580 (2026-09-08)
 
 The owner's S560 and S450 searches now allow up to $40,000 asking price, retaining their

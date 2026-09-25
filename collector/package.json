@@ -25,7 +25,7 @@
     "zipcodes": "^8.0.0"
   },
   "overrides": {
-    "adm-zip": "0.6.0",
+    "adm-zip": "0.6.1",
     "better-sqlite3": "12.10.0"
   }
 }
