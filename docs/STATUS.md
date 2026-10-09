@@ -1,5 +1,32 @@
 # AutoHunter status
 
+## Completed — owner's SQ7 search narrowed to Prestige (2026-10-09)
+
+**Owner request:** SQ7s within 250 miles, specifically the Prestige trim.
+
+**Starting point:** the owner's existing active "Audi SQ7" saved search already covered a
+250-mile radius, 2021–2025, up to $70,000 and 80,000 miles, with **any trim**.
+
+**Change:** the search is now **"Audi SQ7 Prestige"**, with trim `Prestige`. Its area,
+radius, years, limits, target price and priority are unchanged.
+
+**How the trim is applied:**
+- Both providers group this search with the owner's other Audi used searches, so the trim
+  is applied after the fetch by `matchesTrim`, never as a provider query filter.
+- Against today's provider labels, "Prestige" and "4.0T Quattro Prestige AWD 4dr SUV"
+  match; "Premium Plus" and "4.0T Premium Plus" are excluded.
+
+**Applied:** in production as a single-row update. A before/after hash of the other 37
+saved searches is identical. No code, schema, provider budget or digest change.
+
+**Matches before the change (today's collection):**
+- **Prestige:** Auto.dev 38 (2021–2024, $41,000–$69,586, out to 223 mi); MarketCheck 19
+  (2021–2023, $42,899–$65,977, within its 100-mile plan cap).
+- **Premium Plus:** 41, now excluded.
+- Some cars appear from both providers.
+
+MY2020 SQ7 Prestige stays outside the 2021–2025 range unless the owner widens it.
+
 ## 2026-09-25 dependency/security maintenance
 
 Next.js and matching ESLint configuration are now 16.3.6, Vitest 4.1.11,
