@@ -25,7 +25,14 @@ saved searches is identical. No code, schema, provider budget or digest change.
 - **Premium Plus:** 41, now excluded.
 - Some cars appear from both providers.
 
-MY2020 SQ7 Prestige stays outside the 2021–2025 range unless the owner widens it.
+**Same-day follow-up (owner):**
+- The SQ7 Prestige year range is now **2021–2026**; MY2020 stays excluded.
+- The owner's "Mercedes GLS 450" search is **deactivated** (`active = false`, not
+  deleted). Queue and digest queries require an active search, so its matches drop out
+  immediately.
+
+Both rows changed in one statement. The other 36 saved searches hash identical before
+and after. The owner now has 24 active searches.
 
 ## 2026-09-25 dependency/security maintenance
 
