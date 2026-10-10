@@ -30,7 +30,10 @@ jobs:
           cache-dependency-path: collector/package-lock.json
       - run: npm ci
       - run: npm test
-      - run: npm audit --audit-level=high
+      - run: node --test ../.github/scripts/audit-gate.test.mjs
+      # Production dependencies: no exceptions. Full audit: documented, expiring exceptions only.
+      - run: npm audit --omit=dev --audit-level=high
+      - run: node ../.github/scripts/audit-gate.mjs
 
   web:
     runs-on: ubuntu-latest
@@ -51,7 +54,8 @@ jobs:
       - run: npm test
       - run: npm run lint
       - run: npm run build
-      - run: npm audit --audit-level=high
+      - run: npm audit --omit=dev --audit-level=high
+      - run: node ../.github/scripts/audit-gate.mjs
 
   database-and-e2e:
     runs-on: ubuntu-latest

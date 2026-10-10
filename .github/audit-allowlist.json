@@ -1,0 +1,10 @@
+{
+  "advisories": [
+    {
+      "id": "GHSA-vfj7-8cjw-p6xm",
+      "package": "braces",
+      "reason": "no patched braces release exists (every version through 3.0.3 is affected); reached only through eslint-config-next's lint plugin (fast-glob, micromatch), a development dependency",
+      "expires": "2026-12-31"
+    }
+  ]
+}
