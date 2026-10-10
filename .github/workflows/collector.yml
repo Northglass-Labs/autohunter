@@ -9,6 +9,10 @@ on:
         description: Collect inventory without sending email
         type: boolean
         default: true
+      ignore_cadence:
+        description: Query every enabled source now, ignoring per-provider cadence (verification runs)
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -55,6 +59,7 @@ jobs:
           AUTOHUNTER_CRON_SECRET: ${{ secrets.AUTOHUNTER_CRON_SECRET }}
           MARKETCHECK_API_KEY: ${{ secrets.MARKETCHECK_API_KEY }}
           AUTODEV_API_KEY: ${{ secrets.AUTODEV_API_KEY }}
+          AUTOHUNTER_IGNORE_CADENCE: ${{ github.event_name == 'workflow_dispatch' && inputs.ignore_cadence || 'false' }}
       - run: npm run platform:collect
         if: github.event_name == 'workflow_dispatch' && inputs.collection_only
         env:
@@ -62,3 +67,4 @@ jobs:
           AUTOHUNTER_INGEST_SECRET: ${{ secrets.AUTOHUNTER_INGEST_SECRET }}
           MARKETCHECK_API_KEY: ${{ secrets.MARKETCHECK_API_KEY }}
           AUTODEV_API_KEY: ${{ secrets.AUTODEV_API_KEY }}
+          AUTOHUNTER_IGNORE_CADENCE: ${{ github.event_name == 'workflow_dispatch' && inputs.ignore_cadence || 'false' }}

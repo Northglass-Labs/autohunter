@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import { runMarketCheckAdapter } from "./adapters/marketcheck.mjs";
 import { runAutoDevAdapter } from "./adapters/autodev.mjs";
 import { runMarketCheckIncentivesAdapter } from "./adapters/marketcheck-incentives.mjs";
+import { sourceIsDue } from "./cadence.mjs";
 import { enrichNhtsaSafety } from "./enrichers/nhtsa.mjs";
 import { loadPlatformConfig, mergeRemoteSavedSearches } from "./platform-config.mjs";
 import { readBoundedJson, validatedAppOrigin } from "./app-client.mjs";
@@ -61,9 +62,21 @@ function sanitizedEnrichedListingIds(value) {
     .slice(0, 5_000);
 }
 
-function defaultAdapters(config) {
+const METERED_ADAPTER_KEYS = ["marketcheck", "autodev", "marketcheckIncentives"];
+
+// Enabled inventory/incentive adapters whose cadence includes `now`. MarketCheck shares one
+// monthly allowance between inventory, detail and incentive calls; daily use exhausted it by
+// mid-month in August and September 2026, so its adapters run on a cadence.
+export function dueAdapterKeys(config, now = new Date()) {
+  const ignoreCadence = config.collector?.ignoreCadence === true;
+  return METERED_ADAPTER_KEYS.filter((key) => config.adapters[key]?.enabled
+    && sourceIsDue(config.adapters[key].cadence, now, { ignoreCadence }));
+}
+
+function defaultAdapters(config, now = new Date()) {
   const adapters = [];
-  if (config.adapters.marketcheck.enabled) {
+  const due = new Set(dueAdapterKeys(config, now));
+  if (due.has("marketcheck")) {
     adapters.push(({ searches }) => runMarketCheckAdapter({
       searches,
       rows: config.adapters.marketcheck.rowsPerSearch,
@@ -74,7 +87,7 @@ function defaultAdapters(config) {
       minimumIntervalMs: config.collector.minimumIntervalMs,
     }));
   }
-  if (config.adapters.autodev.enabled) {
+  if (due.has("autodev")) {
     adapters.push(({ searches }) => runAutoDevAdapter({
       searches,
       rows: config.adapters.autodev.rowsPerSearch,
@@ -83,7 +96,7 @@ function defaultAdapters(config) {
       minimumIntervalMs: config.collector.minimumIntervalMs,
     }));
   }
-  if (config.adapters.marketcheckIncentives.enabled) {
+  if (due.has("marketcheckIncentives")) {
     adapters.push(({ searches }) => runMarketCheckIncentivesAdapter({
       searches,
       rows: config.adapters.marketcheckIncentives.rowsPerGroup,
@@ -158,6 +171,9 @@ export async function runPlatformCollection({
 
 export async function runPlatformFromConfig(path, options = {}) {
   const config = await remoteConfig(await loadPlatformConfig(resolve(path)));
+  if (["1", "true"].includes(String(process.env.AUTOHUNTER_IGNORE_CADENCE ?? "").toLowerCase())) {
+    config.collector.ignoreCadence = true;
+  }
   return runPlatformCollection({ config, dryRun: options.dryRun });
 }
 

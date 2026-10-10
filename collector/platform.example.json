@@ -51,7 +51,8 @@
       "rowsPerSearch": 50,
       "maximumRadiusMiles": 100,
       "maximumSearchCalls": 13,
-      "detailFetchLimit": 8
+      "detailFetchLimit": 4,
+      "cadence": { "everyDays": 2 }
     },
     "autodev": {
       "enabled": true,
@@ -62,7 +63,11 @@
     "marketcheckIncentives": {
       "enabled": true,
       "rowsPerGroup": 10,
-      "maximumSearchCalls": 13
+      "maximumSearchCalls": 13,
+      "cadence": {
+        "weekdays": [1],
+        "monthDays": [1, 2]
+      }
     },
     "nhtsa": {
       "enabled": true,

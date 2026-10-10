@@ -1,7 +1,10 @@
 import { isIP } from "node:net";
 import { readBoundedJson } from "../app-client.mjs";
 
-const API_URL = "https://api.marketcheck.com/v2/search/car/incentive/oem";
+// OEM programs are published per metro area (MSA). The make-and-ZIP endpoint resolves the
+// search ZIP to its MSA; the generic `/incentive/oem` search treats `zip` as an exact filter
+// and returned zero rows for every household query between August and October 2026.
+const API_BASE = "https://api.marketcheck.com/v2/search/car/incentive";
 
 export function buildMarketCheckIncentiveGroups(searches) {
   const groups = new Map();
@@ -21,15 +24,12 @@ export function buildMarketCheckIncentiveGroups(searches) {
 }
 
 export function buildMarketCheckIncentiveUrl(group, { apiKey, rows = 10 } = {}) {
-  const url = new URL(API_URL);
+  const url = new URL(`${API_BASE}/${encodeURIComponent(group.make)}/${encodeURIComponent(group.zip)}`);
   const maximumMonthly = nullableMaximum(group.searches.map((search) => search.maxEffectiveMonthly));
   const maximumDas = nullableMaximum(group.searches.map((search) => search.maxDueAtSigning));
   url.searchParams.set("api_key", apiKey);
-  url.searchParams.set("country", "us");
   url.searchParams.set("offer_type", "lease");
-  url.searchParams.set("make", group.make);
   url.searchParams.set("model", [...new Set(group.searches.map((search) => search.model).filter(Boolean))].sort().join(","));
-  url.searchParams.set("zip", group.zip);
   url.searchParams.set("rows", String(Math.max(1, Math.min(10, rows))));
   url.searchParams.set("sort_by", "monthly");
   url.searchParams.set("sort_order", "asc");

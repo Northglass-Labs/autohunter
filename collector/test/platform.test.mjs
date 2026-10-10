@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { mergeRemoteSavedSearches, validatePlatformConfig } from "../src/platform-config.mjs";
-import { runPlatformCollection } from "../src/platform.mjs";
+import { dueAdapterKeys, runPlatformCollection } from "../src/platform.mjs";
 
 const config = {
   version: 2,
@@ -278,3 +278,22 @@ function sourceRun(adapter, source) {
     messageCode: null,
   };
 }
+
+test("metered providers follow their cadence so MarketCheck lasts the whole month", async () => {
+  const config = validatePlatformConfig(JSON.parse(await import("node:fs/promises").then((fs) => fs.readFile(new URL("../platform.example.json", import.meta.url), "utf8"))), { allowEmptySearches: true });
+  // 2026-10-12 (Monday, even UTC day): inventory and OEM programs both due.
+  assert.deepEqual(dueAdapterKeys(config, new Date("2026-10-12T15:00:00Z")), ["marketcheck", "autodev", "marketcheckIncentives"]);
+  // 2026-10-13 (Tuesday, odd UTC day): only the unmetered Auto.dev inventory runs.
+  assert.deepEqual(dueAdapterKeys(config, new Date("2026-10-13T15:00:00Z")), ["autodev"]);
+  // Verification collections can force every enabled source.
+  assert.deepEqual(
+    dueAdapterKeys({ ...config, collector: { ...config.collector, ignoreCadence: true } }, new Date("2026-10-13T15:00:00Z")),
+    ["marketcheck", "autodev", "marketcheckIncentives"],
+  );
+});
+
+test("rejects malformed provider cadence", async () => {
+  const config = JSON.parse(await import("node:fs/promises").then((fs) => fs.readFile(new URL("../platform.example.json", import.meta.url), "utf8")));
+  config.adapters.marketcheck.cadence = { everyDays: 0 };
+  assert.throws(() => validatePlatformConfig(config, { allowEmptySearches: true }), /everyDays/);
+});
