@@ -1,4 +1,4 @@
-import { isSourceHealthy } from "@/lib/source-health-summary";
+import { isSourceHealthy, leaseInputsSummary, sourcesForOfferKinds } from "@/lib/source-health-summary";
 import { currentUser } from "@/lib/auth";
 import {
   getAllSavedSearches,
@@ -92,7 +92,12 @@ export default async function Home({
     modelListings.filter((listing) => matchesQueuePriceCaps(listing, filters)),
     filters.sort,
   );
-  const sourceCount = sourceHealth.filter((source) => isSourceHealthy(source)).length;
+  // Members see the feeds behind their own searches; admins operate every feed.
+  const visibleSources = sourcesForOfferKinds(
+    sourceHealth,
+    user.role === "admin" ? ["used", "new", "lease"] : activeSearches.map((search) => search.offerKind),
+  );
+  const sourceCount = visibleSources.filter((source) => isSourceHealthy(source)).length;
   const activeOfferCount = listings.filter((listing) => listing.offerRole === "active_offer").length;
   const benchmarkCount = listings.filter((listing) => listing.offerRole === "benchmark").length;
   return (
@@ -183,7 +188,7 @@ export default async function Home({
 
       <ListingSections listings={listings} view={filters.view} lane={filters.lane} sourceHealth={sourceHealth} />
 
-      <SourceHealth sources={sourceHealth} />
+      <SourceHealth sources={visibleSources} />
       <SavedSearchPanel searches={searches} />
       {user.role === "admin" ? <TeamPanel people={people} searches={allSearches} /> : null}
       <footer className="app-footer"><span>{INSTANCE_CONFIG.appName} <small>{INSTANCE_CONFIG.endorsement}</small></span><p>Used · lease · package evidence · source health · private decisions</p></footer>
@@ -252,20 +257,10 @@ function LeaseRoleSections({ listings, view, sourceHealth }: { listings: Listing
 // Lease intelligence only arrives from authorized notifications, manual imports, and the OEM
 // incentive feed. When there are no active offers, say why instead of showing a silent gap.
 function LeaseInputsNote({ sourceHealth }: { sourceHealth: SourceHealthRecord[] }) {
-  const importer = sourceHealth.find((source) => source.source === "email_alert");
-  const incentives = sourceHealth.find((source) => source.source === "marketcheck_incentives");
-  const importerLine = !importer
-    ? "The authorized lease-alert importer has not run yet."
-    : importer.status === "success" || importer.status === "empty"
-      ? `The authorized lease-alert importer last ran ${dayLabel(importer.finishedAt)} and found ${importer.acceptedCount} new item${importer.acceptedCount === 1 ? "" : "s"}.`
-      : `The authorized lease-alert importer is currently ${importer.status} (last attempt ${dayLabel(importer.finishedAt)}).`;
-  const incentiveLine = incentives && (incentives.status === "success" || incentives.status === "empty")
-    ? ` The licensed OEM incentive feed is healthy and currently reports ${incentives.discoveredCount === 0 ? "no published lease programs for your models" : `${incentives.discoveredCount} programs`}.`
-    : "";
   return (
     <div className="lease-inputs-note">
       <strong>No active lease offers right now.</strong>
-      <p>{importerLine}{incentiveLine} New authorized alerts and imports land here automatically; signed benchmarks below stay available for negotiation context.</p>
+      <p>{leaseInputsSummary(sourceHealth)} New authorized alerts and imports land here automatically; signed benchmarks below stay available for negotiation context.</p>
     </div>
   );
 }
@@ -357,9 +352,3 @@ function viewLabel(view: View) {
   return "ready for review";
 }
 
-function dayLabel(iso: string) {
-  const days = Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000);
-  if (days <= 0) return "today";
-  if (days === 1) return "yesterday";
-  return `${days} days ago`;
-}

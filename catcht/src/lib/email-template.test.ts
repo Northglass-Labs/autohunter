@@ -167,18 +167,26 @@ describe("renderDigestEmail", () => {
     expect(message.html).toContain("2 model-year recall campaigns");
   });
 
-  it("renders a polished quiet-run message", () => {
-    const message = renderDigestEmail([], "2026-07-11", {
+  it("renders a quiet week as a weekly check-in rather than a daily shortlist", () => {
+    const config = {
       appUrl: "https://autohunter.example.com",
       recipientId: "driver",
       actionSecret: "a".repeat(32),
       brandName: "Shift Scout",
       maxPrice: 15_000,
-    });
+    };
+    const message = renderDigestEmail([], "2026-10-09", config, [], { lastEmailedOn: "2026-10-02" });
 
-    expect(message.subject).toContain("no new matches");
-    expect(message.subject).toContain("Shift Scout");
-    expect(message.html).toContain("No new matches today");
+    expect(message.subject).toBe("[Shift Scout] weekly check-in: nothing new");
+    expect(message.html).toContain("WEEKLY CHECK-IN · 2026-10-09");
+    expect(message.html).toContain("Nothing new since Oct 2.");
+    expect(message.html).toContain("emails only when something new turns up");
+    expect(message.html).not.toContain("DAILY SHORTLIST");
+    expect(message.text).toContain("Shift Scout weekly check-in · 2026-10-09");
+    expect(message.text).toContain("Nothing new since Oct 2.");
+
+    const first = renderDigestEmail([], "2026-10-09", config);
+    expect(first.html).toContain("Nothing has cleared your filters yet.");
   });
 
   it("renders lease economics without calling a monthly payment a purchase price", () => {
@@ -308,6 +316,32 @@ describe("renderDigestEmail", () => {
     expect(message.html).toContain("Plan upgrade required");
     expect(message.html).toContain("Auto.dev");
     expect(message.html).toContain("4 accepted");
-    expect(message.text).toContain("MarketCheck OEM Incentives: unavailable");
+    expect(message.html).toContain("its own collection schedule");
+    expect(message.text).toContain("MarketCheck OEM Incentives: needs attention · Plan upgrade required");
+    expect(message.text).toContain("Auto.dev: OK · 4 accepted from 18");
+  });
+
+  it("names a lease feed that keeps answering with no offers", () => {
+    const message = renderDigestEmail([], "2026-10-09", {
+      appUrl: "https://autohunter.northglass.io",
+      recipientId: "driver",
+      actionSecret: "a".repeat(32),
+      brandName: "AutoHunter",
+      maxPrice: 70_000,
+    }, [{
+      source: "marketcheck_incentives",
+      adapter: "marketcheck-oem-incentives-v2",
+      status: "empty",
+      messageCode: null,
+      searchedCount: 7,
+      discoveredCount: 0,
+      acceptedCount: 0,
+      finishedAt: new Date().toISOString(),
+      lastDiscoveryAt: null,
+    }], { lastEmailedOn: "2026-10-02" });
+
+    expect(message.html).toContain("OEM lease programs");
+    expect(message.html).toContain("No provider results yet");
+    expect(message.text).toContain("1 source is not fully available.");
   });
 });

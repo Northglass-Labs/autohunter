@@ -1,5 +1,38 @@
 # AutoHunter status
 
+## In progress — lease feeds, provider pacing and quiet-day reports (2026-10-09)
+
+**Problem:** the household's lease-only recipient got 53 reports from 2026-08-10 to 2026-10-09;
+52 said "no new matches". ADR-018 records the four causes:
+- The OEM lease query used an exact-ZIP filter. All 70 runs returned no programs, shown as healthy.
+- The authorized lease-alert importer has not run since 2026-08-10.
+- The 23-hour report gate skipped 3 of 16 days for every recipient, because the scheduled
+  workflow starts four to nine hours late by a varying amount.
+- Daily MarketCheck inventory exhausted the monthly allowance on 2026-08-17 and 2026-09-18.
+
+**Changes (branch `fix/lease-feeds-and-digest`):**
+- **Collector:** OEM programs use the make-and-ZIP (metro area) endpoint. Per-source cadence:
+  MarketCheck inventory every other day with four detail calls; OEM programs on Mondays and the
+  1st and 2nd. The workflow has an `ignore_cadence` input for verification runs.
+- **Reports:** no email on quiet days, and a weekly check-in after seven quiet days. Daily
+  recipients get one report per Eastern date with no elapsed-hours gate. Each report lists only
+  the recipient's sources, with per-source freshness and a "No provider results" state.
+- **Dashboard:** the lease note no longer calls a stale or silent feed healthy. Members see their
+  own sources.
+
+**Verified locally:** collector 128 tests; catcht 152 unit tests, lint, type check and production
+build. The new source-health and recipient queries ran read-only against production. Database and
+E2E checks run in CI.
+
+**Verified against the provider:** a collection-only run with `ignore_cadence` on this branch
+(Actions run `38019842898`, 2026-10-10) found 22 OEM programs and accepted 18, the feed's first
+results ever. All 18 are eligible active offers for the household's 2026 Palisade and 2027
+Telluride lease searches. The other five searched models had no program within those searches'
+monthly and due-at-signing caps.
+
+**Next:** merge and deploy. Then dispatch a collection-only run with `ignore_cadence=true` to
+confirm OEM programs arrive, and restore the importer's host schedule (owner step, ADR-014 §4).
+
 ## 2026-10-10 dependency/security maintenance
 
 CI's `npm audit` gate had failed on `main` since new advisories were published. Fixed:
@@ -13,6 +46,7 @@ Production-only audits now report 0 vulnerabilities in both packages. `braces`
 plugin. It is the single exception in `.github/audit-allowlist.json`, expiring 2026-12-31.
 SECURITY.md describes the gate. Verified: catcht 136 unit tests, lint and build on Next 16.4.0;
 collector 120 tests; audit-gate tests 4/4.
+
 
 ## Completed — owner's SQ7 search narrowed to Prestige (2026-10-09)
 

@@ -69,10 +69,13 @@ test("builds a make-and-ZIP OEM lease query with hard search limits", () => {
   ]);
   assert.equal(groups.length, 1);
   const url = buildMarketCheckIncentiveUrl(groups[0], { apiKey: "test-key", rows: 10 });
-  assert.equal(url.origin + url.pathname, "https://api.marketcheck.com/v2/search/car/incentive/oem");
-  assert.equal(url.searchParams.get("make"), "Lexus");
+  // The make-and-ZIP endpoint resolves the ZIP to its metro area (MSA), where OEM programs
+  // live. The generic search endpoint's `zip` filter only matches offers recorded at that
+  // exact ZIP, which returned zero rows for every production query from August to October 2026.
+  assert.equal(url.origin + url.pathname, "https://api.marketcheck.com/v2/search/car/incentive/Lexus/10001");
+  assert.equal(url.searchParams.get("zip"), null);
+  assert.equal(url.searchParams.get("make"), null);
   assert.equal(url.searchParams.get("model"), "RX,TX");
-  assert.equal(url.searchParams.get("zip"), "10001");
   assert.equal(url.searchParams.get("offer_type"), "lease");
   assert.equal(url.searchParams.get("monthly_range"), "1-800");
   assert.equal(url.searchParams.get("due_at_signing_range"), "0-4000");
@@ -158,4 +161,10 @@ test("fails closed when lease searches have no ZIP or the API credential is miss
   });
   assert.equal(requested, false);
   assert.equal(missingKey.run.messageCode, "credential_missing");
+});
+
+test("encodes multi-word makes safely in the make-and-ZIP path", () => {
+  const [group] = buildMarketCheckIncentiveGroups([{ ...search, id: "lease-land-rover", make: "Land Rover", model: "Defender" }]);
+  const url = buildMarketCheckIncentiveUrl(group, { apiKey: "test-key" });
+  assert.equal(url.pathname, "/v2/search/car/incentive/Land%20Rover/10001");
 });

@@ -601,6 +601,9 @@ export interface SourceHealth {
   discoveredCount: number;
   acceptedCount: number;
   finishedAt: string;
+  // Latest run in which the provider returned anything; null when it never has. Absent on
+  // report snapshots stored before this was recorded.
+  lastDiscoveryAt?: string | null;
 }
 
 export interface DigestReport {
@@ -620,10 +623,15 @@ export interface DigestReportDetail extends DigestReport {
 export async function getSourceHealth(): Promise<SourceHealth[]> {
   const sql = getDb();
   const rows = await sql`
-    select distinct on (source)
-      source, adapter, status, message_code, searched_count, discovered_count, accepted_count, finished_at
-    from catcht.source_runs
-    order by source, finished_at desc
+    select distinct on (runs.source)
+      runs.source, runs.adapter, runs.status, runs.message_code, runs.searched_count,
+      runs.discovered_count, runs.accepted_count, runs.finished_at,
+      (
+        select max(history.finished_at) from catcht.source_runs history
+        where history.source = runs.source and history.discovered_count > 0
+      ) as last_discovery_at
+    from catcht.source_runs runs
+    order by runs.source, runs.finished_at desc
   `;
   return rows.map((row) => ({
     source: String(row.source),
@@ -634,6 +642,7 @@ export async function getSourceHealth(): Promise<SourceHealth[]> {
     discoveredCount: Number(row.discovered_count),
     acceptedCount: Number(row.accepted_count),
     finishedAt: new Date(String(row.finished_at)).toISOString(),
+    lastDiscoveryAt: row.last_discovery_at ? new Date(String(row.last_discovery_at)).toISOString() : null,
   }));
 }
 
@@ -733,6 +742,25 @@ export async function getDigestCandidates(userId: string): Promise<ListingCard[]
       || nullableNumber(left.price) - nullableNumber(right.price)
       || nullableNumber(left.effective_monthly) - nullableNumber(right.effective_monthly));
   return rows.slice(0, 12).map((row) => card(row));
+}
+
+export async function getRecipientOfferKinds(userId: string): Promise<OfferKind[]> {
+  const sql = getDb();
+  const rows = await sql`
+    select distinct offer_kind from catcht.saved_searches
+    where owner_id = ${userId}::uuid and active
+  `;
+  return rows.map((row) => row.offer_kind as OfferKind);
+}
+
+// Eastern scheduled date of the most recent digest email actually delivered to this recipient.
+export async function lastDigestEmailDate(userId: string): Promise<string | null> {
+  const sql = getDb();
+  const rows = await sql`
+    select max(scheduled_for)::text as scheduled_for from catcht.digest_runs
+    where user_id = ${userId}::uuid and status in ('sent', 'empty') and provider_message_id is not null
+  `;
+  return rows[0]?.scheduled_for ? dateOnly(rows[0].scheduled_for) : null;
 }
 
 export async function digestIsDue(userId: string, cadenceHours = 23): Promise<boolean> {
@@ -872,6 +900,9 @@ function sourceHealthSnapshot(value: unknown): SourceHealth[] {
       discoveredCount: Number(row.discoveredCount ?? 0),
       acceptedCount: Number(row.acceptedCount ?? 0),
       finishedAt: row.finishedAt ? new Date(String(row.finishedAt)).toISOString() : new Date(0).toISOString(),
+      ...("lastDiscoveryAt" in row
+        ? { lastDiscoveryAt: row.lastDiscoveryAt ? new Date(String(row.lastDiscoveryAt)).toISOString() : null }
+        : {}),
     }];
   });
 }

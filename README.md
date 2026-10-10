@@ -2,7 +2,8 @@
 
 **AutoHunter** is a private vehicle-intelligence and decision product for households shopping used
 cars and leases. It turns licensed inventory, authorized alerts, OEM programs, real listing photos,
-package evidence, and normalized economics into one review queue and one evidence-rich daily report.
+package evidence, and normalized economics into one review queue and evidence-rich reports: daily when
+something new clears a search, otherwise a weekly check-in.
 
 _a Northglass Product_
 
@@ -26,10 +27,13 @@ evidence, decisions, and report history through the rebrand.
 - Active lease offers, signed benchmarks, and incomplete market signals shown as different roles.
 - Durable, reversible Interested and Pass decisions for each household member.
 - Invite-only Supabase magic links; no password database and no open signup.
-- Daily email and in-app reports with a bottom line, new/changed finds, normalized lease sections,
-  caveats, and a source-health snapshot.
-- Complete plain-text email candidates, price-drop context and S-Class inspection checks. Sources
-  whose latest result is over 48 hours old are visibly stale rather than counted as healthy.
+- Email and in-app reports with a bottom line, new/changed finds, normalized lease sections,
+  caveats, and a source-health snapshot. Quiet days send nothing; after a quiet week a check-in
+  names the last report date.
+- Complete plain-text email candidates, price-drop context and S-Class inspection checks. Each
+  report lists only the sources behind that person's searches, judged against each source's own
+  collection schedule. Stale sources, and providers that keep answering with nothing, are shown as
+  needing attention rather than counted as healthy.
 - Canonical VIN/source deduplication while preserving private per-user matches and decisions.
 - Bounded NHTSA 5-Star and model-year recall context, with a direct official VIN-recall check and no
   bulk VIN lookup.
@@ -74,7 +78,7 @@ flowchart LR
   U[Invited user] --> A[Supabase magic link]
   A --> W[Server-authorized decision desk]
   DB --> W
-  DB --> R[Per-user daily report]
+  DB --> R[Per-user report or weekly check-in]
   R --> M[Email + report archive]
   M --> D[Confirmation-gated decisions]
   D --> DB
@@ -145,12 +149,15 @@ Primary collector variables are `AUTOHUNTER_APP_URL`, `AUTOHUNTER_INGEST_SECRET`
 `AUTOHUNTER_CRON_SECRET`, `MARKETCHECK_API_KEY`, optional `AUTODEV_API_KEY`, and optional
 `AUTOHUNTER_CONFIG`. Historical `CAR_HUNT_*`/`CATCHT_*` names are read only as migration fallbacks.
 
-The hosted scheduler invokes the licensed inventory cycle at 10:17 UTC. Report eligibility uses a
-23-hour minimum interval so ordinary scheduler jitter does not skip a calendar day, while the
-profile-scoped run key keeps retries idempotent. The optional Gmail bridge is a separate read-only,
-fixed-profile operation and is not required by the web product.
+The hosted scheduler invokes the licensed inventory cycle at 10:17 UTC; GitHub often starts it hours
+late. Metered providers declare a per-source cadence (MarketCheck inventory every other day, OEM lease
+programs weekly plus the 1st and 2nd of the month). Daily reports are limited to one per Eastern
+calendar date by the profile-scoped run key, which also keeps retries idempotent. See ADR-018.
+The optional Gmail bridge is a separate read-only, fixed-profile operation and is not required by
+the web product.
 Manual GitHub workflow dispatch defaults to `collection_only=true`, which runs `platform:collect`
-and never invokes the digest endpoint. Daily scheduled cycles retain the existing digest cadence.
+and never invokes the digest endpoint. `ignore_cadence=true` queries every enabled source for a
+verification run. Daily scheduled cycles retain the existing digest cadence.
 Use collection-only mode for deliberate live verification after changing searches; provider request
 and detail limits still apply.
 

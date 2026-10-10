@@ -1,4 +1,5 @@
 import { readFile } from "node:fs/promises";
+import { validateCadence } from "./cadence.mjs";
 import { FEATURE_KEYS } from "./vehicle-intelligence.mjs";
 
 function integer(value, label, { min = 0, max = Number.MAX_SAFE_INTEGER, nullable = false } = {}) {
@@ -95,6 +96,9 @@ export function validatePlatformConfig(config, { allowEmptySearches = false } = 
   if (typeof config.adapters.marketcheckIncentives?.enabled !== "boolean") throw new Error("adapters.marketcheckIncentives.enabled must be a boolean");
   integer(config.adapters.marketcheckIncentives?.rowsPerGroup, "adapters.marketcheckIncentives.rowsPerGroup", { min: 1, max: 10 });
   integer(config.adapters.marketcheckIncentives?.maximumSearchCalls ?? 13, "adapters.marketcheckIncentives.maximumSearchCalls", { min: 1, max: 50 });
+  for (const key of ["marketcheck", "autodev", "marketcheckIncentives"]) {
+    validateCadence(config.adapters[key]?.cadence, `adapters.${key}.cadence`);
+  }
   if (typeof config.adapters.nhtsa?.enabled !== "boolean") throw new Error("adapters.nhtsa.enabled must be a boolean");
   integer(config.adapters.nhtsa?.maximumModelGroups ?? 5, "adapters.nhtsa.maximumModelGroups", { min: 1, max: 25 });
   integer(config.adapters.nhtsa?.maximumVariantsPerGroup ?? 2, "adapters.nhtsa.maximumVariantsPerGroup", { min: 1, max: 5 });

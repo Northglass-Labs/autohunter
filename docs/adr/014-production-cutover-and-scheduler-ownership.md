@@ -3,6 +3,7 @@ title: AutoHunter production separates licensed collection from authorized mailb
 status: accepted
 date: 2026-08-10
 supersedes: ADR-012 open production validation and predecessor scheduler ownership
+amended_by: ADR-018 (decision 3, report eligibility)
 ---
 
 # ADR-014: Production cutover and scheduler ownership
