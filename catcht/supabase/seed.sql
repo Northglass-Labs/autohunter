@@ -135,6 +135,14 @@ insert into catcht.listings (
   array['https://images.unsplash.com/photo-1555215695-3004980ad54e?auto=format&fit=crop&w=1200&q=80'], 'https://images.unsplash.com/photo-1555215695-3004980ad54e?auto=format&fit=crop&w=1200&q=80',
   false, 'not_applicable', 0, 82, 'eligible', 'used', 'used', 'gas', 'gas', 'SUV', 7,
   now() + interval '3 days'
+), (
+  'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+  'e2e:audi-sq7-interested', 'auto_dev', 'e2e-audi-sq7-interested', '99999999-9999-4999-8999-999999999999',
+  'https://dealer.example/audi-sq7-interested', 'WA1AWBF77MD000004', 2021, 'Audi', 'SQ7', 'Premium Plus',
+  '2021 Audi SQ7 Premium Plus', 49900, 41800, 64, 'Lancaster, PA',
+  array['https://images.unsplash.com/photo-1555215695-3004980ad54e?auto=format&fit=crop&w=1200&q=80'], 'https://images.unsplash.com/photo-1555215695-3004980ad54e?auto=format&fit=crop&w=1200&q=80',
+  false, 'not_applicable', 0, 78, 'eligible', 'used', 'used', 'gas', 'gas', 'SUV', 7,
+  now() + interval '3 days'
 ) on conflict (id) do nothing;
 
 insert into catcht.listing_matches (
@@ -144,5 +152,11 @@ insert into catcht.listing_matches (
   -- Re-confirmed by the collector since the search's current definition took effect.
   ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', '99999999-9999-4999-8999-999999999999', 80, 'not_applicable', 'eligible', 0, 0, now(), now()),
   -- Last confirmed before the search was narrowed, so it was judged against criteria that no longer exist.
-  ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', '99999999-9999-4999-8999-999999999999', 82, 'not_applicable', 'eligible', 0, 0, now() - interval '2 days', now() - interval '1 day')
+  ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', '99999999-9999-4999-8999-999999999999', 82, 'not_applicable', 'eligible', 0, 0, now() - interval '2 days', now() - interval '1 day'),
+  -- Also confirmed only before the change, but the member had already marked it interested.
+  ('cccccccc-cccc-4ccc-8ccc-cccccccccccc', '99999999-9999-4999-8999-999999999999', 78, 'not_applicable', 'eligible', 0, 0, now() - interval '3 days', now() - interval '1 day')
 on conflict (listing_id, search_id) do nothing;
+
+insert into catcht.user_listing_decisions (user_id, listing_id, disposition)
+values ('22222222-2222-4222-8222-222222222222', 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', 'interested')
+on conflict (user_id, listing_id) do nothing;

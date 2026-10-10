@@ -115,9 +115,13 @@ test("queue price caps use shareable URL filters", async ({ page, request }) => 
 test("the review queue trusts only matches confirmed under a search's current definition", async ({ page, request }) => {
   await signIn(page, request, "member@example.test");
 
-  // Seeded: the member's SQ7 search changed after its Premium Plus match was last confirmed.
+  // Seeded: the member's SQ7 search changed after its Premium Plus matches were last confirmed.
   await expect(page.getByRole("heading", { name: "2022 Audi SQ7 Prestige" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "2022 Audi SQ7 Premium Plus" })).toHaveCount(0);
+
+  // A decision the member already made survives the change.
+  await page.goto("/?view=interested");
+  await expect(page.getByRole("heading", { name: "2021 Audi SQ7 Premium Plus" })).toBeVisible();
 });
 
 test("a re-ingested listing shows the trim and title it was last judged on", async ({ page, request }) => {
