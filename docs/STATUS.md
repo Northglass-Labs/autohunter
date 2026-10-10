@@ -1,6 +1,6 @@
 # AutoHunter status
 
-## In progress — reports every third day (2026-10-10)
+## Completed — reports every third day (2026-10-10)
 
 **Request:** the owner asked for both report recipients to get a report every three days instead of
 daily.
@@ -19,7 +19,21 @@ pushed about half of all reports to a fourth day.
 **Tests:** unit cases for a 72-hour and a 168-hour cadence on either side of the due date (the two
 due cases failed before the fix), an email-copy case, and the report-archive E2E heading.
 
-**Data (after deploy):** set `digest_cadence_hours = 72` on the two report recipients' profiles.
+**Verified:**
+- Locally: catcht 156 unit tests, lint, type check and production build all pass. pgTAP 39/39.
+- Local E2E could not run. Another project's container holds port 3100, and outside CI Playwright
+  reuses whatever server is already listening there.
+- CI run `38082957666`: collector, web, pgTAP 39/39 and E2E 22/22.
+
+**Deployed:**
+- PR #24 merged as `f89ace3`.
+- Vercel production deployment `dpl_89tVW98Ki47BC4dLXkZQfZFW9Crq` was READY and aliased to
+  `autohunter.northglass.io` at 20:20 UTC.
+- Login returns 200, and the digest endpoint refuses an unauthenticated request with 401.
+
+**Data (production, 2026-10-10 20:21 UTC):**
+- Both report recipients' `digest_cadence_hours` went from 23 to 72.
+- Both last received a report on 2026-10-10, so the next can go out on 2026-10-13.
 
 ## Completed — a narrowed search stops trusting its old matches (2026-10-10)
 
