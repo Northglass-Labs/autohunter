@@ -22,7 +22,13 @@
 
 **Verified locally:** collector 128 tests; catcht 152 unit tests, lint, type check and production
 build. The new source-health and recipient queries ran read-only against production. Database and
-E2E checks were not run: they reset local Supabase.
+E2E checks run in CI.
+
+**Verified against the provider:** a collection-only run with `ignore_cadence` on this branch
+(Actions run `38019842898`, 2026-10-10) found 22 OEM programs and accepted 18, the feed's first
+results ever. All 18 are eligible active offers for the household's 2026 Palisade and 2027
+Telluride lease searches. The other five searched models had no program within those searches'
+monthly and due-at-signing caps.
 
 **Next:** merge and deploy. Then dispatch a collection-only run with `ignore_cadence=true` to
 confirm OEM programs arrive, and restore the importer's host schedule (owner step, ADR-014 §4).
