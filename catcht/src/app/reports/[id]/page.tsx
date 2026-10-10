@@ -2,13 +2,13 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AutoHunterLockup } from "@/components/autohunter-brand";
 import { ListingCard } from "@/components/listing-card";
-import { requireUser } from "@/lib/auth";
+import { requirePageUser } from "@/lib/auth";
 import { getDigestReport, type DigestReportDetail, type ListingCard as Listing } from "@/lib/dal";
 
 export const dynamic = "force-dynamic";
 
 export default async function ReportPage({ params }: { params: Promise<{ id: string }> }) {
-  const user = await requireUser();
+  const user = await requirePageUser();
   const { id } = await params;
   const report = await getDigestReport(user.id, id);
   if (!report) notFound();

@@ -47,6 +47,7 @@ supabase db advisors
 - [x] allow only intentional `/auth/confirm` redirect origins
 - [x] enable `catcht.authorize_invited_user` as the before-user-created hook
 - [x] install the checked-in confirmation and magic-link templates unchanged
+- [ ] require email confirmation after checking the confirmation template (ADR-022)
 - [x] configure custom SMTP; local Mailpit is test-only
 - [x] provision only intended normalized emails in `catcht.user_profiles`
 - [x] keep all application tables in the private `catcht` schema
