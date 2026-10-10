@@ -40,6 +40,11 @@ requests. The next scheduled cycle is the first to use quiet-day reports.
   legacy origin in the profile's environment: its cross-origin redirect drops the bearer token.
 - It has no supported scheduler since Hermes retired (ADR-014 §4).
 
+ADR-019 replaces the Hermes job with a launchd job and an `agent_fields` profile that pins the
+canonical origin. A local probe against a mock app showed the importer, its Keychain lookup and
+GOG's Gmail access all work. The profile and launchd job are staged for owner review; the owner
+supplies the ingest secret to a dedicated Agent-vault item.
+
 ## 2026-10-10 dependency/security maintenance
 
 CI's `npm audit` gate had failed on `main` since new advisories were published. Fixed:
