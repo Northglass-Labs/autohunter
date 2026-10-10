@@ -11,6 +11,11 @@ interface DigestEmailConfig {
   maxPrice: number;
 }
 
+export interface DigestEmailOptions {
+  // Eastern date of the last delivered digest; frames an empty report as a weekly check-in.
+  lastEmailedOn?: string | null;
+}
+
 function escapeHtml(value: string) {
   return value.replace(
     /[&<>"']/g,
@@ -27,6 +32,12 @@ function money(value: number) {
     currency: "USD",
     maximumFractionDigits: 0,
   }).format(value);
+}
+
+function calendarDay(value: string) {
+  const date = new Date(`${value}T00:00:00Z`);
+  if (!Number.isFinite(date.getTime())) return value;
+  return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", timeZone: "UTC" }).format(date);
 }
 
 function compactMoney(value: number) {
@@ -56,7 +67,7 @@ function sourceHealthBlock(sources: SourceHealth[]) {
     </tr>`;
   }).join("");
   return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:2px 0 22px;padding:0 2px">
-    <tr><td colspan="2" style="padding:0 0 10px"><h2 style="margin:0 0 3px;color:#0a0a0a;font-size:19px;letter-spacing:-.025em">Source health</h2><p style="margin:0;color:#6d6a72;font-size:12px;line-height:1.45">A healthy result is at most 48 hours old. Coverage limits and stale feeds remain visible.</p></td></tr>
+    <tr><td colspan="2" style="padding:0 0 10px"><h2 style="margin:0 0 3px;color:#0a0a0a;font-size:19px;letter-spacing:-.025em">Source health</h2><p style="margin:0;color:#6d6a72;font-size:12px;line-height:1.45">Each feed is judged against its own collection schedule. Stale feeds and providers returning nothing stay visible.</p></td></tr>
     ${rows}
   </table>`;
 }
@@ -143,16 +154,21 @@ export function renderDigestEmail(
   scheduledFor: string,
   config: DigestEmailConfig,
   sources: SourceHealth[] = [],
+  options: DigestEmailOptions = {},
 ) {
   const dashboardUrl = `${config.appUrl}/`;
+  const brandName = config.brandName;
+  const checkIn = listings.length === 0;
   const purchases = listings.filter((listing) => listing.offerKind !== "lease");
   const activeLeases = listings.filter((listing) => listing.offerKind === "lease" && listing.offerRole === "active_offer");
   const benchmarks = listings.filter((listing) => listing.offerKind === "lease" && listing.offerRole === "benchmark");
   const signals = listings.filter((listing) => listing.offerKind === "lease" && listing.offerRole === "market_signal");
   const unavailableSources = sources.filter((source) => !isSourceHealthy(source));
+  const sourceGap = unavailableSources.length ? ` ${unavailableSources.length} source${unavailableSources.length === 1 ? " is" : "s are"} not fully available.` : "";
+  const quietSince = options.lastEmailedOn ? `Nothing new since ${calendarDay(options.lastEmailedOn)}.` : "Nothing has cleared your filters yet.";
   const bottomLine = listings.length
-    ? `${purchases.length} purchase candidate${purchases.length === 1 ? "" : "s"} and ${activeLeases.length} live lease offer${activeLeases.length === 1 ? "" : "s"} cleared your filters.${benchmarks.length || signals.length ? ` ${benchmarks.length} signed benchmark${benchmarks.length === 1 ? "" : "s"} and ${signals.length} market signal${signals.length === 1 ? "" : "s"} are context only.` : ""}${unavailableSources.length ? ` ${unavailableSources.length} source${unavailableSources.length === 1 ? " is" : "s are"} not fully available.` : ""}`
-    : `No new or meaningfully changed candidates cleared your filters.${unavailableSources.length ? ` ${unavailableSources.length} source${unavailableSources.length === 1 ? " is" : "s are"} not fully available.` : ""}`;
+    ? `${purchases.length} purchase candidate${purchases.length === 1 ? "" : "s"} and ${activeLeases.length} live lease offer${activeLeases.length === 1 ? "" : "s"} cleared your filters.${benchmarks.length || signals.length ? ` ${benchmarks.length} signed benchmark${benchmarks.length === 1 ? "" : "s"} and ${signals.length} market signal${signals.length === 1 ? "" : "s"} are context only.` : ""}${sourceGap}`
+    : `${quietSince} ${brandName} emails only when something new turns up and checks in after a quiet week.${sourceGap}`;
   const reportSections = listings.length
     ? [
         reportSection("Fresh & changed vehicle finds", "Used and new listings with original photos, source links, and equipment evidence", purchases, config),
@@ -160,13 +176,12 @@ export function renderDigestEmail(
         reportSection("Signed benchmarks", "Negotiation context—not live inventory", benchmarks, config),
         reportSection("Market signals", "Leads with incomplete economics; verify before comparing", signals, config),
       ].join("")
-    : `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px;background:#fafafa;border:1px solid #d9d7d1;border-radius:18px"><tr><td style="padding:32px"><h2 style="margin:0 0 7px;font-size:23px;color:#0a0a0a">No new matches today.</h2><p style="margin:0;color:#6d6a72;line-height:1.55">No new or meaningfully changed candidates cleared your filters. Check source health below for any gaps in coverage.</p></td></tr></table>`;
+    : `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px;background:#fafafa;border:1px solid #d9d7d1;border-radius:18px"><tr><td style="padding:32px"><h2 style="margin:0 0 7px;font-size:23px;color:#0a0a0a">${escapeHtml(quietSince)}</h2><p style="margin:0;color:#6d6a72;line-height:1.55">No new or meaningfully changed candidates cleared your filters. Source health below shows whether each feed is still delivering.</p></td></tr></table>`;
   const onlyVerifiedManual = listings.length > 0 && listings.every((listing) => listing.offerKind === "used" && listing.verificationStatus === "verified");
-  const countLabel = `${listings.length} ${onlyVerifiedManual ? "verified " : ""}find${listings.length === 1 ? "" : "s"}`;
-  const brandName = config.brandName;
-  const subject = listings.length
-    ? `[${brandName}] ${listings.length} fresh ${onlyVerifiedManual ? "manual" : "vehicle"} find${listings.length === 1 ? "" : "s"}`
-    : `[${brandName}] no new matches`;
+  const countLabel = checkIn ? "No new finds" : `${listings.length} ${onlyVerifiedManual ? "verified " : ""}find${listings.length === 1 ? "" : "s"}`;
+  const subject = checkIn
+    ? `[${brandName}] weekly check-in: nothing new`
+    : `[${brandName}] ${listings.length} fresh ${onlyVerifiedManual ? "manual" : "vehicle"} find${listings.length === 1 ? "" : "s"}`;
   const introduction = onlyVerifiedManual
     ? `Actual-car photos. Manual shifters checked. The best local finds at ${compactMoney(config.maxPrice)} or less.`
     : "Used, new, and lease opportunities normalized into one honest shortlist.";
@@ -180,7 +195,7 @@ export function renderDigestEmail(
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#e9e7e1"><tr><td class="email-shell" align="center" style="padding:28px 12px">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:680px">
     <tr><td class="email-header" style="padding:30px;background:#0a0a0a;border-radius:22px 22px 0 0;border:1px solid #252329;border-bottom:0">
-      <div style="font-size:11px;text-transform:uppercase;letter-spacing:.14em;font-weight:800;color:#c7b7ff">YOUR DAILY SHORTLIST · ${escapeHtml(scheduledFor)}</div>
+      <div style="font-size:11px;text-transform:uppercase;letter-spacing:.14em;font-weight:800;color:#c7b7ff">${checkIn ? "WEEKLY CHECK-IN" : "YOUR DAILY SHORTLIST"} · ${escapeHtml(scheduledFor)}</div>
       <h1 style="margin:10px 0;font-size:36px;line-height:1;letter-spacing:-.055em;color:#fafafa">${escapeHtml(brandName)}</h1>
       <p style="margin:0;max-width:480px;line-height:1.5;color:#c7c3cc">${escapeHtml(introduction)}</p>
       <div style="margin-top:16px;color:#c7b7ff;font-size:13px;font-weight:750">${countLabel}</div>
@@ -198,11 +213,11 @@ export function renderDigestEmail(
       </td></tr></table>
     </td></tr></table></td></tr></table></body></html>`;
   const text = [
-    `${brandName} daily shortlist · ${scheduledFor}`,
+    `${brandName} ${checkIn ? "weekly check-in" : "daily shortlist"} · ${scheduledFor}`,
     bottomLine,
     ...listings.map((listing) => plainTextListing(listing, config.appUrl)),
     `Open your decision desk: ${dashboardUrl}`,
-    sources.length ? `Source health (results older than 48 hours are stale):\n${sources.map((source) => `- ${sourceLabel(source.source)}: ${source.status} · ${sourceStatusLabel(source)}`).join("\n")}` : "",
+    sources.length ? `Source health (each feed is judged against its own collection schedule):\n${sources.map((source) => `- ${sourceLabel(source.source)}: ${isSourceHealthy(source) ? "OK" : "needs attention"} · ${sourceStatusLabel(source)}`).join("\n")}` : "",
     "Check price, availability and equipment with the seller.\na Northglass Product",
   ].filter(Boolean).join("\n\n");
 

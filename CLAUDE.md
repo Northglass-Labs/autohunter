@@ -3,7 +3,8 @@
 AutoHunter is a private, invite-only household vehicle-intelligence product at
 `autohunter.northglass.io`, endorsed exactly as **a Northglass Product**. It combines licensed used
 inventory, structured OEM lease programs, authorized lease notifications, package evidence, private
-decision queues, and deterministic daily reports.
+decision queues, and deterministic reports (daily when something new clears a search, otherwise a
+weekly check-in).
 
 ## Runtime components
 

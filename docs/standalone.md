@@ -137,9 +137,10 @@ Read-only health comes first. Then perform one deliberate ingest and one deliber
 Send the first production report to the administrator only and inspect it before enabling another
 recipient.
 
-Schedule `platform:cycle` daily. The application owns each profile's 23-hour eligibility cadence,
-calendar-date run key, and unchanged-listing suppression, so ordinary scheduler jitter does not skip
-a day and delayed or repeated invocations do not duplicate mail.
+Schedule `platform:cycle` daily. The application owns each profile's calendar-date run key,
+unchanged-listing suppression, and quiet-day rule (no email without new candidates; a check-in after
+seven quiet days), so scheduler delay does not skip a day and repeated invocations do not duplicate
+mail. The collector applies each metered source's own cadence (ADR-018).
 Use `.github/workflows/collector.yml` or the checked-in launchd/systemd templates. Secret values must
 come from repository, platform, or host secret stores—not workflow YAML, unit files, argv, or logs.
 
@@ -152,7 +153,10 @@ come from repository, platform, or host secret stores—not workflow YAML, unit 
 - `failed`: bounded network, response, or parser failure
 
 Each result also records freshness, counts, and provider limitations. One healthy adapter never
-makes a failed or unavailable adapter look healthy.
+makes a failed or unavailable adapter look healthy. Freshness is judged per source: 72 hours for
+MarketCheck inventory, nine days for OEM lease programs, 48 hours otherwise. An adapter that keeps
+searching but has returned no provider results for seven days is reported as needing attention.
+Reports show only the sources serving the recipient's active offer kinds.
 
 ## 9. Release verification
 

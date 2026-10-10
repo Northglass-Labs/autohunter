@@ -2,7 +2,7 @@ import "server-only";
 import { Resend } from "resend";
 import type { ListingCard, SourceHealth, UserProfile } from "./dal";
 import { getCoreEnv, requireEnv } from "./env";
-import { renderDigestEmail } from "./email-template";
+import { renderDigestEmail, type DigestEmailOptions } from "./email-template";
 import { INSTANCE_CONFIG } from "./instance-config";
 import { SEARCH_POLICY } from "./search-policy";
 
@@ -18,6 +18,7 @@ export async function sendDigest(
   listings: ListingCard[],
   scheduledFor: string,
   sourceHealth: SourceHealth[],
+  options: DigestEmailOptions = {},
 ) {
   const env = getCoreEnv();
   if (!recipient.email) throw new Error("digest recipient has no email");
@@ -28,7 +29,7 @@ export async function sendDigest(
     actionSecret: env.ACTION_SIGNING_SECRET,
     brandName: INSTANCE_CONFIG.appName,
     maxPrice: SEARCH_POLICY.maxPrice,
-  }, sourceHealth);
+  }, sourceHealth, options);
   const { data, error } = await getResend().emails.send(
     { from, to: recipient.email, subject: message.subject, html: message.html, text: message.text },
     { idempotencyKey: `catcht-digest-${recipient.id}-${scheduledFor}` },

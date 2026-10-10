@@ -81,7 +81,7 @@ reports, or protected routes require real Mailpit-backed Playwright coverage on 
 | `collector/src/enrichers/nhtsa.mjs` | bounded official crash-rating and recall context |
 | `catcht/src/lib/ranking.ts` | purchase, lease, family, and manual-proof evaluation |
 | `catcht/src/lib/dal.ts` | private persistence, ownership, digest/report history |
-| `catcht/src/lib/email-template.ts` | deterministic AutoHunter daily report email |
+| `catcht/src/lib/email-template.ts` | deterministic AutoHunter report and weekly check-in email |
 | `catcht/src/lib/auth.ts` | Supabase identity to invited-profile authorization |
 | `catcht/src/components/autohunter-brand.tsx` | canonical live mark, wordmark, and endorsement lockup |
 | `catcht/public/brand/` | editable symbol, wordmark, lockup, app-icon, and favicon exports |

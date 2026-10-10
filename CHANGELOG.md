@@ -2,6 +2,15 @@
 
 ## Unreleased — AutoHunter
 
+- queries OEM lease programs by metro area through MarketCheck's make-and-ZIP endpoint; the
+  exact-ZIP search had returned no programs in any production run
+- paces metered providers with a stateless per-source cadence and adds an `ignore_cadence`
+  verification input to the collector workflow
+- sends no email on quiet days and a weekly check-in instead; daily reports are limited by calendar
+  date rather than a 23-hour interval that skipped days when the scheduler started early
+- reports only the sources behind each recipient's searches, with per-source freshness and an
+  explicit "no provider results" state; the retired automated Leasehackr feed is no longer listed
+
 - rebrands the private vehicle platform as AutoHunter, a Northglass Product
 - adds invite-only Supabase magic links, profile-owned searches, independent review decisions,
   profile-scoped reports, and administrator invitations

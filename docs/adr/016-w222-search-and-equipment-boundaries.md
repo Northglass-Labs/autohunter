@@ -3,6 +3,7 @@ title: W222 value searches use explicit body restrictions and model-specific pac
 status: accepted
 date: 2026-09-08
 extends: ADR-012 and ADR-015
+amended_by: ADR-018 (per-source freshness replaces the single 48-hour window)
 ---
 
 # ADR-016: W222 search and equipment boundaries

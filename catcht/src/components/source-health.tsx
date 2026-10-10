@@ -20,7 +20,7 @@ export function SourceHealth({ sources }: SourceHealthProps) {
     <section className="source-health">
       <div className="source-health-heading">
         <div><p className="eyebrow">Source network</p><h2>{healthy} of {sources.length} sources healthy</h2></div>
-        <p>Recent results establish coverage. Older results stay visible and are marked stale after 48 hours.</p>
+        <p>Each feed is judged against its own collection schedule. Stale feeds and providers returning nothing stay visible.</p>
       </div>
       <div className="source-health-grid">
         {sources.map((source) => (
