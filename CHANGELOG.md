@@ -2,6 +2,12 @@
 
 ## Unreleased — AutoHunter
 
+- prices each used car against comparable listings AutoHunter has already collected, adjusted for
+  model year and mileage; cards and reports say how far a car is below or above similar cars, and
+  provider MSRP no longer scores used cars
+- treats placeholder prices, such as a down payment in the price field, as data errors instead of
+  deals
+- takes at most three report picks from any one search while other searches have candidates
 - accepts only sessions created by an email link, so a password sign-up for an invited address can
   no longer claim that invitation; a signed-out visit to report history goes to the login page
   instead of a server error

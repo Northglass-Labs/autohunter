@@ -34,6 +34,8 @@ import {
 } from "./ranking";
 import { effectiveMonthlyCost } from "./offer-economics";
 import { parseSafetyEvidence } from "./safety-evidence";
+import { estimateMarketValue, type MarketEstimate } from "./market-value";
+import { pickReportCandidates } from "./report-picks";
 import { mergeFeatureIntelligence, type PersistedFeatureIntelligence } from "./feature-intelligence";
 
 export interface ListingCard {
@@ -70,6 +72,9 @@ export interface ListingCard {
   securityDeposit: number | null;
   securityDepositRefundable: boolean | null;
   msrp: number | null;
+  // Comparable-listing value and how many listings it came from (ADR-023).
+  marketEstimate: number | null;
+  marketComparables: number | null;
   parseConfidence: number;
   region: string | null;
   sellerName: string | null;
@@ -129,6 +134,8 @@ function card(row: Record<string, unknown>): ListingCard {
     securityDepositRefundable: row.security_deposit_refundable === null || row.security_deposit_refundable === undefined
       ? null : Boolean(row.security_deposit_refundable),
     msrp: row.msrp === null || row.msrp === undefined ? null : Number(row.msrp),
+    marketEstimate: row.market_estimate === null || row.market_estimate === undefined ? null : Number(row.market_estimate),
+    marketComparables: row.market_comparables === null || row.market_comparables === undefined ? null : Number(row.market_comparables),
     parseConfidence: row.parse_confidence === null || row.parse_confidence === undefined ? 1 : Number(row.parse_confidence),
     region: row.region ? String(row.region) : null,
     sellerName: row.seller_name ? String(row.seller_name) : null,
@@ -716,6 +723,7 @@ export async function getDigestCandidates(userId: string): Promise<ListingCard[]
         matches.last_emailed_at as user_last_emailed_at,
         matches.last_emailed_price as user_last_emailed_price,
         matches.last_emailed_effective_monthly as user_last_emailed_effective_monthly,
+        matches.search_id as user_search_id,
         searches.garage_group as user_garage_group,
         searches.powertrain_category as user_powertrain_category,
         row_number() over (
@@ -746,7 +754,7 @@ export async function getDigestCandidates(userId: string): Promise<ListingCard[]
       || number(right.user_manual_confidence ?? right.manual_confidence) - number(left.user_manual_confidence ?? left.manual_confidence)
       || nullableNumber(left.price) - nullableNumber(right.price)
       || nullableNumber(left.effective_monthly) - nullableNumber(right.effective_monthly));
-  return rows.slice(0, 12).map((row) => card(row));
+  return pickReportCandidates(rows, (row) => String(row.user_search_id ?? row.id)).map((row) => card(row));
 }
 
 export async function getRecipientOfferKinds(userId: string): Promise<OfferKind[]> {
@@ -966,8 +974,12 @@ export async function upsertCandidate(candidate: CandidateOffer, rawPayload: unk
   const evaluationPolicy = policyRows[0] ? evaluationPolicyFromRow(policyRows[0]) : undefined;
   const persistedEvidence = await getPersistedManualEvidence(candidate);
   const persistedIntelligence = await getPersistedFeatureIntelligence(identity);
+  const market = candidate.offerKind !== "lease" && (candidate.offerKind ?? "used") === "used"
+    ? await marketEstimateFor(candidate, identity)
+    : null;
   const evaluatedCandidate = mergeFeatureIntelligence({
     ...candidate,
+    ...(market ? { marketEstimate: market.estimate } : {}),
     manualEvidence: mergeManualEvidence(candidate.manualEvidence, persistedEvidence),
   }, persistedIntelligence);
   const evaluation = searchId && !evaluationPolicy
@@ -1012,7 +1024,8 @@ export async function upsertCandidate(candidate: CandidateOffer, rawPayload: unk
       parse_confidence, published_at, expires_at
       , garage_group, powertrain_category, body_style, seating_capacity, package_names,
       feature_evidence, feature_match_score, family_fit_score, days_on_market, price_change,
-      one_owner, clean_title, exterior_color, interior_color, enrichment_status, safety_evidence
+      one_owner, clean_title, exterior_color, interior_color, enrichment_status, safety_evidence,
+      market_comparables, market_basis, market_spread_percent
     ) values (
       ${identity}, ${offerKind}, ${candidate.offerRole ?? "active_offer"}, ${candidate.sourceMethod ?? "api"},
       ${condition}, ${candidate.source}, ${candidate.originSource ?? null},
@@ -1020,7 +1033,7 @@ export async function upsertCandidate(candidate: CandidateOffer, rawPayload: unk
       ${candidate.vin ?? null}, ${candidate.year ?? null}, ${candidate.make}, ${candidate.model},
       ${candidate.trim ?? null}, ${candidate.title}, ${candidate.price ?? null}, ${candidate.mileage ?? null},
       ${candidate.distanceMiles ?? null}, ${candidate.location}, ${candidate.transmissionClaim ?? null},
-      ${candidate.imageUrls}, ${candidate.primaryImageUrl ?? null}, ${candidate.marketEstimate ?? null},
+      ${candidate.imageUrls}, ${candidate.primaryImageUrl ?? null}, ${market?.estimate ?? candidate.marketEstimate ?? null},
       ${verification.status === "verified"}, ${verification.status}, ${evaluation.manualConfidence}, ${evaluation.score}, ${evaluation.reason},
       ${sql.json(rawPayload as never)}, ${candidate.sellerName ?? null}, ${lease?.monthlyPayment ?? null},
       ${lease?.dueAtSigning ?? null}, ${lease?.dueAtSigningIncludesFirstPayment ?? null},
@@ -1038,7 +1051,8 @@ export async function upsertCandidate(candidate: CandidateOffer, rawPayload: unk
       ${evaluatedCandidate.familyFitScore ?? 0}, ${candidate.daysOnMarket ?? null}, ${candidate.priceChange ?? null},
       ${candidate.oneOwner ?? null}, ${candidate.cleanTitle ?? null}, ${candidate.exteriorColor ?? null},
       ${candidate.interiorColor ?? null}, ${evaluatedCandidate.enrichmentStatus ?? "not_requested"},
-      ${candidate.safetyEvidence ? sql.json(candidate.safetyEvidence as never) : null}
+      ${candidate.safetyEvidence ? sql.json(candidate.safetyEvidence as never) : null},
+      ${market?.comparables ?? null}, ${market?.basis ?? null}, ${market?.spreadPercent ?? null}
     )
     on conflict (identity_key) do update set
       offer_kind = excluded.offer_kind, offer_role = excluded.offer_role,
@@ -1050,6 +1064,8 @@ export async function upsertCandidate(candidate: CandidateOffer, rawPayload: unk
       distance_miles = excluded.distance_miles, location = excluded.location,
       transmission_claim = excluded.transmission_claim, image_urls = excluded.image_urls,
       primary_image_url = excluded.primary_image_url, market_estimate = excluded.market_estimate,
+      market_comparables = excluded.market_comparables, market_basis = excluded.market_basis,
+      market_spread_percent = excluded.market_spread_percent,
       manual_verified = excluded.manual_verified, verification_status = excluded.verification_status,
       manual_confidence = excluded.manual_confidence,
       deal_score = excluded.deal_score, eligibility_reason = excluded.eligibility_reason,
@@ -1102,6 +1118,36 @@ export async function upsertCandidate(candidate: CandidateOffer, rawPayload: unk
     for (const evidence of evaluatedCandidate.manualEvidence) await saveEvidence(listingId, evidence);
   }
   return { listingId, identity, evaluation, verification, bestEvidence };
+}
+
+// Comparable used listings for ADR-023: the same make and model within one model year, seen in the
+// last 90 days, one row per vehicle (by VIN where known), and never the vehicle being valued.
+async function marketEstimateFor(candidate: CandidateListing, identity: string): Promise<MarketEstimate | null> {
+  if (!Number.isFinite(candidate.year) || !Number.isFinite(candidate.mileage)) return null;
+  const sql = getDb();
+  const vin = normalizeVin(candidate.vin);
+  const rows = await sql`
+    select distinct on (coalesce(upper(vin), identity_key)) year, trim, price, mileage
+    from catcht.listings
+    where offer_kind = 'used'
+      and lower(make) = lower(${candidate.make}) and lower(model) = lower(${candidate.model})
+      and year between ${candidate.year - 1} and ${candidate.year + 1}
+      and last_seen_at > now() - interval '90 days'
+      and price > 0 and mileage is not null
+      and identity_key <> ${identity}
+      and (${vin}::text is null or vin is null or upper(vin) <> ${vin})
+    order by coalesce(upper(vin), identity_key), last_seen_at desc
+    limit 2000
+  `;
+  return estimateMarketValue(
+    { year: candidate.year, trim: candidate.trim ?? null, mileage: candidate.mileage },
+    rows.map((row) => ({
+      year: Number(row.year),
+      trim: row.trim ? String(row.trim) : null,
+      price: Number(row.price),
+      mileage: Number(row.mileage),
+    })),
+  );
 }
 
 type ListingRow = Record<string, unknown> & { identity_key: unknown };

@@ -1,0 +1,10 @@
+begin;
+select plan(6);
+select has_column('catcht', 'listings', 'market_comparables', 'a market estimate keeps its comparable count');
+select has_column('catcht', 'listings', 'market_basis', 'a market estimate records how comparables were chosen');
+select has_column('catcht', 'listings', 'market_spread_percent', 'a market estimate records how tightly comparables agree');
+select has_index('catcht', 'listings', 'listings_used_comparables_idx', 'comparable lookups are indexed');
+select throws_ok($$update catcht.listings set market_basis='guess'$$, '23514', null, 'unknown comparable bases fail closed');
+select throws_ok($$update catcht.listings set market_comparables=-1$$, '23514', null, 'comparable counts cannot be negative');
+select * from finish();
+rollback;

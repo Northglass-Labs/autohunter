@@ -425,3 +425,61 @@ describe("required feature gate", () => {
     expect(evaluateOffer(benchmark, { ...policy, offerKind: "lease" as const }).eligible).toBe(true);
   });
 });
+
+describe("used-car value against comparable listings (ADR-023)", () => {
+  const policy = {
+    offerKind: "used" as const,
+    make: "Rivian",
+    model: "R1S",
+    transmission: "automatic" as const,
+    maxPrice: 70_000,
+    maxMileage: 80_000,
+    radiusMiles: 250,
+  };
+  const r1s: CandidateListing = {
+    ...verified,
+    source: "marketcheck",
+    year: 2023,
+    make: "Rivian",
+    model: "R1S",
+    title: "2023 Rivian R1S Adventure",
+    price: 60_000,
+    mileage: 30_000,
+    distanceMiles: 50,
+    marketEstimate: 60_000,
+    msrp: null,
+    requiresManualVerification: false,
+    manualEvidence: [],
+  };
+
+  it("scores price against the comparable-listing estimate", () => {
+    const atMarket = evaluateOffer(r1s, policy);
+    const below = evaluateOffer({ ...r1s, price: 54_000 }, policy);
+    const above = evaluateOffer({ ...r1s, price: 66_000 }, policy);
+
+    // 25 value points at market and 2 per percent either side, 12 for 30,000 miles, 8 for 50 miles.
+    expect(atMarket).toMatchObject({ eligible: true, score: 45, discountPercent: 0 });
+    expect(below).toMatchObject({ eligible: true, score: 65, discountPercent: 10 });
+    expect(above).toMatchObject({ eligible: true, score: 25 });
+  });
+
+  it("ignores provider MSRP for a used car", () => {
+    const withoutEstimate = evaluateOffer({ ...r1s, marketEstimate: null }, policy);
+    const withMsrp = evaluateOffer({ ...r1s, marketEstimate: null, msrp: 80_000 }, policy);
+
+    expect(withoutEstimate).toMatchObject({ score: 40, discountPercent: null });
+    expect(withMsrp).toMatchObject({ score: 40, discountPercent: null });
+  });
+
+  it("keeps MSRP as the reference for a new car without an estimate", () => {
+    const fresh = evaluateOffer({ ...r1s, offerKind: "new", condition: "new", mileage: 10, price: 72_000, msrp: 80_000, marketEstimate: null }, { ...policy, offerKind: "new", maxPrice: 90_000 });
+
+    expect(fresh.discountPercent).toBeCloseTo(10, 5);
+  });
+
+  it("rejects an implausible used price as a data error", () => {
+    expect(evaluateOffer({ ...r1s, price: 190, marketEstimate: null }, policy)).toMatchObject({ eligible: false, reason: "price_suspect" });
+    expect(evaluateOffer({ ...r1s, price: 25_000 }, policy)).toMatchObject({ eligible: false, reason: "price_suspect" });
+    expect(evaluateOffer({ ...r1s, price: 30_000 }, policy)).toMatchObject({ eligible: true });
+  });
+});

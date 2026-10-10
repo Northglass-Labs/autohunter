@@ -1,6 +1,7 @@
 import type { ListingCard, SourceHealth } from "./dal";
 import { createActionTokenPair } from "./action-token";
 import { buyingChecksFor } from "./buying-checks";
+import { describeMarketPosition, type MarketPosition } from "./market-value";
 import { isSourceHealthy, sourceLabel, sourceStatusLabel } from "./source-health-summary";
 
 interface DigestEmailConfig {
@@ -15,6 +16,13 @@ export interface DigestEmailOptions {
   // Eastern date of the last delivered digest; frames an empty report as a weekly check-in.
   lastEmailedOn?: string | null;
 }
+
+const MARKET_COLORS: Record<MarketPosition["tone"], string> = {
+  below: "#13795f",
+  at: "#4b4852",
+  above: "#8a5a00",
+  unusual: "#a3361f",
+};
 
 function escapeHtml(value: string) {
   return value.replace(
@@ -86,6 +94,9 @@ function listingCard(listing: ListingCard, config: DigestEmailConfig) {
   const buyingChecks = buyingChecksFor(listing);
   const priceChange = listing.priceChange !== null && listing.priceChange < 0
     ? `<p style="margin:8px 0;color:#13795f;font-size:13px;font-weight:750">${money(Math.abs(listing.priceChange))} price drop</p>` : "";
+  const position = listing.offerKind === "lease" ? null : describeMarketPosition(listing.price, listing.marketEstimate, listing.marketComparables);
+  const market = position
+    ? `<p style="margin:8px 0;color:${MARKET_COLORS[position.tone]};font-size:13px;font-weight:750">${escapeHtml(position.text)}</p>` : "";
   const inspection = buyingChecks.length ? `<div style="margin:0 0 16px;padding:14px;background:#eee9ff;border-radius:10px;color:#4b4265;font-size:13px;line-height:1.55"><strong>Before you pursue this S-Class</strong><p style="margin:6px 0">${escapeHtml(buyingChecks[0])}</p><a href="${escapeHtml(`${config.appUrl}/guides/w222`)}" style="color:#6550c7;font-weight:750">Equipment and inspection checklist →</a></div>` : "";
   const proximity = listing.distanceMiles === null
     ? escapeHtml(listing.region ?? listing.location)
@@ -137,6 +148,7 @@ function listingCard(listing: ListingCard, config: DigestEmailConfig) {
       </tr></table>
       <h2 style="margin:11px 0 6px;font-size:23px;line-height:1.22;letter-spacing:-.025em;color:#161714">${escapeHtml(listing.title)}</h2>
       <div style="font-size:30px;line-height:1.1;font-weight:800;letter-spacing:-.04em;color:#174b36">${headline}</div>
+      ${market}
       ${priceChange}
       <p style="margin:7px 0 12px;color:#655e53;font-size:15px;line-height:1.5">${escapeHtml(economics)}</p>
       ${packages}${featureEvidence}${inspection}${safetyEvidence}
@@ -237,6 +249,7 @@ function plainTextListing(listing: ListingCard, appUrl: string) {
   const checks = buyingChecksFor(listing);
   return [
     `${listing.title}\n${context} · ${price}`,
+    listing.offerKind === "lease" ? null : describeMarketPosition(listing.price, listing.marketEstimate, listing.marketComparables)?.text ?? null,
     listing.priceChange !== null && listing.priceChange < 0 ? `${money(Math.abs(listing.priceChange))} price drop` : null,
     [listing.sellerName, listing.region ?? listing.location, listing.distanceMiles === null ? null : `${Math.round(listing.distanceMiles)} miles away`].filter(Boolean).join(" · "),
     listing.packageNames.length ? `Listed packages: ${listing.packageNames.join(", ")}` : null,

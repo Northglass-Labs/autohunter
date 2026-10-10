@@ -194,6 +194,52 @@ test("a re-ingested listing shows the trim and title it was last judged on", asy
   await expect(page.getByRole("heading", { name: "2023 Audi SQ7 4.0T Premium Plus" })).toHaveCount(0);
 });
 
+test("a used car is priced against comparable listings and placeholder prices stay out", async ({ page, request }, testInfo) => {
+  const ingestSecret = process.env.INGEST_SECRET;
+  if (!ingestSecret) throw new Error("INGEST_SECRET is required for ingest stories");
+  const run = testInfo.project.name;
+  const image = "https://images.unsplash.com/photo-1555215695-3004980ad54e?auto=format&fit=crop&w=1200&q=80";
+  const sq7 = {
+    source: "auto_dev",
+    searchId: "99999999-9999-4999-8999-999999999999",
+    year: 2024,
+    make: "Audi",
+    model: "SQ7",
+    trim: "Prestige",
+    title: "2024 Audi SQ7 Prestige",
+    mileage: 15000,
+    distanceMiles: 40,
+    location: "Doylestown, PA",
+    transmissionClaim: "Automatic",
+    imageUrls: [image],
+    primaryImageUrl: image,
+    requiresManualVerification: false,
+  };
+  const listing = (name: string, price: number) => ({
+    ...sq7,
+    price,
+    sourceListingId: `e2e-market-${run}-${name}`,
+    url: `https://dealer.example/market-${run}-${name}`,
+  });
+  // Six comparable cars around $66,000, then one priced well below them and one carrying a
+  // placeholder in its price field.
+  const comparables = [65000, 65500, 66000, 66500, 67000, 67500].map((price, index) => listing(`comparable-${index}`, price));
+  for (const candidates of [comparables, [listing("target", 58990), listing("placeholder", 2150)]]) {
+    const response = await request.post("/api/ingest", {
+      headers: { authorization: `Bearer ${ingestSecret}` },
+      data: { candidates },
+    });
+    expect(response.status()).toBe(200);
+  }
+
+  await signIn(page, request, "member@example.test");
+  const card = (name: string) => page.locator("article.listing-card", {
+    has: page.locator(`a[href="https://dealer.example/market-${run}-${name}"]`),
+  });
+  await expect(card("target")).toContainText(/\$[\d,]+ below similar cars \(\d+ compared\)/);
+  await expect(card("placeholder")).toHaveCount(0);
+});
+
 test("a member can create a private search and listing cards keep real images and source links", async ({ page, request }, testInfo) => {
   await signIn(page, request, "member@example.test");
 

@@ -25,6 +25,8 @@ evidence, decisions, and report history through the rebrand.
   Cruise, Rivian Enhanced Highway Assist, Audi adaptive cruise assist, Genesis HDA II, Volvo Pilot
   Assist, Mercedes-Benz DISTRONIC/Active Steering Assist, and Porsche InnoDrive/Active Lane Keeping.
 - Purchase and lease scoring that rewards economics, family fit, and verified desired equipment.
+  Used-car value is measured against comparable listings, adjusted for year and mileage (ADR-023),
+  and placeholder prices are rejected rather than ranked as deals.
 - Active lease offers, signed benchmarks, and incomplete market signals shown as different roles.
 - Durable, reversible Interested and Pass decisions for each household member.
 - Invite-only Supabase email links. Sign-up is limited to invited addresses, and the app accepts
