@@ -10,6 +10,9 @@
   date rather than a 23-hour interval that skipped days when the scheduler started early
 - reports only the sources behind each recipient's searches, with per-source freshness and an
   explicit "no provider results" state; the retired automated Leasehackr feed is no longer listed
+- the review queue and reports trust a match only after the collector re-confirms it under the
+  search's current definition, so a narrowed search stops showing cars that met its old criteria
+- every ingest refreshes a listing's trim and title, so cards show the label the match was judged on
 
 - rebrands the private vehicle platform as AutoHunter, a Northglass Product
 - adds invite-only Supabase magic links, profile-owned searches, independent review decisions,

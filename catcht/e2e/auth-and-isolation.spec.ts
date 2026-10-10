@@ -112,6 +112,55 @@ test("queue price caps use shareable URL filters", async ({ page, request }) => 
   await expect(page.getByRole("heading", { name: "2024 BMW X5 xDrive40i" })).toBeVisible();
 });
 
+test("the review queue trusts only matches confirmed under a search's current definition", async ({ page, request }) => {
+  await signIn(page, request, "member@example.test");
+
+  // Seeded: the member's SQ7 search changed after its Premium Plus matches were last confirmed.
+  await expect(page.getByRole("heading", { name: "2022 Audi SQ7 Prestige" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "2022 Audi SQ7 Premium Plus" })).toHaveCount(0);
+
+  // A decision the member already made survives the change.
+  await page.goto("/?view=interested");
+  await expect(page.getByRole("heading", { name: "2021 Audi SQ7 Premium Plus" })).toBeVisible();
+});
+
+test("a re-ingested listing shows the trim and title it was last judged on", async ({ page, request }) => {
+  const ingestSecret = process.env.INGEST_SECRET;
+  if (!ingestSecret) throw new Error("INGEST_SECRET is required for ingest stories");
+  const image = "https://images.unsplash.com/photo-1555215695-3004980ad54e?auto=format&fit=crop&w=1200&q=80";
+  const listing = {
+    source: "auto_dev",
+    sourceListingId: "e2e-audi-sq7-relabelled",
+    searchId: "99999999-9999-4999-8999-999999999999",
+    url: "https://dealer.example/audi-sq7-relabelled",
+    vin: "WA1VWBF70PD000003",
+    year: 2023,
+    make: "Audi",
+    model: "SQ7",
+    price: 59990,
+    mileage: 21000,
+    distanceMiles: 61,
+    location: "Quakertown, PA",
+    transmissionClaim: "Automatic",
+    imageUrls: [image],
+    primaryImageUrl: image,
+    requiresManualVerification: false,
+  };
+
+  // The provider first labels the car Premium Plus, then relabels it Prestige on a later run.
+  for (const trim of ["4.0T Premium Plus", "Prestige"]) {
+    const response = await request.post("/api/ingest", {
+      headers: { authorization: `Bearer ${ingestSecret}` },
+      data: { candidates: [{ ...listing, trim, title: `2023 Audi SQ7 ${trim}` }] },
+    });
+    expect(response.status()).toBe(200);
+  }
+
+  await signIn(page, request, "member@example.test");
+  await expect(page.getByRole("heading", { name: "2023 Audi SQ7 Prestige" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "2023 Audi SQ7 4.0T Premium Plus" })).toHaveCount(0);
+});
+
 test("a member can create a private search and listing cards keep real images and source links", async ({ page, request }, testInfo) => {
   await signIn(page, request, "member@example.test");
 

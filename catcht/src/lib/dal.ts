@@ -271,6 +271,9 @@ export async function getListings(
       where searches.owner_id = ${userId}::uuid
         and (${offerKind ?? null}::text is null or listings.offer_kind = ${offerKind ?? null})
         and (${garageGroup ?? null}::text is null or searches.garage_group = ${garageGroup ?? null})
+        -- Review queues trust a match only if the collector re-confirmed it since its search last
+        -- changed (ADR-020). Interested and ignored lists keep every decision the owner made.
+        and (${disposition}::text <> 'neutral' or matches.last_seen_at >= searches.updated_at)
     ) owned
     where owner_match_rank = 1
     order by user_last_seen_at desc
@@ -725,6 +728,8 @@ export async function getDigestCandidates(userId: string): Promise<ListingCard[]
       left join catcht.user_listing_decisions decisions
         on decisions.user_id = ${userId}::uuid and decisions.listing_id = listings.id
       where searches.owner_id = ${userId}::uuid and searches.active
+        -- Only a match re-confirmed since its search last changed reflects the current criteria (ADR-020).
+        and matches.last_seen_at >= searches.updated_at
     ) owned
     where owner_match_rank = 1
     order by user_last_seen_at desc
@@ -1050,6 +1055,8 @@ export async function upsertCandidate(candidate: CandidateOffer, rawPayload: unk
       offer_kind = excluded.offer_kind, offer_role = excluded.offer_role,
       source_method = excluded.source_method, vehicle_condition = excluded.vehicle_condition,
       source = excluded.source, origin_source = excluded.origin_source, search_id = excluded.search_id,
+      -- Providers relabel trims between runs; keep the description this evaluation judged.
+      trim = excluded.trim, title = excluded.title,
       url = excluded.url, price = excluded.price, mileage = excluded.mileage,
       distance_miles = excluded.distance_miles, location = excluded.location,
       transmission_claim = excluded.transmission_claim, image_urls = excluded.image_urls,

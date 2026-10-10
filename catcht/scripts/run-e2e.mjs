@@ -35,7 +35,7 @@ const result = spawnSync(process.execPath, ["./node_modules/@playwright/test/cli
     APP_NAME: "AutoHunter",
     SEARCH_LOCATION_LABEL: "Doylestown, PA",
     ACTION_SIGNING_SECRET: "e2e-action-signing-secret-32-characters",
-    INGEST_SECRET: "e2e-ingest-secret",
+    INGEST_SECRET: "e2e-ingest-secret-at-least-32-characters",
     CRON_SECRET: "e2e-cron-secret",
     PLAYWRIGHT_BASE_URL: "http://127.0.0.1:3100",
   },

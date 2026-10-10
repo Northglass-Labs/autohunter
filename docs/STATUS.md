@@ -1,5 +1,37 @@
 # AutoHunter status
 
+## Completed — a narrowed search stops trusting its old matches (2026-10-10)
+
+**Problem:** the 2026-10-09 SQ7 Prestige edit (below) kept Premium Plus cars out of new collections,
+but 40 Premium Plus matches judged before it stayed eligible. The review queue and reports trust
+the verdict stored at ingest, and a listing stays current until it expires: three days for
+Auto.dev, 14 days after the last sighting otherwise. One 2023 SQ7 Premium Plus was in the owner's
+2026-10-10 report. Separately, re-ingest never refreshed a listing's stored trim or title.
+
+**Data correction (production, 2026-10-10):** a one-off update scoped to that search set the 40
+matches to `search_mismatch` with a score of 0. One 2024 SQ7 stays eligible: Auto.dev labelled it
+"4.0T Premium Plus" on 2026-10-08 and "Prestige" on 2026-10-10. Confirm its trim with the dealer
+before acting on it.
+
+**Code (PR #23, ADR-020):**
+- The review queue, the photo-verification queue and report candidates trust a match only if the
+  collector re-confirmed it since the search's `updated_at`. Interested and ignored lists, and
+  direct listing links, keep every decision.
+- Every ingest refreshes trim and title. In production, 15 Auto.dev trims and 88 MarketCheck
+  titles disagreed with their latest payload.
+- Pausing and resuming a search, or reassigning its owner, hides its matches from the review
+  queue and reports until the next collection that covers it.
+- Criteria edits in SQL must set `updated_at = now()`.
+
+**Tests:** three desktop/mobile E2E stories: a stale match stays out of the queue, an interested
+decision survives the change, and a relabelled listing shows the trim and title it was last judged
+on. The report query uses the same condition but has no automated test: reports send through
+Resend, which E2E cannot capture. The local E2E ingest secret now meets the route's 32-character
+minimum; before, no story could reach ingest.
+
+**Verified locally:** catcht 152 unit tests, lint, type check and production build; pgTAP 39/39
+with the new seed. E2E runs in CI.
+
 ## Completed — lease feeds, provider pacing and quiet-day reports (2026-10-10)
 
 **Problem:** the household's lease-only recipient got 53 reports from 2026-08-10 to 2026-10-09;
@@ -82,7 +114,8 @@ saved searches is identical. No code, schema, provider budget or digest change.
 **Matches before the change (today's collection):**
 - **Prestige:** Auto.dev 38 (2021–2024, $41,000–$69,586, out to 223 mi); MarketCheck 19
   (2021–2023, $42,899–$65,977, within its 100-mile plan cap).
-- **Premium Plus:** 41, now excluded.
+- **Premium Plus:** 41. New collections exclude them, but this edit did not: their matches kept
+  the eligible verdict judged before it. See the 2026-10-10 correction above.
 - Some cars appear from both providers.
 
 **Same-day follow-up (owner):**
@@ -409,8 +442,8 @@ truthfully.
   multi-user ownership, legacy least-privilege role compatibility, and the jitter-tolerant daily
   digest cadence.
 - Configured three active private profiles. Two profiles have reports enabled; the third remains
-  disabled until its owner opts in. Katie's seven lease searches and recovered authorized market
-  signal are in her own queue.
+  disabled until its owner opts in. A household member's seven lease searches and recovered
+  authorized market signal are in that member's own queue.
 - Configured hosted Supabase Auth, branded templates, the invite hook, canonical redirect origin,
   custom SMTP, and the verified `carhunt@northglass.io` sender.
 - Deployed the Vercel application as `autohunter`, attached Cloudflare DNS, and verified
