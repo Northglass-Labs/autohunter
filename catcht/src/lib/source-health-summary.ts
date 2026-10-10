@@ -61,6 +61,18 @@ export function isSourceHealthy(source: SourceResult, now = Date.now()) {
   return ["success", "empty"].includes(source.status) && isFresh(source, now) && !hasNoRecentResults(source, now);
 }
 
+// Sources the hosted scheduler collects. Optional and manual inputs (the mail importer, photo
+// checks) are excluded so a known-dormant input cannot mask a new outage.
+export const SCHEDULED_SOURCES = ["marketcheck", "auto_dev", "marketcheck_incentives", "nhtsa"] as const;
+
+// True while every scheduled source has a fresh, working result that still finds something.
+export function scheduledSourcesHealthy(sources: SourceResult[], now = Date.now()) {
+  return SCHEDULED_SOURCES.every((name) => {
+    const latest = sources.find((source) => source.source === name);
+    return latest !== undefined && isSourceHealthy(latest, now);
+  });
+}
+
 export function sourceLabel(source: string) {
   if (source === "nhtsa") return "NHTSA";
   if (source === "auto_dev") return "Auto.dev";
