@@ -27,7 +27,8 @@ evidence, decisions, and report history through the rebrand.
 - Purchase and lease scoring that rewards economics, family fit, and verified desired equipment.
 - Active lease offers, signed benchmarks, and incomplete market signals shown as different roles.
 - Durable, reversible Interested and Pass decisions for each household member.
-- Invite-only Supabase magic links; no password database and no open signup.
+- Invite-only Supabase email links. Sign-up is limited to invited addresses, and the app accepts
+  only sessions created by an email link, never a password session (ADR-022).
 - Email and in-app reports with a bottom line, new/changed finds, normalized lease sections,
   caveats, and a source-health snapshot. Quiet days send nothing; after a quiet week a check-in
   names the last report date.
@@ -131,7 +132,8 @@ commit and checkout credentials are not persisted.
 ## Production setup
 
 1. Create a Supabase project and apply the checked-in migrations after a dry run.
-2. Configure the invite-only before-user-created hook and the checked-in AutoHunter email templates.
+2. Configure the invite-only before-user-created hook and the checked-in AutoHunter email templates,
+   then require email confirmation (ADR-022).
 3. Deploy `catcht/` to Vercel with the variables in [`catcht/.env.example`](catcht/.env.example).
 4. Verify `carhunt@northglass.io` (or another Northglass sender) with the configured mail provider.
 5. Map `autohunter.northglass.io`, set the exact Auth site/redirect URLs, and test one administrator

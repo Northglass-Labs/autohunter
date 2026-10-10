@@ -1,12 +1,12 @@
 import Link from "next/link";
 import { AutoHunterLockup } from "@/components/autohunter-brand";
-import { requireUser } from "@/lib/auth";
+import { requirePageUser } from "@/lib/auth";
 import { listDigestReports } from "@/lib/dal";
 
 export const dynamic = "force-dynamic";
 
 export default async function ReportsPage() {
-  const user = await requireUser();
+  const user = await requirePageUser();
   const reports = await listDigestReports(user.id);
 
   return (

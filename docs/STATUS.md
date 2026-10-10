@@ -1,5 +1,41 @@
 # AutoHunter status
 
+## In progress — overhaul Sprint 1 (started 2026-10-10)
+
+Plan: [`docs/plans/2026-10-overhaul.md`](plans/2026-10-overhaul.md), from the 2026-10-10
+requirements and quality audit.
+
+### Item 1: email-link sessions only (ADR-022)
+
+**Problem:**
+- Hosted sign-up is open behind the invite hook, and it confirms new accounts automatically.
+- A password sign-up with an invited, unclaimed address therefore received a confirmed session, and
+  the app claimed the matching profile.
+- An E2E story reproduced this against the local Auth stack before the fix: it landed in the app as
+  the invitee.
+- Production had one Auth user, the administrator, created by a magic link. No member invitation
+  had been claimed.
+- Separately, a signed-out visit to `/reports` or `/reports/<id>` returned a 500.
+
+**Code:**
+- `currentUser()` reads verified claims through `getClaims()`. It trusts a session only when every
+  sign-in method is an email link or code.
+- `requirePageUser()` sends signed-out report visits to `/login`.
+
+**Tests:**
+- Unit cases for the method rule and for `currentUser()`: refused password sessions, no claim, and
+  the signed-out redirect.
+- E2E: the anonymous story now covers both report routes. A new story registers an invited address
+  with a password, presents that session, and confirms the invitation stays pending.
+
+**Test tooling:**
+- `E2E_PORT` lets local E2E use a free port; another project holds 3100 on the owner's Mac.
+- The sign-in helper asks again from a fresh form when local Auth's one-link-per-second window
+  refuses a back-to-back request, as a fast local run can.
+
+**Owner step:** in Supabase Auth, open "Sign In / Providers", then "Email", and turn on "Confirm
+email". First check that the "Confirm signup" template links to `/auth/confirm?…&type=signup`.
+
 ## Completed — reports every third day (2026-10-10)
 
 **Request:** the owner asked for both report recipients to get a report every three days instead of

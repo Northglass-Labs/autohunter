@@ -44,6 +44,39 @@ test("anonymous visitors are sent to the invite-only magic-link screen", async (
   await expect(page.getByRole("button", { name: /email me a sign-in link/i })).toBeVisible();
   await page.goto("/guides/w222");
   await expect(page).toHaveURL(/\/login(?:\?|$)/);
+  await page.goto("/reports");
+  await expect(page).toHaveURL(/\/login(?:\?|$)/);
+  await page.goto("/reports/00000000-0000-4000-8000-000000000000");
+  await expect(page).toHaveURL(/\/login(?:\?|$)/);
+});
+
+test("a password session for an invited address is refused and never claims the invitation", async ({ browser, request }, testInfo) => {
+  const email = `password-probe-${testInfo.project.name}@example.test`;
+  const adminContext = await browser.newContext();
+  const adminPage = await adminContext.newPage();
+  await signIn(adminPage, request, "admin@example.test");
+  await adminPage.getByLabel("Name", { exact: true }).fill(`Probe ${testInfo.project.name}`);
+  await adminPage.getByLabel("Email", { exact: true }).fill(email);
+  await adminPage.getByRole("button", { name: "Allow magic-link access" }).click();
+  await expect(adminPage.getByRole("status")).toContainText("can now request an AutoHunter magic link");
+
+  // Sign-up auto-confirms, so anyone who knows an invited address can register it with a password
+  // and receive a session without access to that inbox (ADR-022).
+  const signUp = await passwordSignUp(request, email);
+  if (signUp.session) {
+    const attackerContext = await browser.newContext();
+    await attackerContext.addCookies(sessionCookies(signUp.supabaseUrl, signUp.session));
+    const attackerPage = await attackerContext.newPage();
+    await attackerPage.goto("/");
+    await expect(attackerPage).toHaveURL(/\/login(?:\?|$)/);
+    await attackerPage.goto("/reports");
+    await expect(attackerPage).toHaveURL(/\/login(?:\?|$)/);
+    await attackerContext.close();
+  }
+
+  await adminPage.reload();
+  await expect(adminPage.locator(".person-row", { hasText: email })).toContainText("Invite pending");
+  await adminContext.close();
 });
 
 test("an invited user can complete a real magic-link flow and sign out", async ({ page, request }) => {
@@ -248,10 +281,19 @@ test("report history and report details remain private to their owner", async ({
 
 async function signIn(page: Page, request: APIRequestContext, email: string) {
   await request.delete(`${mailpitUrl}/api/v1/messages`, { data: {} });
-  await page.goto("/login");
-  await page.getByLabel("Email").fill(email);
-  await page.getByRole("button", { name: /email me a sign-in link/i }).click();
-  await expect(page.getByRole("status")).toContainText("one-time sign-in link");
+  // Local Auth sends one link per address per second (`max_frequency`), and back-to-back stories
+  // that sign in the same person can ask sooner on a fast machine. Ask again after the window, from
+  // a fresh form so the previous attempt's message cannot be mistaken for the new answer.
+  for (let attempt = 1; ; attempt += 1) {
+    await page.goto("/login");
+    await page.getByLabel("Email").fill(email);
+    await page.getByRole("button", { name: /email me a sign-in link/i }).click();
+    const status = page.getByRole("status");
+    await expect(status).toContainText(/one-time sign-in link|could not send a sign-in link/);
+    if ((await status.textContent())?.includes("one-time sign-in link")) break;
+    if (attempt === 3) throw new Error("local Auth kept refusing the sign-in link");
+    await page.waitForTimeout(1_500);
+  }
 
   await expect.poll(async () => {
     const response = await request.get(`${mailpitUrl}/api/v1/messages`);
@@ -268,9 +310,37 @@ async function signIn(page: Page, request: APIRequestContext, email: string) {
   const href = message.HTML.match(/href="([^"]*\/auth\/confirm[^"]*)"/)?.[1]?.replaceAll("&amp;", "&");
   if (!href) throw new Error("magic-link email did not contain the expected callback");
 
-  await page.goto(href);
+  // Local Auth builds links from its configured site URL; follow the callback on this run's server.
+  const callback = new URL(href);
+  await page.goto(`${callback.pathname}${callback.search}`);
   await expect(page).toHaveURL(/\/$/);
   await expect(page.getByRole("navigation", { name: "Review queue" })).toBeVisible();
+}
+
+async function passwordSignUp(request: APIRequestContext, email: string) {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const publishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+  if (!supabaseUrl || !publishableKey) throw new Error("local Supabase Auth settings are missing");
+  const response = await request.post(`${supabaseUrl}/auth/v1/signup`, {
+    headers: { apikey: publishableKey },
+    data: { email, password: `E2e-${crypto.randomUUID()}` },
+  });
+  expect(response.ok()).toBe(true);
+  const body = await response.json() as { access_token?: string };
+  // With confirmations required, sign-up returns no session and the provider has already refused.
+  return { supabaseUrl, session: body.access_token ? body : null };
+}
+
+// Writes a session the way @supabase/ssr stores it: a base64url value behind the `base64-` prefix,
+// split into numbered chunks when it exceeds the 3,180-character cookie budget.
+function sessionCookies(supabaseUrl: string, session: object) {
+  const appUrl = process.env.PLAYWRIGHT_BASE_URL ?? "http://127.0.0.1:3100";
+  const name = `sb-${new URL(supabaseUrl).hostname.split(".")[0]}-auth-token`;
+  const value = `base64-${Buffer.from(JSON.stringify(session)).toString("base64url")}`;
+  const chunks = value.match(/.{1,3180}/g) ?? [];
+  return chunks.length === 1
+    ? [{ name, value, url: appUrl }]
+    : chunks.map((chunk, index) => ({ name: `${name}.${index}`, value: chunk, url: appUrl }));
 }
 
 interface Mailbox {

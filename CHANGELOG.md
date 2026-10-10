@@ -2,6 +2,9 @@
 
 ## Unreleased — AutoHunter
 
+- accepts only sessions created by an email link, so a password sign-up for an invited address can
+  no longer claim that invitation; a signed-out visit to report history goes to the login page
+  instead of a server error
 - queries OEM lease programs by metro area through MarketCheck's make-and-ZIP endpoint; the
   exact-ZIP search had returned no programs in any production run
 - paces metered providers with a stateless per-source cadence and adds an `ignore_cadence`

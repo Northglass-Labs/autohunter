@@ -22,6 +22,10 @@ const local = parseEnv(command("supabase", ["status", "-o", "env"]));
 command("docker", ["restart", "supabase_kong_car-hunt"]);
 command("curl", ["--fail", "--silent", "--show-error", "--retry", "10", "--retry-all-errors", "--retry-delay", "1", `${local.API_URL}/auth/v1/health`]);
 
+// Port 3100 by default. Set E2E_PORT when another local service already holds it.
+const port = process.env.E2E_PORT ?? "3100";
+const appUrl = `http://127.0.0.1:${port}`;
+
 const result = spawnSync(process.execPath, ["./node_modules/@playwright/test/cli.js", "test", ...process.argv.slice(2)], {
   cwd: process.cwd(),
   env: {
@@ -31,13 +35,14 @@ const result = spawnSync(process.execPath, ["./node_modules/@playwright/test/cli
     NEXT_PUBLIC_SUPABASE_URL: local.API_URL,
     NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: local.PUBLISHABLE_KEY,
     MAILPIT_URL: local.MAILPIT_URL,
-    APP_URL: "http://127.0.0.1:3100",
+    APP_URL: appUrl,
     APP_NAME: "AutoHunter",
     SEARCH_LOCATION_LABEL: "Doylestown, PA",
     ACTION_SIGNING_SECRET: "e2e-action-signing-secret-32-characters",
     INGEST_SECRET: "e2e-ingest-secret-at-least-32-characters",
     CRON_SECRET: "e2e-cron-secret",
-    PLAYWRIGHT_BASE_URL: "http://127.0.0.1:3100",
+    PLAYWRIGHT_BASE_URL: appUrl,
+    E2E_PORT: port,
   },
   stdio: "inherit",
 });

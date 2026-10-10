@@ -51,7 +51,9 @@ closed when production TLS configuration is missing or invalid.
 
 1. Set the Supabase Auth site URL to the canonical origin and allow only intentional
    `/auth/confirm` redirects.
-2. Enable `catcht.authorize_invited_user` as the before-user-created hook.
+2. Enable `catcht.authorize_invited_user` as the before-user-created hook. Once step 3's templates
+   are in place, require email confirmation; the app accepts only email-link sessions either way
+   (ADR-022).
 3. Install `supabase/templates/confirmation.html` and `magic-link.html` without changing the
    token-hash, callback, or type query parameters.
 4. Configure custom SMTP. Mailpit exists only for deterministic local tests.

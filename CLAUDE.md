@@ -20,7 +20,8 @@ supported inputs. Camoufox is a disabled migration path for the original enthusi
 
 ### `catcht/`
 
-Next.js 16 and React 19 use Supabase email-link identity with server-authorized invited profiles.
+Next.js 16 and React 19 use Supabase email-link identity with server-authorized invited profiles;
+only sessions an email link created are accepted (ADR-022).
 The browser cannot access the private `catcht` schema. Canonical listings are shared; saved searches,
 matches, decisions, digest/report runs, and resend state are owner-scoped. Resend delivers the same
 typed report contract represented in `/reports`; email decision links require a confirmation POST.
