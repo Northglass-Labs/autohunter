@@ -1,6 +1,6 @@
 # AutoHunter status
 
-## In progress — lease feeds, provider pacing and quiet-day reports (2026-10-09)
+## Completed — lease feeds, provider pacing and quiet-day reports (2026-10-10)
 
 **Problem:** the household's lease-only recipient got 53 reports from 2026-08-10 to 2026-10-09;
 52 said "no new matches". ADR-018 records the four causes:
@@ -10,7 +10,7 @@
   workflow starts four to nine hours late by a varying amount.
 - Daily MarketCheck inventory exhausted the monthly allowance on 2026-08-17 and 2026-09-18.
 
-**Changes (branch `fix/lease-feeds-and-digest`):**
+**Changes (PR #21, after the dependency fix in PR #22):**
 - **Collector:** OEM programs use the make-and-ZIP (metro area) endpoint. Per-source cadence:
   MarketCheck inventory every other day with four detail calls; OEM programs on Mondays and the
   1st and 2nd. The workflow has an `ignore_cadence` input for verification runs.
@@ -30,8 +30,15 @@ results ever. All 18 are eligible active offers for the household's 2026 Palisad
 Telluride lease searches. The other five searched models had no program within those searches'
 monthly and due-at-signing caps.
 
-**Next:** merge and deploy. Then dispatch a collection-only run with `ignore_cadence=true` to
-confirm OEM programs arrive, and restore the importer's host schedule (owner step, ADR-014 §4).
+**Deployed:** PR #21 merged as `1c7f6a3`. GitHub production deployment `6975501722` succeeded at
+2026-10-10 03:24 UTC; the login route returns 200 and the digest endpoint refuses unauthenticated
+requests. The next scheduled cycle is the first to use quiet-day reports.
+
+**Still open (owner):** the lease-alert importer has not run since 2026-08-10.
+- No Gmail filter labels new Leasehackr mail.
+- A manual run of its trusted profile could not authenticate to the app. The likely cause is a
+  legacy origin in the profile's environment: its cross-origin redirect drops the bearer token.
+- It has no supported scheduler since Hermes retired (ADR-014 §4).
 
 ## 2026-10-10 dependency/security maintenance
 
