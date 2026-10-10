@@ -195,7 +195,7 @@ export function renderDigestEmail(
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#e9e7e1"><tr><td class="email-shell" align="center" style="padding:28px 12px">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:680px">
     <tr><td class="email-header" style="padding:30px;background:#0a0a0a;border-radius:22px 22px 0 0;border:1px solid #252329;border-bottom:0">
-      <div style="font-size:11px;text-transform:uppercase;letter-spacing:.14em;font-weight:800;color:#c7b7ff">${checkIn ? "WEEKLY CHECK-IN" : "YOUR DAILY SHORTLIST"} · ${escapeHtml(scheduledFor)}</div>
+      <div style="font-size:11px;text-transform:uppercase;letter-spacing:.14em;font-weight:800;color:#c7b7ff">${checkIn ? "WEEKLY CHECK-IN" : "YOUR SHORTLIST"} · ${escapeHtml(scheduledFor)}</div>
       <h1 style="margin:10px 0;font-size:36px;line-height:1;letter-spacing:-.055em;color:#fafafa">${escapeHtml(brandName)}</h1>
       <p style="margin:0;max-width:480px;line-height:1.5;color:#c7c3cc">${escapeHtml(introduction)}</p>
       <div style="margin-top:16px;color:#c7b7ff;font-size:13px;font-weight:750">${countLabel}</div>
@@ -213,7 +213,7 @@ export function renderDigestEmail(
       </td></tr></table>
     </td></tr></table></td></tr></table></body></html>`;
   const text = [
-    `${brandName} ${checkIn ? "weekly check-in" : "daily shortlist"} · ${scheduledFor}`,
+    `${brandName} ${checkIn ? "weekly check-in" : "shortlist"} · ${scheduledFor}`,
     bottomLine,
     ...listings.map((listing) => plainTextListing(listing, config.appUrl)),
     `Open your decision desk: ${dashboardUrl}`,

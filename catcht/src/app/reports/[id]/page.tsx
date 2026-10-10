@@ -25,7 +25,7 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
         <Link className="report-back" href="/reports">All reports</Link>
       </header>
       <section className="report-hero">
-        <p className="eyebrow">Daily decision report</p>
+        <p className="eyebrow">Decision report</p>
         <h1>{formatReportDate(report.scheduledFor)}</h1>
         <p>{bottomLine(report, purchases.length, activeLeases.length, benchmarks.length, signals.length)}</p>
         <dl>

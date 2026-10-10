@@ -13,6 +13,9 @@
 - the review queue and reports trust a match only after the collector re-confirms it under the
   search's current definition, so a narrowed search stops showing cars that met its old criteria
 - every ingest refreshes a listing's trim and title, so cards show the label the match was judged on
+- a report cadence longer than a day, such as every third day, counts Eastern calendar days, so a
+  report no longer slips a day when the scheduled run starts earlier than the last one; report
+  copy no longer says "daily"
 
 - rebrands the private vehicle platform as AutoHunter, a Northglass Product
 - adds invite-only Supabase magic links, profile-owned searches, independent review decisions,

@@ -1,5 +1,26 @@
 # AutoHunter status
 
+## In progress — reports every third day (2026-10-10)
+
+**Request:** the owner asked for both report recipients to get a report every three days instead of
+daily.
+
+**Problem:** cadences longer than a day still used an elapsed-hours gate (ADR-018). Report runs
+started between 09:55 and 15:24 Eastern from 2026-09-19 to 2026-10-10, so a 72-hour gate would have
+pushed about half of all reports to a fourth day.
+
+**Code (ADR-021):**
+- Every cadence counts Eastern calendar days: `round(hours / 24)`, at least one. A recipient on a
+  longer cadence is due once that many days have passed since their last delivered report.
+- Daily recipients are unchanged. Quiet days still send nothing, with a check-in after seven.
+- The email header reads "Your shortlist" and the archive "Reports", since neither is daily any more.
+- `digestIsDue` is removed.
+
+**Tests:** unit cases for a 72-hour and a 168-hour cadence on either side of the due date (the two
+due cases failed before the fix), an email-copy case, and the report-archive E2E heading.
+
+**Data (after deploy):** set `digest_cadence_hours = 72` on the two report recipients' profiles.
+
 ## Completed — a narrowed search stops trusting its old matches (2026-10-10)
 
 **Problem:** the 2026-10-09 SQ7 Prestige edit (below) kept Premium Plus cars out of new collections,

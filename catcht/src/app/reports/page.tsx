@@ -17,10 +17,10 @@ export default async function ReportsPage() {
       </header>
       <section className="report-intro">
         <p className="eyebrow">Your evidence archive</p>
-        <h1>Daily reports</h1>
+        <h1>Reports</h1>
         <p>Every sent shortlist stays attached to your account. Historical lease benchmarks remain clearly separate from active offers.</p>
       </section>
-      <section className="report-list" aria-label="Daily report history">
+      <section className="report-list" aria-label="Report history">
         {reports.length ? reports.map((report) => (
           <Link className="report-row" href={`/reports/${report.id}`} key={report.id}>
             <span>
@@ -34,7 +34,7 @@ export default async function ReportsPage() {
         )) : (
           <div className="report-empty">
             <h2>No reports yet</h2>
-            <p>The first daily collection cycle will leave its evidence here, even when nothing clears your filters.</p>
+            <p>Your first report will be kept here.</p>
           </div>
         )}
       </section>
