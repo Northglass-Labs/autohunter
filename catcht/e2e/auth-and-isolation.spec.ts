@@ -216,7 +216,7 @@ test("an admin can invite household members and transfer a starter search", asyn
   await memberContext.close();
 });
 
-test("daily report history and report details remain private to their owner", async ({ browser, request }) => {
+test("report history and report details remain private to their owner", async ({ browser, request }) => {
   const adminContext = await browser.newContext();
   const memberContext = await browser.newContext();
   const adminPage = await adminContext.newPage();
@@ -224,7 +224,7 @@ test("daily report history and report details remain private to their owner", as
 
   await signIn(adminPage, request, "admin@example.test");
   await adminPage.goto("/reports");
-  await expect(adminPage.getByRole("heading", { level: 1, name: "Daily reports" })).toBeVisible();
+  await expect(adminPage.getByRole("heading", { level: 1, name: "Reports", exact: true })).toBeVisible();
   await expect(adminPage.getByRole("link", { name: /august 9, 2026/i })).toBeVisible();
   await expect(adminPage.getByRole("link", { name: /august 8, 2026/i })).toHaveCount(0);
 

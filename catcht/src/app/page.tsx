@@ -118,7 +118,7 @@ export default async function Home({
           <h1>Your deals</h1>
           <p>
             <strong>{listings.length}</strong> {viewLabel(filters.view)} across {activeSearches.length} saved search{activeSearches.length === 1 ? "" : "es"}.
-            {" "}<a href="#search-studio">Edit searches</a> · <Link href="/reports">Daily reports</Link>
+            {" "}<a href="#search-studio">Edit searches</a> · <Link href="/reports">Past reports</Link>
           </p>
         </div>
       </header>

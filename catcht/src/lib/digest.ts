@@ -1,6 +1,5 @@
 import "server-only";
 import {
-  digestIsDue,
   failDigestRun,
   finishDigestRun,
   getDigestCandidates,
@@ -46,17 +45,16 @@ async function runRecipientDigest(
   scheduledFor: string,
   sourceHealth: Awaited<ReturnType<typeof getSourceHealth>>,
 ) {
-  // startDigestRun allows one report per Eastern date, which is the whole rule for daily recipients.
-  // An elapsed-hours gate skipped any day whose delayed scheduled run started earlier than the last.
-  if (recipient.digestCadenceHours > 24 && !(await digestIsDue(recipient.id, recipient.digestCadenceHours))) {
-    return { status: "not_due" as const };
-  }
+  // Cadences count Eastern dates: 23 hours is daily (one report per date, enforced by
+  // startDigestRun) and 72 hours is every third day. The scheduled run starts hours late by a
+  // varying amount, so an elapsed-hours gate slipped any report whose run started earlier in the
+  // day than the last one.
+  const cadenceDays = Math.max(1, Math.round(recipient.digestCadenceHours / 24));
+  const lastEmailedOn = (await lastDigestEmailDate(recipient.id)) ?? null;
+  const daysSinceEmail = lastEmailedOn === null ? null : daysBetween(lastEmailedOn, scheduledFor);
+  if (cadenceDays > 1 && daysSinceEmail !== null && daysSinceEmail < cadenceDays) return { status: "not_due" as const };
   const listings = await getDigestCandidates(recipient.id);
-  let lastEmailedOn: string | null = null;
-  if (!listings.length) {
-    lastEmailedOn = await lastDigestEmailDate(recipient.id);
-    if (lastEmailedOn && daysBetween(lastEmailedOn, scheduledFor) < CHECK_IN_DAYS) return { status: "quiet" as const };
-  }
+  if (!listings.length && daysSinceEmail !== null && daysSinceEmail < CHECK_IN_DAYS) return { status: "quiet" as const };
   const runId = await startDigestRun(recipient.id, scheduledFor);
   if (!runId) return { status: "already_started" as const };
   try {

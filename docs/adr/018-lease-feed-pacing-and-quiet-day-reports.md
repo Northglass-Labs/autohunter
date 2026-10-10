@@ -34,6 +34,7 @@ of them said "no new matches". Production records show four causes:
    workflow input, `ignore_cadence`, queries every enabled source for verification.
 3. Daily recipients receive at most one report per Eastern calendar date, enforced by the existing
    unique run key. The elapsed-hours check applies only to cadences longer than 24 hours.
+   (Amended by ADR-021: longer cadences count calendar days too, and the hours check is removed.)
 4. A day with no new or meaningfully changed candidates sends no email and records no run. After
    seven calendar days without a delivered report, a weekly check-in is sent instead. It names the
    date of the last report.

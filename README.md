@@ -2,8 +2,9 @@
 
 **AutoHunter** is a private vehicle-intelligence and decision product for households shopping used
 cars and leases. It turns licensed inventory, authorized alerts, OEM programs, real listing photos,
-package evidence, and normalized economics into one review queue and evidence-rich reports: daily when
-something new clears a search, otherwise a weekly check-in.
+package evidence, and normalized economics into one review queue and evidence-rich reports. Each
+person gets a report on their own cadence, daily or every few days, when something new clears a
+search, and otherwise a weekly check-in.
 
 _a Northglass Product_
 
@@ -153,6 +154,8 @@ The hosted scheduler invokes the licensed inventory cycle at 10:17 UTC; GitHub o
 late. Metered providers declare a per-source cadence (MarketCheck inventory every other day, OEM lease
 programs weekly plus the 1st and 2nd of the month). Daily reports are limited to one per Eastern
 calendar date by the profile-scoped run key, which also keeps retries idempotent. See ADR-018.
+A longer per-person cadence (`user_profiles.digest_cadence_hours`, such as 72 for every third day)
+also counts Eastern calendar days, so a late or early scheduler start never shifts it (ADR-021).
 The optional Gmail bridge is a separate read-only, fixed-profile operation and is not required by
 the web product.
 Manual GitHub workflow dispatch defaults to `collection_only=true`, which runs `platform:collect`

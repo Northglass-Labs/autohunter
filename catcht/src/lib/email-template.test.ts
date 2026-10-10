@@ -167,7 +167,22 @@ describe("renderDigestEmail", () => {
     expect(message.html).toContain("2 model-year recall campaigns");
   });
 
-  it("renders a quiet week as a weekly check-in rather than a daily shortlist", () => {
+  it("names a shortlist without promising a daily schedule", () => {
+    // A recipient's cadence can be longer than a day (ADR-021).
+    const message = renderDigestEmail([listing], "2026-10-09", {
+      appUrl: "https://autohunter.example.com",
+      recipientId: "driver",
+      actionSecret: "a".repeat(32),
+      brandName: "Shift Scout",
+      maxPrice: 15_000,
+    });
+
+    expect(message.html).toContain("YOUR SHORTLIST · 2026-10-09");
+    expect(message.text).toContain("Shift Scout shortlist · 2026-10-09");
+    expect(`${message.html}\n${message.text}`).not.toMatch(/daily shortlist/i);
+  });
+
+  it("renders a quiet week as a weekly check-in rather than a shortlist", () => {
     const config = {
       appUrl: "https://autohunter.example.com",
       recipientId: "driver",
@@ -181,7 +196,7 @@ describe("renderDigestEmail", () => {
     expect(message.html).toContain("WEEKLY CHECK-IN · 2026-10-09");
     expect(message.html).toContain("Nothing new since Oct 2.");
     expect(message.html).toContain("emails only when something new turns up");
-    expect(message.html).not.toContain("DAILY SHORTLIST");
+    expect(message.html).not.toContain("SHORTLIST");
     expect(message.text).toContain("Shift Scout weekly check-in · 2026-10-09");
     expect(message.text).toContain("Nothing new since Oct 2.");
 

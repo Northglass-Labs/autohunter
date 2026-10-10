@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
-  digestIsDue,
   failDigestRun,
   finishDigestRun,
   getDigestCandidates,
@@ -17,7 +16,6 @@ import { sendDigest } from "./email";
 import { runDigest } from "./digest";
 
 vi.mock("./dal", () => ({
-  digestIsDue: vi.fn(),
   failDigestRun: vi.fn(),
   finishDigestRun: vi.fn(),
   getDigestCandidates: vi.fn(),
@@ -122,23 +120,29 @@ describe("runDigest", () => {
     // The scheduled workflow starts several hours late by a varying amount. A 23-hour gate
     // skipped every day whose run started earlier in the day than the previous one.
     vi.mocked(getDigestCandidates).mockResolvedValue([listing]);
-    vi.mocked(digestIsDue).mockResolvedValue(false);
+    vi.mocked(lastDigestEmailDate).mockResolvedValue("2026-10-08");
 
     await runDigest(now);
 
-    expect(digestIsDue).not.toHaveBeenCalled();
     expect(sendDigest).toHaveBeenCalledTimes(1);
   });
 
-  it("still honours a cadence longer than a day", async () => {
-    vi.mocked(getDigestRecipients).mockResolvedValue([{ ...recipient, digestCadenceHours: 168 }]);
-    vi.mocked(digestIsDue).mockResolvedValue(false);
+  it.each([
+    [72, "2026-10-07", false],
+    [72, "2026-10-06", true],
+    [168, "2026-10-03", false],
+    [168, "2026-10-02", true],
+  ])("with a %i-hour cadence and the last report on %s, sends today: %s", async (digestCadenceHours, lastEmailedOn, sends) => {
+    // A longer cadence counts Eastern calendar days too. The last report may have gone out later
+    // in the day than this run starts, and an elapsed-hours gate then slipped it a day.
+    vi.mocked(getDigestRecipients).mockResolvedValue([{ ...recipient, digestCadenceHours }]);
+    vi.mocked(getDigestCandidates).mockResolvedValue([listing]);
+    vi.mocked(lastDigestEmailDate).mockResolvedValue(lastEmailedOn);
 
     const result = await runDigest(now);
 
-    expect(digestIsDue).toHaveBeenCalledWith(recipient.id, 168);
-    expect(getDigestCandidates).not.toHaveBeenCalled();
-    expect(result).toMatchObject({ sentCount: 0, quietCount: 0 });
+    expect(result.sentCount).toBe(sends ? 1 : 0);
+    expect(getDigestCandidates).toHaveBeenCalledTimes(sends ? 1 : 0);
   });
 
   it("records a failed run and surfaces the delivery error", async () => {

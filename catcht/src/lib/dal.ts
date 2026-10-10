@@ -768,17 +768,6 @@ export async function lastDigestEmailDate(userId: string): Promise<string | null
   return rows[0]?.scheduled_for ? dateOnly(rows[0].scheduled_for) : null;
 }
 
-export async function digestIsDue(userId: string, cadenceHours = 23): Promise<boolean> {
-  const sql = getDb();
-  const rows = await sql`
-    select finished_at from catcht.digest_runs
-    where user_id = ${userId}::uuid and status in ('sent', 'empty') and finished_at is not null
-    order by finished_at desc limit 1
-  `;
-  if (!rows[0]) return true;
-  return Date.now() - new Date(String(rows[0].finished_at)).getTime() >= cadenceHours * 3_600_000;
-}
-
 export async function startDigestRun(userId: string, scheduledFor: string): Promise<string | null> {
   const sql = getDb();
   const existing = await sql`
