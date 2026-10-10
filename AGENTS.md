@@ -24,6 +24,8 @@ exact endorsement **a Northglass Product**.
   Summary text (headings, descriptions) marks at most `expected`; only listing-detail evidence
   confirms, and `EXPECTED_EQUIPMENT_RULES` entries must be factory-standard fitment only.
 - Recheck make/model/trim/year/price/mileage/radius and lease limits after provider normalization.
+- Change a saved search's criteria only together with `updated_at = now()`. Queues and reports
+  ignore matches the collector has not re-confirmed since that change (ADR-020).
 - Keep provider queries bounded, cache shared detail requests, expire stale offers, and preserve
   one per-search match when one canonical vehicle fits multiple users.
 - Never enable direct marketplace crawling to work around a 403, CAPTCHA, robots policy, or terms

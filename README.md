@@ -159,7 +159,8 @@ Manual GitHub workflow dispatch defaults to `collection_only=true`, which runs `
 and never invokes the digest endpoint. `ignore_cadence=true` queries every enabled source for a
 verification run. Daily scheduled cycles retain the existing digest cadence.
 Use collection-only mode for deliberate live verification after changing searches; provider request
-and detail limits still apply.
+and detail limits still apply. A criteria change must set the search's `updated_at`: the review queue
+and reports then wait for the collector to re-confirm each match under the new definition (ADR-020).
 
 ## Security and privacy
 
