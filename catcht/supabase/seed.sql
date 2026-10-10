@@ -100,3 +100,49 @@ insert into catcht.listing_matches (
   ('55555555-5555-4555-8555-555555555555', '33333333-3333-4333-8333-333333333333', 89, 'not_applicable', 'eligible', 94, 91),
   ('66666666-6666-4666-8666-666666666666', '44444444-4444-4444-8444-444444444444', 87, 'not_applicable', 'eligible', 86, 95)
 on conflict (listing_id, search_id) do nothing;
+
+-- A member search whose definition changed after one of its matches was last confirmed. The queue
+-- trusts only the match the collector re-confirmed under the current definition (ADR-020).
+insert into catcht.saved_searches (
+  id, owner_id, name, offer_kind, make, model, trim, zip, radius_miles, transmission,
+  max_price, max_mileage, profile, garage_group, powertrain_category, year_min, year_max, priority
+) values (
+  '99999999-9999-4999-8999-999999999999',
+  '22222222-2222-4222-8222-222222222222',
+  'Member SQ7 Prestige', 'used', 'Audi', 'SQ7', 'Prestige', '10001', 250, 'automatic',
+  70000, 80000, 'family_gas', 'gas', 'gas', 2021, 2026, 80
+) on conflict (id) do nothing;
+
+insert into catcht.listings (
+  id, identity_key, source, source_listing_id, search_id, url, vin, year, make, model, trim,
+  title, price, mileage, distance_miles, location, image_urls, primary_image_url,
+  manual_verified, verification_status, manual_confidence, deal_score, eligibility_reason,
+  offer_kind, vehicle_condition, garage_group, powertrain_category, body_style, seating_capacity,
+  expires_at
+) values (
+  'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+  'e2e:audi-sq7-prestige', 'auto_dev', 'e2e-audi-sq7-prestige', '99999999-9999-4999-8999-999999999999',
+  'https://dealer.example/audi-sq7-prestige', 'WA1VWBF79ND000001', 2022, 'Audi', 'SQ7', 'Prestige',
+  '2022 Audi SQ7 Prestige', 61900, 24100, 48, 'Allentown, PA',
+  array['https://images.unsplash.com/photo-1555215695-3004980ad54e?auto=format&fit=crop&w=1200&q=80'], 'https://images.unsplash.com/photo-1555215695-3004980ad54e?auto=format&fit=crop&w=1200&q=80',
+  false, 'not_applicable', 0, 80, 'eligible', 'used', 'used', 'gas', 'gas', 'SUV', 7,
+  now() + interval '3 days'
+), (
+  'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+  'e2e:audi-sq7-premium-plus', 'auto_dev', 'e2e-audi-sq7-premium-plus', '99999999-9999-4999-8999-999999999999',
+  'https://dealer.example/audi-sq7-premium-plus', 'WA1AWBF79ND000002', 2022, 'Audi', 'SQ7', 'Premium Plus',
+  '2022 Audi SQ7 Premium Plus', 55900, 30200, 52, 'Reading, PA',
+  array['https://images.unsplash.com/photo-1555215695-3004980ad54e?auto=format&fit=crop&w=1200&q=80'], 'https://images.unsplash.com/photo-1555215695-3004980ad54e?auto=format&fit=crop&w=1200&q=80',
+  false, 'not_applicable', 0, 82, 'eligible', 'used', 'used', 'gas', 'gas', 'SUV', 7,
+  now() + interval '3 days'
+) on conflict (id) do nothing;
+
+insert into catcht.listing_matches (
+  listing_id, search_id, deal_score, verification_status, eligibility_reason,
+  feature_match_score, family_fit_score, first_seen_at, last_seen_at
+) values
+  -- Re-confirmed by the collector since the search's current definition took effect.
+  ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', '99999999-9999-4999-8999-999999999999', 80, 'not_applicable', 'eligible', 0, 0, now(), now()),
+  -- Last confirmed before the search was narrowed, so it was judged against criteria that no longer exist.
+  ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', '99999999-9999-4999-8999-999999999999', 82, 'not_applicable', 'eligible', 0, 0, now() - interval '2 days', now() - interval '1 day')
+on conflict (listing_id, search_id) do nothing;
