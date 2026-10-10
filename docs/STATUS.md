@@ -32,6 +32,16 @@ minimum; before, no story could reach ingest.
 **Verified locally:** catcht 152 unit tests, lint, type check and production build; pgTAP 39/39
 with the new seed. E2E runs in CI.
 
+**Deployed:** PR #23 merged as `30dccbc`.
+- The test-only commit failed CI (run `38066566686`) on exactly the four new story runs.
+- The merged branch passed (run `38067035777`): collector, web, E2E 22/22 and pgTAP 39/39.
+- Vercel production deployment `dpl_Ei8ZGmbp6erHaMmptkNfAgBmfSCL` was READY at 16:23 UTC. Login
+  returns 200 and the digest endpoint refuses an unauthenticated request with 401.
+
+**After deploy:** 48 of the SQ7 Prestige search's 58 eligible matches were last confirmed before
+its 2026-10-09 edit. They return as the collector re-confirms them: Auto.dev daily, MarketCheck
+inventory every other day.
+
 ## Completed — lease feeds, provider pacing and quiet-day reports (2026-10-10)
 
 **Problem:** the household's lease-only recipient got 53 reports from 2026-08-10 to 2026-10-09;
