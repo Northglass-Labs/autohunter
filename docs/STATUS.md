@@ -1,5 +1,19 @@
 # AutoHunter status
 
+## 2026-10-10 dependency/security maintenance
+
+CI's `npm audit` gate had failed on `main` since new advisories were published. Fixed:
+- Next.js and eslint-config-next 16.3.6 to 16.4.0 (six Next.js high advisories).
+- Sharp override 0.35.4 to 0.35.5.
+- Transitive undici, source-map-js and brace-expansion through `npm audit fix`; the collector's
+  brace-expansion likewise.
+
+Production-only audits now report 0 vulnerabilities in both packages. `braces`
+(GHSA-vfj7-8cjw-p6xm) has no patched release and is reached only through eslint-config-next's lint
+plugin. It is the single exception in `.github/audit-allowlist.json`, expiring 2026-12-31.
+SECURITY.md describes the gate. Verified: catcht 136 unit tests, lint and build on Next 16.4.0;
+collector 120 tests; audit-gate tests 4/4.
+
 ## Completed — owner's SQ7 search narrowed to Prestige (2026-10-09)
 
 **Owner request:** SQ7s within 250 miles, specifically the Prestige trim.
