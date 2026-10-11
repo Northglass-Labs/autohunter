@@ -125,7 +125,6 @@ export function SavedSearchPanel({ searches }: SavedSearchPanelProps) {
             Transmission
             <select name="transmission" defaultValue={editing?.transmission ?? preset?.transmission ?? "any"}>
               <option value="any">Any</option>
-              <option value="manual">Manual</option>
               <option value="automatic">Automatic</option>
             </select>
           </label>
@@ -135,7 +134,6 @@ export function SavedSearchPanel({ searches }: SavedSearchPanelProps) {
               <option value="ev">EV</option>
               <option value="gas">Gas + hybrid</option>
               <option value="lease">Lease</option>
-              <option value="enthusiast">Enthusiast</option>
               <option value="other">Other</option>
             </select>
           </label>
@@ -145,7 +143,6 @@ export function SavedSearchPanel({ searches }: SavedSearchPanelProps) {
               <option value="family_ev">Family EV</option>
               <option value="family_gas">Family gas</option>
               <option value="lease">Lease</option>
-              <option value="enthusiast">Enthusiast</option>
               <option value="general">General</option>
             </select>
           </label>
@@ -234,6 +231,5 @@ function laneLabel(group: SavedSearch["garageGroup"]) {
   if (group === "ev") return "EV";
   if (group === "gas") return "Gas + hybrid";
   if (group === "lease") return "Lease";
-  if (group === "enthusiast") return "Enthusiast";
   return "Other";
 }

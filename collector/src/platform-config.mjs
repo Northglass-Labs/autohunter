@@ -38,10 +38,10 @@ function validateSearch(search, index) {
   if (search.bodyStyle != null && !["sedan", "suv", "coupe", "convertible", "wagon", "hatchback", "truck", "van"].includes(search.bodyStyle)) {
     throw new Error(`${label}.bodyStyle is invalid`);
   }
-  if (search.profile !== undefined && !["enthusiast", "family_ev", "family_gas", "lease", "general"].includes(search.profile)) {
+  if (search.profile !== undefined && !["family_ev", "family_gas", "lease", "general"].includes(search.profile)) {
     throw new Error(`${label}.profile is invalid`);
   }
-  if (search.garageGroup !== undefined && !["ev", "gas", "lease", "enthusiast", "other"].includes(search.garageGroup)) {
+  if (search.garageGroup !== undefined && !["ev", "gas", "lease", "other"].includes(search.garageGroup)) {
     throw new Error(`${label}.garageGroup is invalid`);
   }
   if (search.powertrainCategory !== undefined && !["ev", "gas", "phev", "hybrid", "any"].includes(search.powertrainCategory)) {

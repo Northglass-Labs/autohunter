@@ -48,10 +48,6 @@ function calendarDay(value: string) {
   return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", timeZone: "UTC" }).format(date);
 }
 
-function compactMoney(value: number) {
-  return value % 1_000 === 0 ? `$${value / 1_000}k` : money(value);
-}
-
 function reportSection(title: string, note: string, listings: ListingCard[], config: DigestEmailConfig) {
   if (!listings.length) return "";
   return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px">
@@ -105,7 +101,7 @@ function listingCard(listing: ListingCard, config: DigestEmailConfig) {
     ? listing.offerRole === "benchmark" ? "Comparison only"
       : listing.offerRole === "market_signal" ? "Research lead"
       : `${Math.round(listing.parseConfidence * 100)}% terms parsed`
-    : listing.verificationStatus === "verified" ? "Manual verified" : listing.condition === "new" ? "New inventory" : "Purchase offer";
+    : listing.condition === "new" ? "New inventory" : "Purchase offer";
   const headline = lease
     ? listing.monthlyPayment === null ? "Terms in linked post" : `${money(listing.monthlyPayment)}/mo`
     : listing.price === null ? "Ask dealer" : money(listing.price);
@@ -119,7 +115,6 @@ function listingCard(listing: ListingCard, config: DigestEmailConfig) {
     : [
         listing.mileage === null ? null : `${listing.mileage.toLocaleString()} miles`,
         listing.location,
-        listing.verificationStatus === "verified" ? `${Math.round(listing.manualConfidence * 100)}% photo confidence` : null,
         listing.garageGroup === "ev" || listing.garageGroup === "gas" ? `${Math.round(listing.familyFitScore)} family fit` : null,
         listing.featureMatchScore > 0 ? `${Math.round(listing.featureMatchScore)} feature match` : null,
         `deal score ${Math.round(listing.dealScore)}`,
@@ -189,14 +184,11 @@ export function renderDigestEmail(
         reportSection("Market signals", "Leads with incomplete economics; verify before comparing", signals, config),
       ].join("")
     : `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px;background:#fafafa;border:1px solid #d9d7d1;border-radius:18px"><tr><td style="padding:32px"><h2 style="margin:0 0 7px;font-size:23px;color:#0a0a0a">${escapeHtml(quietSince)}</h2><p style="margin:0;color:#6d6a72;line-height:1.55">No new or meaningfully changed candidates cleared your filters. Source health below shows whether each feed is still delivering.</p></td></tr></table>`;
-  const onlyVerifiedManual = listings.length > 0 && listings.every((listing) => listing.offerKind === "used" && listing.verificationStatus === "verified");
-  const countLabel = checkIn ? "No new finds" : `${listings.length} ${onlyVerifiedManual ? "verified " : ""}find${listings.length === 1 ? "" : "s"}`;
+  const countLabel = checkIn ? "No new finds" : `${listings.length} find${listings.length === 1 ? "" : "s"}`;
   const subject = checkIn
     ? `[${brandName}] weekly check-in: nothing new`
-    : `[${brandName}] ${listings.length} fresh ${onlyVerifiedManual ? "manual" : "vehicle"} find${listings.length === 1 ? "" : "s"}`;
-  const introduction = onlyVerifiedManual
-    ? `Actual-car photos. Manual shifters checked. The best local finds at ${compactMoney(config.maxPrice)} or less.`
-    : "Used, new, and lease opportunities normalized into one honest shortlist.";
+    : `[${brandName}] ${listings.length} fresh vehicle find${listings.length === 1 ? "" : "s"}`;
+  const introduction = "Used, new, and lease opportunities normalized into one honest shortlist.";
   const preview = listings.length
     ? `${listings[0].title} · ${listings[0].offerKind === "lease" ? listings[0].monthlyPayment === null ? "Terms linked" : `${money(listings[0].monthlyPayment)}/mo` : listings[0].price === null ? "Ask dealer" : money(listings[0].price)}. ${bottomLine}`
     : bottomLine;

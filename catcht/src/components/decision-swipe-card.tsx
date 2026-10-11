@@ -10,7 +10,7 @@ import {
   useState,
 } from "react";
 
-type ListingView = "finds" | "pending" | "interested" | "ignored";
+type ListingView = "finds" | "interested" | "ignored";
 
 interface Gesture {
   pointerId: number;
@@ -33,7 +33,7 @@ export function DecisionSwipeCard({
   const [dragging, setDragging] = useState(false);
   const [committing, setCommitting] = useState(false);
   const [announcement, setAnnouncement] = useState("");
-  const enabled = view === "finds" || view === "pending";
+  const enabled = view === "finds";
 
   function setOffset(value: number) {
     surface.current?.style.setProperty("--swipe-offset", `${value}px`);

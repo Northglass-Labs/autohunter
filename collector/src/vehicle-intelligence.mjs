@@ -480,9 +480,8 @@ function normalizedPowertrain(...values) {
 }
 
 function normalizedGarageGroup(explicit, profile, offerKind, powertrain) {
-  if (["ev", "gas", "lease", "enthusiast", "other"].includes(explicit)) return explicit;
+  if (["ev", "gas", "lease", "other"].includes(explicit)) return explicit;
   if (offerKind === "lease" || profile === "lease") return "lease";
-  if (profile === "enthusiast") return "enthusiast";
   if (profile === "family_ev" || powertrain === "ev") return "ev";
   if (profile === "family_gas" || ["gas", "hybrid", "phev"].includes(powertrain)) return "gas";
   return "other";

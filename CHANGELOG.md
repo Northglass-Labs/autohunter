@@ -2,6 +2,11 @@
 
 ## Unreleased — AutoHunter
 
+- retires the manual-car hunt (ADR-024):
+  - the photo check, the Photo pending view, the Enthusiast lane and profile, and the Manual
+    transmission option are gone;
+  - report emails no longer use manual-verified wording;
+  - the report job no longer scans listings for photo work.
 - reports scheduled collection health at `/api/health/sources`, which answers only "ok" or
   "degraded", for an uptime monitor
 - saved searches can be edited in place; their matches return once the next collection confirms

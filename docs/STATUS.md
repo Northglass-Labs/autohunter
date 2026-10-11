@@ -1,6 +1,33 @@
 # AutoHunter status
 
-## Overhaul (started 2026-10-10): Sprints 1 and 2 released
+## Overhaul (started 2026-10-10): Sprints 1 and 2 released, Sprint 3 decisions made
+
+### Sprint 3: owner decisions (2026-10-11)
+
+**The manual-car hunt is retired (ADR-024, PR #32).**
+- Removed: the photo check, the Photo pending view, the Enthusiast lane and the Manual search
+  option.
+- Production data deleted after a private export: 6 searches, 15 listings, 12 matches, 9 photo
+  results, 6 watch-list rows, 4 reports, and 1 unused invite.
+
+**Lease caps raised** for the five models where the household lease recipient had no programs
+under the old caps ($750 all-in, $4,000 due at signing):
+- Lexus TX, Lincoln Aviator and Volvo XC90: $900 and $6,000.
+- Mazda CX-90 and Toyota Grand Highlander: $800 and $5,500.
+- Palisade and Telluride: unchanged.
+- Applied with SQL that moved `updated_at` (ADR-020).
+- The next OEM-program run (Mondays, and the 1st and 2nd of the month) uses the new caps.
+- Whether MarketCheck carries those programs for this metro area is not yet known.
+
+**MarketCheck stays on the free plan.**
+- Only the $749-a-month Standard plan lifts the 100-mile radius. Basic, at $299 a month, adds calls
+  but not radius.
+- Auto.dev covers 100 to 250 miles.
+- October was on pace for about 400 of 500 calls under the every-other-day cadence (PR #21).
+
+**Still with the owner:**
+- turn on "Confirm email" after checking the confirmation template;
+- the three importer steps: Gmail filter import, ingest secret, and launchd job.
 
 ### Sprint 2: an app people can run themselves (released 2026-10-11)
 

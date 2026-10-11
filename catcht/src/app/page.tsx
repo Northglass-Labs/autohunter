@@ -26,12 +26,12 @@ import { lanePreview } from "@/lib/queue-preview";
 
 export const dynamic = "force-dynamic";
 
-type View = "finds" | "pending" | "interested" | "ignored";
+type View = "finds" | "interested" | "ignored";
 type Sort = "score" | "fit" | "features" | "price" | "monthly" | "mileage" | "distance" | "newest";
 type Kind = "all" | OfferKind;
 type Lane = "all" | GarageGroup;
 
-const LANES: GarageGroup[] = ["ev", "gas", "lease", "enthusiast", "other"];
+const LANES: GarageGroup[] = ["ev", "gas", "lease", "other"];
 const SORTS: Array<{ value: Sort; label: string }> = [
   { value: "score", label: "Best" },
   { value: "price", label: "Price" },
@@ -62,7 +62,7 @@ export default async function Home({
   if (!user) redirect("/login");
   const params = await searchParams;
   const filters: Filters = {
-    view: ["pending", "interested", "ignored"].includes(params.view ?? "") ? (params.view as View) : "finds",
+    view: ["interested", "ignored"].includes(params.view ?? "") ? (params.view as View) : "finds",
     sort: SORTS.some((sort) => sort.value === params.sort) ? (params.sort as Sort) : "score",
     kind: ["used", "new", "lease"].includes(params.kind ?? "") ? (params.kind as Kind) : "all",
     lane: LANES.includes(params.lane as GarageGroup) ? (params.lane as Lane) : "all",
@@ -70,12 +70,12 @@ export default async function Home({
     maxPrice: parseMoneyCap(params.maxPrice),
     maxMonthly: parseMoneyCap(params.maxMonthly),
   };
-  const disposition = filters.view === "finds" || filters.view === "pending" ? "neutral" : filters.view;
+  const disposition = filters.view === "finds" ? "neutral" : filters.view;
   const [rawListings, searches, sourceHealth, people, allSearches] = await Promise.all([
     getListings(
       user.id,
       disposition,
-      filters.view === "pending" ? "pending" : "verified",
+      "verified",
       filters.kind === "all" ? undefined : filters.kind,
       filters.lane === "all" ? undefined : filters.lane,
     ),
@@ -136,7 +136,6 @@ export default async function Home({
         {models.some((model) => model.slug === "mercedes-benz-s-class") ? <div className="hunt-shortcut"><div><strong>S-Class value hunt</strong><span>S560 + S450 2018–2020 · S580 2021–2025 · up to $40,000</span></div><Link href={href({ ...filters, view: "finds", lane: "gas", kind: "used", model: "mercedes-benz-s-class", maxPrice: 40000, maxMonthly: null })}>Review S-Class finds</Link><Link href="/guides/w222">S-Class buying guide</Link></div> : null}
         <nav className="tabs" aria-label="Review queue">
           <Link className={filters.view === "finds" ? "active" : ""} href={href({ ...filters, view: "finds" })}>To review</Link>
-          <Link className={filters.view === "pending" ? "active" : ""} href={href({ ...filters, view: "pending" })}>Photo pending</Link>
           <Link className={filters.view === "interested" ? "active" : ""} href={href({ ...filters, view: "interested" })}>Interested</Link>
           <Link className={filters.view === "ignored" ? "active" : ""} href={href({ ...filters, view: "ignored" })}>Passed</Link>
         </nav>
@@ -183,7 +182,7 @@ export default async function Home({
             <Link href={href({ ...filters, maxPrice: null, maxMonthly: null })}>Clear price caps</Link>
           ) : null}
         </Form>
-        {filters.view === "finds" || filters.view === "pending" ? (
+        {filters.view === "finds" ? (
           <p className="swipe-queue-hint">On touch, swipe a card right for Interested or left for Pass. Buttons stay available.</p>
         ) : null}
       </div>
@@ -345,7 +344,6 @@ function laneLabel(lane: Lane) {
   if (lane === "ev") return "EVs";
   if (lane === "gas") return "Gas + hybrid";
   if (lane === "lease") return "Lease deals";
-  if (lane === "enthusiast") return "Enthusiast";
   return "Other";
 }
 
@@ -353,12 +351,10 @@ function laneEyebrow(lane: GarageGroup) {
   if (lane === "ev") return "Depreciated electric family cars";
   if (lane === "gas") return "Comfort, equipment and purchase value";
   if (lane === "lease") return "Authorized alerts and dealer offers";
-  if (lane === "enthusiast") return "Preserved manual-car watchlist";
   return "Additional matches";
 }
 
 function viewLabel(view: View) {
-  if (view === "pending") return "needs photo proof";
   if (view === "interested") return "on your shortlist";
   if (view === "ignored") return "passed for now";
   return "ready for review";

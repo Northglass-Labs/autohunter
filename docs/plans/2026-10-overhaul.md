@@ -72,32 +72,37 @@ Sprint 1 is done when:
 
 ## Sprint 3: coverage (needs owner decisions)
 
-1. [ ] **Lease near-misses.** When a search has no program within its caps, show the closest
-   programs above them as context, never as offers.
+1. [-] **Lease near-misses.** When a search has no program within its caps, show the closest
+   programs above them as context, never as offers. Not needed for now: the owner raised the caps
+   instead (2026-10-11). Revisit if the raised caps still find nothing.
 2. [ ] **Authorized Leasehackr notifications.**
    - Install the scheduled importer (ADR-019) with a dead-man monitor.
    - Optionally subscribe to Leasehackr category emails.
-3. [ ] **Inventory plan.** Choose a paid MarketCheck tier (radius over 100 miles, no monthly quota
-   gaps), or rely on Auto.dev beyond 100 miles.
+3. [x] **Inventory plan.** Choose a paid MarketCheck tier (radius over 100 miles, no monthly quota
+   gaps), or rely on Auto.dev beyond 100 miles. Decided 2026-10-11: stay on the free plan, with
+   Auto.dev covering 100 to 250 miles.
 4. [ ] **More lease programs** from licensed or written-permission sources only.
-5. [ ] **The enthusiast lane.** Retire the manual-transmission photo check, or restore it once the
-   vision provider account is verified.
+5. [x] (PR #32, ADR-024) **The enthusiast lane.** Retire the manual-transmission photo check, or
+   restore it once the vision provider account is verified. Retired 2026-10-11, with the hunt's data.
 
 ## Sprint 4: hardening
 
 1. [ ] Split `catcht/src/lib/dal.ts` by domain (auth, queue, reports, ingest).
 2. [x] (PR #31) Fail the scheduled workflow when every source fails, and retry transient NHTSA errors.
 3. [ ] Docs truth pass: README, standalone runbook, deployment checklist, STATUS.
+4. [ ] Remove the manual-car plumbing ADR-024 left unused: the ranking's photo branch, the
+   `manualEvidence` ingest field, the `manual_evidence` and `watch_models` tables, the manual
+   columns, and the AutoTempest/Camoufox path. Do it with item 1.
 
 ## Owner decisions
 
-| Decision | Needed for |
-|---|---|
-| Turn on "Confirm email" in Supabase Auth, after checking the confirmation template | Sprint 1 item 1 (defense in depth) |
-| Paid MarketCheck tier or not | Sprint 3 item 3 |
-| Lease caps, and whether near-misses should appear | Sprint 3 item 1 |
-| Retire or restore the enthusiast lane | Sprint 3 item 5 |
-| Install the lease-notification importer | Sprint 3 item 2 |
+| Decision | Needed for | Status |
+|---|---|---|
+| Turn on "Confirm email" in Supabase Auth, after checking the confirmation template | Sprint 1 item 1 (defense in depth) | Open |
+| Paid MarketCheck tier or not | Sprint 3 item 3 | Decided 2026-10-11: stay free |
+| Lease caps, and whether near-misses should appear | Sprint 3 item 1 | Decided 2026-10-11: caps raised |
+| Retire or restore the enthusiast lane | Sprint 3 item 5 | Decided 2026-10-11: retired |
+| Install the lease-notification importer | Sprint 3 item 2 | Open |
 
 ## Progress log
 
@@ -107,3 +112,9 @@ Sprint 1 is done when:
   endpoint is in review (PR #27), and Sprint 2 items 1–2 are in review (PR #28).
 - 2026-10-11 (UTC): Sprint 1 complete (#27, with Kuma monitor 52). Sprint 2 complete (#28–#30).
   Sprint 4 item 2 shipped (#31). Sprint 3 waits on the owner decisions below.
+- 2026-10-11 (UTC): The owner decided three of the five open questions:
+  - lease caps raised;
+  - MarketCheck stays on the free plan;
+  - manual-car hunt retired (PR #32, ADR-024).
+
+  "Confirm email" and the importer remain with the owner.

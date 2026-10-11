@@ -14,7 +14,7 @@ evidence, decisions, and report history through the rebrand.
 
 ## What it does
 
-- Separate EV, gas/PHEV, lease, and enthusiast lanes with per-user saved searches.
+- Separate EV, gas/PHEV, and lease lanes with per-user saved searches.
 - Real listing photos and direct links to the original dealer or authorized source.
 - Hard model, trim, body-style, year, price, mileage, distance, payment, drive-off, and annual-mile filters.
 - One-click 2018–2020 S560/S450 and 2021–2025 S580 sedan presets under $40,000, readable equipment
@@ -58,7 +58,7 @@ AutoHunter does not evade bot controls or turn a provider denial into fake cover
 | AutoHunter lease-input label | dealer alerts and user-authorized notifications | read-only GOG Gmail import | optional |
 | Normalized ingest | dealer/partner feeds and manual imports | authenticated server API | supported extension |
 | Leasehackr-derived inputs | signed deals and editorial signals | authorized email or operator import only | no crawler |
-| Legacy manual-car monitor | original enthusiast migration | disabled Camoufox path | migration-only |
+| Legacy manual-car monitor | retired 2026-10-11 (ADR-024) | disabled Camoufox path | removal scheduled |
 
 Direct scheduled crawling of Leasehackr, Cars.com, CarGurus, TrueCar, or other sources whose terms
 disallow it is intentionally not included. Those sources can enter through a licensed upstream

@@ -4,14 +4,14 @@ import { dispositionInputSchema, entityIdSchema, savedSearchInputSchema } from "
 describe("savedSearchInputSchema", () => {
   it("normalizes a purchase search without silently widening limits", () => {
     expect(savedSearchInputSchema.parse({
-      name: "Manual GR86",
+      name: "GR86",
       offerKind: "new",
       make: "Toyota",
       model: "GR86",
       trim: "",
       zip: "10001",
       radiusMiles: "100",
-      transmission: "manual",
+      transmission: "automatic",
       maxPrice: "45000",
       maxMileage: "500",
       region: "",
@@ -19,14 +19,14 @@ describe("savedSearchInputSchema", () => {
       maxDueAtSigning: "",
       minAnnualMiles: "",
     })).toEqual({
-      name: "Manual GR86",
+      name: "GR86",
       offerKind: "new",
       make: "Toyota",
       model: "GR86",
       trim: null,
       zip: "10001",
       radiusMiles: 100,
-      transmission: "manual",
+      transmission: "automatic",
       maxPrice: 45_000,
       maxMileage: 500,
       region: null,
@@ -69,8 +69,24 @@ describe("savedSearchInputSchema", () => {
       model: "MX-5 Miata",
       zip: "",
       radiusMiles: "",
-      transmission: "manual",
+      transmission: "any",
     }).success).toBe(false);
+  });
+
+  it("rejects manual-transmission and enthusiast searches since the manual-car hunt was retired", () => {
+    const base = {
+      name: "Used Miata",
+      offerKind: "used",
+      make: "Mazda",
+      model: "MX-5 Miata",
+      zip: "10001",
+      radiusMiles: "150",
+      transmission: "any",
+    };
+    expect(savedSearchInputSchema.safeParse(base).success).toBe(true);
+    expect(savedSearchInputSchema.safeParse({ ...base, transmission: "manual" }).success).toBe(false);
+    expect(savedSearchInputSchema.safeParse({ ...base, profile: "enthusiast" }).success).toBe(false);
+    expect(savedSearchInputSchema.safeParse({ ...base, garageGroup: "enthusiast" }).success).toBe(false);
   });
 
   it("rejects malformed server-action identifiers and dispositions before database casts", () => {

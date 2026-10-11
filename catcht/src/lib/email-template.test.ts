@@ -41,7 +41,7 @@ const listing: ListingCard = {
   region: null,
   sellerName: null,
   vin: "JM1NB3538X0100001",
-  garageGroup: "enthusiast",
+  garageGroup: "other",
   powertrainCategory: "gas",
   bodyStyle: "Convertible",
   seatingCapacity: 2,
@@ -113,14 +113,29 @@ describe("renderDigestEmail", () => {
     });
 
     expect(message.html).toContain(listing.primaryImageUrl);
-    expect(message.html).toContain("$15k or less");
     expect(message.html).toContain("Shift Scout");
-    expect(message.html).toContain("Manual verified");
     expect(message.html).toContain("Interested");
     expect(message.html).toContain("Pass");
     expect(message.html).toContain("/action?token=");
     expect(message.dashboardUrl).toBe("https://autohunter.example.com/");
-    expect(message.subject).toContain("1 fresh manual find");
+    expect(message.subject).toContain("1 fresh vehicle find");
+  });
+
+  it("does not present stored manual-photo evidence after the manual-car hunt was retired", () => {
+    const message = renderDigestEmail([listing], "2026-07-11", {
+      appUrl: "https://autohunter.example.com",
+      recipientId: "driver",
+      actionSecret: "a".repeat(32),
+      brandName: "Shift Scout",
+      maxPrice: 15_000,
+    });
+
+    expect(listing.verificationStatus).toBe("verified");
+    expect(message.html).not.toContain("Manual verified");
+    expect(message.html).not.toContain("photo confidence");
+    expect(message.html).not.toContain("Manual shifters checked");
+    expect(message.html).toContain("Purchase offer");
+    expect(message.subject).not.toContain("manual");
   });
 
   it("surfaces family fit and package evidence without promoting expected equipment to confirmed", () => {
