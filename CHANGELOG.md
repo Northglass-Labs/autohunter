@@ -2,6 +2,19 @@
 
 ## Unreleased — AutoHunter
 
+- reports scheduled collection health at `/api/health/sources`, which answers only "ok" or
+  "degraded", for an uptime monitor
+- saved searches can be edited in place; their matches return once the next collection confirms
+  them under the new criteria
+- each person chooses how often reports arrive (daily, every 3 days, weekly, or paused) on the
+  Reports page
+- the overview shows each lane's best twelve with a link to the rest; card titles drop dealer
+  condition labels, odometer and colour tails, and package lists; a photo that fails to load shows
+  a placeholder
+- an active lease term shorter than a year is treated as a parse error
+- a signed-in guide explains how AutoHunter works
+- NHTSA requests retry once after a transient failure, and a collection whose sources all fail marks
+  the scheduled run failed
 - prices each used car against comparable listings AutoHunter has already collected, adjusted for
   model year and mileage; cards and reports say how far a car is below or above similar cars, and
   provider MSRP no longer scores used cars

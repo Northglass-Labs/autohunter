@@ -29,6 +29,9 @@ evidence, decisions, and report history through the rebrand.
   and placeholder prices are rejected rather than ranked as deals.
 - Active lease offers, signed benchmarks, and incomplete market signals shown as different roles.
 - Durable, reversible Interested and Pass decisions for each household member.
+- Saved searches edited in place, and a per-person report frequency (daily, every 3 days,
+  weekly, or paused) on the Reports page.
+- A signed-in guide, `/guides/how-it-works`, that explains sources, ranking, and reports.
 - Invite-only Supabase email links. Sign-up is limited to invited addresses, and the app accepts
   only sessions created by an email link, never a password session (ADR-022).
 - Email and in-app reports with a bottom line, new/changed finds, normalized lease sections,

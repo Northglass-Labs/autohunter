@@ -43,10 +43,10 @@ focused pull request with tests written first, and `docs/STATUS.md` records each
    - Cards and reports show how far a car is below or above market, and from how many comparables.
 4. [x] (PR #26) **Spread the 12 report picks** across searches: at most three from any one search, with any
    remaining slots filled by score.
-5. [~] **Lease hygiene.** Expired offers and terms shorter than 12 months are not eligible.
+5. [x] (PR #29) **Lease hygiene.** Expired offers and terms shorter than 12 months are not eligible.
    Expired offers already leave queues and reports, through `isCurrentListingRow`. The term guard
    is still open.
-6. [~] **Freshness health endpoint** (PR #27). It returns only "ok" or "degraded" when a scheduled source
+6. [x] **Freshness health endpoint** (PR #27, with Kuma monitor 52). It returns only "ok" or "degraded" when a scheduled source
    stops returning results. An uptime monitor watches it.
 7. [x] **Rescore production** (2026-10-11 00:06 UTC; recorded in STATUS). After the ranking release:
    - run a collection-only cycle;
@@ -61,14 +61,14 @@ Sprint 1 is done when:
 
 ## Sprint 2: an app people can run themselves
 
-1. [~] **Edit a saved search in place** (PR #28). Changing criteria sets `updated_at`, and matches are
+1. [x] **Edit a saved search in place** (PR #28). Changing criteria sets `updated_at`, and matches are
    re-confirmed (ADR-020).
-2. [~] (PR #28) **Report settings per person:** frequency (daily, every third day, weekly) and a pause.
-3. [ ] **A lighter queue:** 24 cards per lane with "Show more".
-4. [ ] **Tidier cards:** display titles built from year, make, model and trim, and a placeholder
+2. [x] (PR #28) **Report settings per person:** frequency (daily, every third day, weekly) and a pause.
+3. [x] (PR #29) **A lighter queue:** 12 cards per lane in the overview, with "See all N".
+4. [x] (PR #29) **Tidier cards:** display titles built from year, make, model and trim, and a placeholder
    when a listing photo fails.
-5. [ ] **A short "How AutoHunter works" page** linked from the reports and the header.
-6. [ ] **End-to-end stories** for each of the above, on desktop and phone viewports.
+5. [x] (PR #30) **A short "How AutoHunter works" page** linked from the reports and the header.
+6. [x] **End-to-end stories** for each of the above, on desktop and phone viewports.
 
 ## Sprint 3: coverage (needs owner decisions)
 
@@ -86,7 +86,7 @@ Sprint 1 is done when:
 ## Sprint 4: hardening
 
 1. [ ] Split `catcht/src/lib/dal.ts` by domain (auth, queue, reports, ingest).
-2. [ ] Fail the scheduled workflow when every source fails, and retry transient NHTSA errors.
+2. [x] (PR #31) Fail the scheduled workflow when every source fails, and retry transient NHTSA errors.
 3. [ ] Docs truth pass: README, standalone runbook, deployment checklist, STATUS.
 
 ## Owner decisions
@@ -105,3 +105,5 @@ Sprint 1 is done when:
 - 2026-10-10: Item 1 released (PR #25). Items 2–4 in review together, with ADR-023.
 - 2026-10-11 (UTC): Items 2–4 released (PR #26), and production rescored (item 7). The health
   endpoint is in review (PR #27), and Sprint 2 items 1–2 are in review (PR #28).
+- 2026-10-11 (UTC): Sprint 1 complete (#27, with Kuma monitor 52). Sprint 2 complete (#28–#30).
+  Sprint 4 item 2 shipped (#31). Sprint 3 waits on the owner decisions below.

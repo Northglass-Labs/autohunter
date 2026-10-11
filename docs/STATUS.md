@@ -1,6 +1,43 @@
 # AutoHunter status
 
-## In progress — overhaul Sprint 1 (started 2026-10-10)
+## Overhaul (started 2026-10-10): Sprints 1 and 2 released
+
+### Sprint 2: an app people can run themselves (released 2026-10-11)
+
+**Edit searches and report frequency (PR #28, `7b1d9ad`).**
+- Each saved search has Edit. Saving replaces its criteria for the owner and moves `updated_at`, so
+  matches return after the next collection (ADR-020).
+- The Reports page offers Daily, Every 3 days, Weekly, or Paused for the signed-in person. This
+  amends ADR-021 decision 5.
+- Verified in production: the Reports page shows the owner's current choice (Every 3 days), and all
+  31 saved searches show Edit.
+
+**Lighter overview, clean titles, photo fallback, short lease terms (PR #29, `682cf2b`).**
+- Each lane in the overview shows its best twelve plus "See all N".
+- The production home page dropped from 294 cards, 573 forms and about 77,500 characters of text to
+  24 cards, 121 forms and about 19,400 characters.
+- Dealer condition labels, odometer, colour and package tails are gone from titles, and a failed
+  photo shows the placeholder.
+- An active lease term under 12 months is `lease_terms_incomplete`.
+- `main` CI on the combined #28 + #29 code passed.
+
+**How AutoHunter works (PR #30, `5c08ce6`).** A signed-in guide at `/guides/how-it-works` covers
+sources and their limits, how picks are chosen, report rules, deciding and editing, what to verify
+before a deposit, and privacy. It is linked from the header and the report settings.
+
+### Sprint 1 item 6: scheduled collection health (PR #27, `77a9b1a`): released 2026-10-11
+
+- `/api/health/sources` answers `200 {"status":"ok"}` in production. It answers 503 "degraded" when
+  MarketCheck, Auto.dev, OEM programs or NHTSA goes stale, fails, or stops finding anything.
+- HomeLab Kuma monitor 52 (every 30 minutes, two retries, `email-homelab`) is UP. It is recorded in
+  HomeLab's `hosting/autohunter.md` and `scripts/seeds/autohunter.yaml`.
+
+### Sprint 4 item 2: collector resilience (PR #31, `109c958`)
+
+- NHTSA requests retry once after a network error, a 5xx, or throttling.
+- A collection whose sources all fail still writes its result and requests the digest, then exits
+  non-zero, so GitHub marks the scheduled run failed.
+
 
 Plan: [`docs/plans/2026-10-overhaul.md`](plans/2026-10-overhaul.md), from the 2026-10-10
 requirements and quality audit.

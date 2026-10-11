@@ -33,6 +33,8 @@ about half of all cycles would slip.
 4. Report copy stops promising a daily schedule. The email header reads "Your shortlist" and the
    archive is titled "Reports".
 5. Cadence stays a per-profile value the operator sets in SQL. The app has no control for it yet.
+   (Amended 2026-10-11 by PR #28: each person chooses Daily, Every 3 days, Weekly, or Paused on
+   the Reports page. Operators can still set other values from 12 to 720 hours.)
 
 ## Consequences
 
