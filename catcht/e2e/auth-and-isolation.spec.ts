@@ -261,6 +261,80 @@ test("a member can create a private search and listing cards keep real images an
   await expect(page.getByRole("status")).toContainText("now on the radar");
 });
 
+test("a saved search is edited in place and its matches wait for the collector to re-confirm them", async ({ page, request }, testInfo) => {
+  const ingestSecret = process.env.INGEST_SECRET;
+  if (!ingestSecret) throw new Error("INGEST_SECRET is required for ingest stories");
+  const run = testInfo.project.name;
+  const name = `Lucid ${run}`;
+  const model = `Gravity ${run}`;
+  await signIn(page, request, "member@example.test");
+  await page.getByLabel("Search name").fill(name);
+  await page.getByLabel("Make").fill("Lucid");
+  await page.getByLabel("Model", { exact: true }).fill(model);
+  await page.getByLabel("ZIP code").fill("10001");
+  await page.getByLabel("Radius in miles").fill("150");
+  await page.getByLabel("Max price").fill("90000");
+  await page.getByRole("button", { name: /add saved search/i }).click();
+  await expect(page.getByRole("status")).toContainText("now on the radar");
+
+  // The collector learns the search's opaque ID from its configuration endpoint.
+  const config = await request.get("/api/collector/config", { headers: { authorization: `Bearer ${ingestSecret}` } });
+  const { searches } = await config.json() as { searches: Array<{ id: string; model: string }> };
+  const searchId = searches.find((search) => search.model === model)?.id;
+  if (!searchId) throw new Error("the new search is missing from the collector configuration");
+  const image = "https://images.unsplash.com/photo-1555215695-3004980ad54e?auto=format&fit=crop&w=1200&q=80";
+  const collect = () => request.post("/api/ingest", {
+    headers: { authorization: `Bearer ${ingestSecret}` },
+    data: { candidates: [{
+      source: "auto_dev", sourceListingId: `e2e-edit-${run}`, searchId, url: `https://dealer.example/edit-${run}`,
+      year: 2026, make: "Lucid", model, trim: "Touring", title: `2026 Lucid ${model} Touring`, price: 84000,
+      mileage: 1200, distanceMiles: 30, location: "Princeton, NJ", transmissionClaim: "Automatic",
+      imageUrls: [image], primaryImageUrl: image, requiresManualVerification: false,
+    }] },
+  });
+  expect((await collect()).status()).toBe(200);
+  await page.reload();
+  const match = page.locator("article.listing-card", { has: page.locator(`a[href="https://dealer.example/edit-${run}"]`) });
+  await expect(match).toHaveCount(1);
+
+  await page.locator(".saved-search", { hasText: name }).getByRole("button", { name: "Edit" }).click();
+  await expect(page.getByRole("heading", { name: "Edit search" })).toBeVisible();
+  await expect(page.getByLabel("Max price", { exact: true })).toHaveValue("90000");
+  await page.getByLabel("Max price", { exact: true }).fill("88000");
+  await page.getByRole("button", { name: "Save changes" }).click();
+  await expect(page.getByRole("status")).toContainText(`${name} was updated`);
+
+  await page.reload();
+  await expect(page.locator(".saved-search", { hasText: name })).toContainText("$88,000");
+  // The match was judged under the old definition, so it waits for the next collection (ADR-020).
+  await expect(match).toHaveCount(0);
+  expect((await collect()).status()).toBe(200);
+  await page.reload();
+  await expect(match).toHaveCount(1);
+});
+
+test("each person chooses how often reports arrive", async ({ page, request }, testInfo) => {
+  test.skip(testInfo.project.name !== "desktop-chromium", "one profile setting; the phone story would race the desktop one");
+  await signIn(page, request, "member@example.test");
+  await page.goto("/reports");
+  const frequency = page.getByRole("radiogroup", { name: "Email me a report" });
+  await expect(frequency.getByRole("radio", { name: "Daily" })).toBeChecked();
+
+  await frequency.getByRole("radio", { name: "Weekly" }).check();
+  await page.getByRole("button", { name: "Save report settings" }).click();
+  await expect(page.getByRole("status")).toContainText("Reports will arrive weekly");
+  await page.reload();
+  await expect(page.getByRole("radiogroup", { name: "Email me a report" }).getByRole("radio", { name: "Weekly" })).toBeChecked();
+
+  await page.getByRole("radiogroup", { name: "Email me a report" }).getByRole("radio", { name: "Paused" }).check();
+  await page.getByRole("button", { name: "Save report settings" }).click();
+  await expect(page.getByRole("status")).toContainText("Reports are paused");
+
+  await page.getByRole("radiogroup", { name: "Email me a report" }).getByRole("radio", { name: "Daily" }).check();
+  await page.getByRole("button", { name: "Save report settings" }).click();
+  await expect(page.getByRole("status")).toContainText("Reports will arrive daily");
+});
+
 test("an admin can invite household members and transfer a starter search", async ({ browser, request }) => {
   const adminContext = await browser.newContext();
   const memberContext = await browser.newContext();

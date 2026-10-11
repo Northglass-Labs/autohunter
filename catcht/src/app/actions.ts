@@ -6,12 +6,15 @@ import {
   addSavedSearch,
   inviteUserProfile,
   setDisposition,
+  setReportPreferences,
   setSavedSearchActive,
   setSavedSearchOwner,
+  updateSavedSearch,
 } from "@/lib/dal";
 import { requireUser } from "@/lib/auth";
 import { normalizeEmail } from "@/lib/auth-policy";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { isReportFrequency, REPORT_FREQUENCIES, reportSettingsFor } from "@/lib/report-settings";
 import {
   dispositionInputSchema,
   entityIdSchema,
@@ -41,6 +44,27 @@ export async function addSavedSearchAction(
   return { ok: true, message: `${parsed.data.name} is now on the radar.` };
 }
 
+export async function updateSavedSearchAction(
+  _state: AddSavedSearchState,
+  formData: FormData,
+): Promise<AddSavedSearchState> {
+  const user = await requireUser();
+  const id = entityIdSchema.safeParse(formData.get("searchId"));
+  if (!id.success) return { ok: false, message: "That search could not be found." };
+  const parsed = savedSearchInputSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) {
+    return {
+      ok: false,
+      message: parsed.error.issues[0]?.message ?? "Review the search settings and try again.",
+    };
+  }
+  const result = await updateSavedSearch(user.id, id.data, parsed.data);
+  if (result === "not_found") return { ok: false, message: "That search could not be found." };
+  if (result === "name_taken") return { ok: false, message: "Another active search already uses that name." };
+  revalidatePath("/");
+  return { ok: true, message: `${parsed.data.name} was updated. Its matches return after the next collection.` };
+}
+
 export async function setSavedSearchActiveAction(id: string, active: boolean) {
   const user = await requireUser();
   await setSavedSearchActive(user.id, entityIdSchema.parse(id), active);
@@ -51,6 +75,26 @@ export async function setDispositionAction(id: string, disposition: "neutral" | 
   const user = await requireUser();
   await setDisposition(user.id, entityIdSchema.parse(id), dispositionInputSchema.parse(disposition));
   revalidatePath("/");
+}
+
+export interface ReportSettingsState {
+  ok: boolean;
+  message: string | null;
+}
+
+export async function updateReportSettingsAction(
+  _state: ReportSettingsState,
+  formData: FormData,
+): Promise<ReportSettingsState> {
+  const user = await requireUser();
+  const frequency = formData.get("frequency");
+  if (!isReportFrequency(frequency)) return { ok: false, message: "Choose how often reports should arrive." };
+  const settings = reportSettingsFor(frequency);
+  await setReportPreferences(user.id, settings.digestEnabled, settings.digestCadenceHours);
+  revalidatePath("/reports");
+  if (frequency === "paused") return { ok: true, message: "Reports are paused. Your saved searches keep collecting." };
+  const label = REPORT_FREQUENCIES.find((option) => option.value === frequency)!.label.toLowerCase();
+  return { ok: true, message: `Reports will arrive ${label} when something new clears a search.` };
 }
 
 export interface InviteUserState {

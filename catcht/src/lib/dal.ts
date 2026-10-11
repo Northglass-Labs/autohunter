@@ -551,6 +551,55 @@ export async function addSavedSearch(userId: string, input: SavedSearchInput) {
   return Boolean(rows[0]);
 }
 
+// Replaces a search's criteria in place. `updated_at` moves with them, so queues and reports wait
+// for the collector to re-confirm each match under the new definition (ADR-020). Aliases the form
+// does not show are kept unless the input supplies them.
+export async function updateSavedSearch(
+  userId: string,
+  id: string,
+  input: SavedSearchInput,
+): Promise<"updated" | "not_found" | "name_taken"> {
+  const sql = getDb();
+  try {
+    const rows = await sql`
+      update catcht.saved_searches set
+        name = ${input.name}, offer_kind = ${input.offerKind}, make = ${input.make}, model = ${input.model},
+        trim = ${input.trim ?? null}, zip = ${input.zip ?? null}, radius_miles = ${input.radiusMiles ?? null},
+        region = ${input.region ?? null}, transmission = ${input.transmission},
+        max_price = ${input.maxPrice ?? null}, max_mileage = ${input.maxMileage ?? null},
+        max_effective_monthly = ${input.maxEffectiveMonthly ?? null},
+        max_due_at_signing = ${input.maxDueAtSigning ?? null}, min_annual_miles = ${input.minAnnualMiles ?? null},
+        profile = ${input.profile ?? "general"}, garage_group = ${input.garageGroup ?? "other"},
+        powertrain_category = ${input.powertrainCategory ?? "any"},
+        year_min = ${input.yearMin ?? null}, year_max = ${input.yearMax ?? null},
+        target_price = ${input.targetPrice ?? null},
+        aliases = coalesce(${input.aliases ?? null}::text[], aliases),
+        trim_aliases = coalesce(${input.trimAliases ?? null}::text[], trim_aliases),
+        desired_features = ${input.desiredFeatures ?? []}, required_features = ${input.requiredFeatures ?? []},
+        rationale = ${input.rationale ?? null}, priority = ${input.priority ?? 50},
+        body_style = ${input.bodyStyle ?? null}, updated_at = now()
+      where id = ${id}::uuid and owner_id = ${userId}::uuid
+      returning id
+    `;
+    return rows[0] ? "updated" : "not_found";
+  } catch (error) {
+    if ((error as { code?: string }).code === "23505") return "name_taken";
+    throw error;
+  }
+}
+
+// A person's own report settings. Pausing keeps the stored cadence for when reports resume.
+export async function setReportPreferences(userId: string, digestEnabled: boolean, digestCadenceHours: number | null) {
+  const sql = getDb();
+  await sql`
+    update catcht.user_profiles set
+      digest_enabled = ${digestEnabled},
+      digest_cadence_hours = coalesce(${digestCadenceHours}::integer, digest_cadence_hours),
+      updated_at = now()
+    where id = ${userId}::uuid
+  `;
+}
+
 export async function setSavedSearchActive(userId: string, id: string, active: boolean) {
   const sql = getDb();
   await sql`
