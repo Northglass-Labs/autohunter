@@ -588,6 +588,18 @@ export async function updateSavedSearch(
   }
 }
 
+// A person's own report settings. Pausing keeps the stored cadence for when reports resume.
+export async function setReportPreferences(userId: string, digestEnabled: boolean, digestCadenceHours: number | null) {
+  const sql = getDb();
+  await sql`
+    update catcht.user_profiles set
+      digest_enabled = ${digestEnabled},
+      digest_cadence_hours = coalesce(${digestCadenceHours}::integer, digest_cadence_hours),
+      updated_at = now()
+    where id = ${userId}::uuid
+  `;
+}
+
 export async function setSavedSearchActive(userId: string, id: string, active: boolean) {
   const sql = getDb();
   await sql`

@@ -2,6 +2,8 @@ import Link from "next/link";
 import { AutoHunterLockup } from "@/components/autohunter-brand";
 import { requirePageUser } from "@/lib/auth";
 import { listDigestReports } from "@/lib/dal";
+import { reportFrequencyFor } from "@/lib/report-settings";
+import { ReportFrequencyForm } from "@/components/report-frequency";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +21,7 @@ export default async function ReportsPage() {
         <p className="eyebrow">Your evidence archive</p>
         <h1>Reports</h1>
         <p>Every sent shortlist stays attached to your account. Historical lease benchmarks remain clearly separate from active offers.</p>
+        <ReportFrequencyForm current={reportFrequencyFor(user)} />
       </section>
       <section className="report-list" aria-label="Report history">
         {reports.length ? reports.map((report) => (

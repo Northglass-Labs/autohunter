@@ -313,6 +313,28 @@ test("a saved search is edited in place and its matches wait for the collector t
   await expect(match).toHaveCount(1);
 });
 
+test("each person chooses how often reports arrive", async ({ page, request }, testInfo) => {
+  test.skip(testInfo.project.name !== "desktop-chromium", "one profile setting; the phone story would race the desktop one");
+  await signIn(page, request, "member@example.test");
+  await page.goto("/reports");
+  const frequency = page.getByRole("radiogroup", { name: "Email me a report" });
+  await expect(frequency.getByRole("radio", { name: "Daily" })).toBeChecked();
+
+  await frequency.getByRole("radio", { name: "Weekly" }).check();
+  await page.getByRole("button", { name: "Save report settings" }).click();
+  await expect(page.getByRole("status")).toContainText("Reports will arrive weekly");
+  await page.reload();
+  await expect(page.getByRole("radiogroup", { name: "Email me a report" }).getByRole("radio", { name: "Weekly" })).toBeChecked();
+
+  await page.getByRole("radiogroup", { name: "Email me a report" }).getByRole("radio", { name: "Paused" }).check();
+  await page.getByRole("button", { name: "Save report settings" }).click();
+  await expect(page.getByRole("status")).toContainText("Reports are paused");
+
+  await page.getByRole("radiogroup", { name: "Email me a report" }).getByRole("radio", { name: "Daily" }).check();
+  await page.getByRole("button", { name: "Save report settings" }).click();
+  await expect(page.getByRole("status")).toContainText("Reports will arrive daily");
+});
+
 test("an admin can invite household members and transfer a starter search", async ({ browser, request }) => {
   const adminContext = await browser.newContext();
   const memberContext = await browser.newContext();

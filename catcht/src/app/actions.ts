@@ -6,6 +6,7 @@ import {
   addSavedSearch,
   inviteUserProfile,
   setDisposition,
+  setReportPreferences,
   setSavedSearchActive,
   setSavedSearchOwner,
   updateSavedSearch,
@@ -13,6 +14,7 @@ import {
 import { requireUser } from "@/lib/auth";
 import { normalizeEmail } from "@/lib/auth-policy";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { isReportFrequency, REPORT_FREQUENCIES, reportSettingsFor } from "@/lib/report-settings";
 import {
   dispositionInputSchema,
   entityIdSchema,
@@ -73,6 +75,26 @@ export async function setDispositionAction(id: string, disposition: "neutral" | 
   const user = await requireUser();
   await setDisposition(user.id, entityIdSchema.parse(id), dispositionInputSchema.parse(disposition));
   revalidatePath("/");
+}
+
+export interface ReportSettingsState {
+  ok: boolean;
+  message: string | null;
+}
+
+export async function updateReportSettingsAction(
+  _state: ReportSettingsState,
+  formData: FormData,
+): Promise<ReportSettingsState> {
+  const user = await requireUser();
+  const frequency = formData.get("frequency");
+  if (!isReportFrequency(frequency)) return { ok: false, message: "Choose how often reports should arrive." };
+  const settings = reportSettingsFor(frequency);
+  await setReportPreferences(user.id, settings.digestEnabled, settings.digestCadenceHours);
+  revalidatePath("/reports");
+  if (frequency === "paused") return { ok: true, message: "Reports are paused. Your saved searches keep collecting." };
+  const label = REPORT_FREQUENCIES.find((option) => option.value === frequency)!.label.toLowerCase();
+  return { ok: true, message: `Reports will arrive ${label} when something new clears a search.` };
 }
 
 export interface InviteUserState {
