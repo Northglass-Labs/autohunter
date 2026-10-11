@@ -22,6 +22,7 @@ import { AutoHunterLockup } from "@/components/autohunter-brand";
 import { INSTANCE_CONFIG } from "@/lib/instance-config";
 import type { GarageGroup, OfferKind } from "@/lib/types";
 import { matchesQueuePriceCaps, parseMoneyCap } from "@/lib/queue-controls";
+import { lanePreview } from "@/lib/queue-preview";
 
 export const dynamic = "force-dynamic";
 
@@ -186,7 +187,7 @@ export default async function Home({
         ) : null}
       </div>
 
-      <ListingSections listings={listings} view={filters.view} lane={filters.lane} sourceHealth={sourceHealth} />
+      <ListingSections listings={listings} view={filters.view} lane={filters.lane} sourceHealth={sourceHealth} laneHref={(group) => href({ ...filters, lane: group })} />
 
       <SourceHealth sources={visibleSources} />
       <SavedSearchPanel searches={searches} />
@@ -196,7 +197,7 @@ export default async function Home({
   );
 }
 
-function ListingSections({ listings, view, lane, sourceHealth }: { listings: ListingCard[]; view: View; lane: Lane; sourceHealth: SourceHealthRecord[] }) {
+function ListingSections({ listings, view, lane, sourceHealth, laneHref }: { listings: ListingCard[]; view: View; lane: Lane; sourceHealth: SourceHealthRecord[]; laneHref: (group: Lane) => string }) {
   if (listings.length === 0) {
     return (
       <section className="listing-grid">
@@ -221,12 +222,22 @@ function ListingSections({ listings, view, lane, sourceHealth }: { listings: Lis
           <section className={`listing-lane ${group}`} key={group}>
             <header><div><p className="eyebrow">{laneEyebrow(group)}</p><h2>{laneLabel(group)}</h2></div><span>{matching.length} in queue</span></header>
             {group === "lease" ? <LeaseRoleSections listings={matching} view={view} sourceHealth={sourceHealth} /> : (
-              <div className="listing-grid">{matching.map((listing) => <ListingCardView key={listing.id} listing={listing} view={view} />)}</div>
+              <LanePreview listings={matching} view={view} selected={lane !== "all"} moreHref={laneHref(group)} label={laneLabel(group)} />
             )}
           </section>
         );
       })}
     </div>
+  );
+}
+
+function LanePreview({ listings, view, selected, moreHref, label }: { listings: ListingCard[]; view: View; selected: boolean; moreHref: string; label: string }) {
+  const { shown, hidden } = lanePreview(listings, selected);
+  return (
+    <>
+      <div className="listing-grid">{shown.map((listing) => <ListingCardView key={listing.id} listing={listing} view={view} />)}</div>
+      {hidden > 0 ? <Link className="lane-more" href={moreHref}>See all {listings.length} {label} <span aria-hidden="true">→</span></Link> : null}
+    </>
   );
 }
 

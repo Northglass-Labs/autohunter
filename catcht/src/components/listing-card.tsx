@@ -2,6 +2,7 @@ import type { ListingCard as Listing } from "@/lib/dal";
 import { setDispositionAction } from "@/app/actions";
 import { INSTANCE_CONFIG } from "@/lib/instance-config";
 import { DecisionSwipeCard } from "./decision-swipe-card";
+import { ListingPhoto } from "./listing-photo";
 import Link from "next/link";
 import { buyingChecksFor } from "@/lib/buying-checks";
 import { describeMarketPosition } from "@/lib/market-value";
@@ -40,14 +41,11 @@ export function ListingCard({ listing, view }: { listing: Listing; view: Listing
     <article className={`listing-card ${listing.offerKind} role-${listing.offerRole} lane-${listing.garageGroup}`}>
       <div className="listing-photo">
         {listing.primaryImageUrl ? (
-          // Dynamic dealer hosts cannot be safely enumerated for Next's image proxy.
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
+          <ListingPhoto
             src={listing.primaryImageUrl}
             alt={`${listing.title} listing photo`}
-            loading="lazy"
-            referrerPolicy="no-referrer"
-            draggable={false}
+            mark={isLease ? "L" : "H"}
+            label={isLease ? "Original deal post" : "Photo unavailable"}
           />
         ) : (
           <div className="image-placeholder">
