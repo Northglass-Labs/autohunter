@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState } from "react";
 import { updateReportSettingsAction, type ReportSettingsState } from "@/app/actions";
 import { REPORT_FREQUENCIES, type ReportFrequency } from "@/lib/report-settings";
@@ -21,7 +22,7 @@ export function ReportFrequencyForm({ current }: { current: ReportFrequency }) {
           ))}
         </div>
       </fieldset>
-      <p>A report goes out only when something new clears one of your searches. A quiet week sends a short check-in instead.</p>
+      <p>A report goes out only when something new clears one of your searches. A quiet week sends a short check-in instead. <Link href="/guides/how-it-works">How AutoHunter works</Link></p>
       <button className="button primary" type="submit" disabled={pending}>{pending ? "Saving…" : "Save report settings"}</button>
       {state.message ? <p className={`form-message ${state.ok ? "success" : "error"}`} role="status">{state.message}</p> : null}
     </form>
