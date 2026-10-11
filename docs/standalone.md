@@ -160,6 +160,14 @@ MarketCheck inventory, nine days for OEM lease programs, 48 hours otherwise. An 
 searching but has returned no provider results for seven days is reported as needing attention.
 Reports show only the sources serving the recipient's active offer kinds.
 
+`GET /api/health/sources` applies the same rules to the scheduled sources: MarketCheck inventory,
+Auto.dev, OEM lease programs, and NHTSA.
+- While every one of them is healthy, it answers `200 {"status":"ok"}`. Otherwise it answers
+  `503 {"status":"degraded"}`.
+- It reveals nothing else, so an uptime monitor can poll it without credentials. The dashboard
+  shows which source needs attention.
+- Optional and manual inputs, such as the email importer and photo checks, do not affect it.
+
 ## 9. Release verification
 
 - consume real magic links on desktop and mobile
