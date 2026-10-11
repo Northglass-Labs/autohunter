@@ -169,6 +169,12 @@ export async function runPlatformCollection({
   return { searches: searches.length, discovered: enrichedOffers.length, ingested, sources, runs };
 }
 
+// A cycle with sources but no working result failed, and the scheduler should say so instead of
+// reporting success while every provider is down.
+export function allSourcesFailed(runs) {
+  return runs.length > 0 && runs.every((run) => !["success", "empty"].includes(run.status));
+}
+
 export async function runPlatformFromConfig(path, options = {}) {
   const config = await remoteConfig(await loadPlatformConfig(resolve(path)));
   if (["1", "true"].includes(String(process.env.AUTOHUNTER_IGNORE_CADENCE ?? "").toLowerCase())) {
@@ -181,6 +187,10 @@ async function main() {
   const options = argumentsFrom(process.argv.slice(2));
   const result = await runPlatformFromConfig(options.config, options);
   process.stdout.write(`${JSON.stringify(result)}\n`);
+  if (allSourcesFailed(result.runs)) {
+    process.stderr.write("autohunter: every source failed\n");
+    process.exitCode = 1;
+  }
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
