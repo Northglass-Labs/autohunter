@@ -5,7 +5,35 @@
 Plan: [`docs/plans/2026-10-overhaul.md`](plans/2026-10-overhaul.md), from the 2026-10-10
 requirements and quality audit.
 
-### Items 2–4: market value, implausible prices, and spread report picks (ADR-023)
+### Items 2–4 and 7: market value, implausible prices, spread report picks (ADR-023): released 2026-10-10
+
+**Deployed:**
+- PR #26 merged as `bcea951`, and its Vercel production deployment succeeded.
+- CI passed: collector, web, and database-and-e2e.
+
+**Rescoring rollout (production, 2026-10-11 00:06 UTC):**
+- `updated_at` was set on the 24 active used searches (ADR-020), so queues and reports trust only
+  matches scored under ADR-023.
+- Collection-only run `38097291092` (`ignore_cadence=true`) succeeded:
+  - MarketCheck: 317 discovered, 181 accepted;
+  - Auto.dev: 162 discovered, 45 accepted;
+  - OEM programs: 22 discovered, 18 accepted;
+  - NHTSA: 5 model groups.
+- **Result:**
+  - 226 matches were re-confirmed, 225 of them eligible.
+  - All 225 have an estimate: 214 from same-trim comparables, 4 from the trim family, 7 from the
+    whole model.
+  - No eligible match carries an implausible price.
+  - The score's correlation with price fell from +0.23 to +0.04. Its correlation with "percent below
+    the estimate" is +0.90.
+- **Top picks under the three-per-search rule:**
+  - 2025 R1S Adventure, $57,294 against $67,650 (25 comparables, 15% below);
+  - 2023 MDX Type S, $44,474 against $49,450 (10% below, 23 miles away);
+  - 2022 SQ7 Prestige, $51,998 against $59,150 (12% below, 13 miles away);
+  - a LYRIQ, a Q8 e-tron, a Taycan and an e-tron GT, each 13–18% below;
+  - an Auto.dev Escalade at 24% below, flagged unusually low.
+  - The high-mileage S560s that bogus MSRPs had promoted are gone from the top.
+
 
 **Problem (audit):**
 - No listing had a market estimate, so used-car value fell back to provider MSRP. That is often not

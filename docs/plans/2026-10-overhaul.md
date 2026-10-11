@@ -29,11 +29,11 @@ focused pull request with tests written first, and `docs/STATUS.md` records each
    - The app accepts a session only when it came from an email link, and never one from a
      password or anonymous sign-in (ADR-022).
    - Signed-out visits to `/reports` go to the login page.
-2. [~] **Implausible prices are not deals.**
+2. [x] **Implausible prices are not deals** (PR #26).
    - A used listing priced far below its comparable listings, or below an absolute floor, is
      ineligible as `price_suspect`.
    - It is also kept out of other listings' comparables.
-3. [~] **Market value from comparable listings (ADR-023).**
+3. [x] **Market value from comparable listings (ADR-023)** (PR #26).
    - Comparables are used listings seen in the last 90 days with the same make, model and trim
      family, within one model year.
    - Each comparable's price is adjusted for mileage and year.
@@ -41,12 +41,14 @@ focused pull request with tests written first, and `docs/STATUS.md` records each
    - Used-car value scores price against that estimate, symmetric around market. Provider MSRP no
      longer scores used cars.
    - Cards and reports show how far a car is below or above market, and from how many comparables.
-4. [~] **Spread the 12 report picks** across searches: at most three from any one search, with any
+4. [x] (PR #26) **Spread the 12 report picks** across searches: at most three from any one search, with any
    remaining slots filled by score.
-5. [ ] **Lease hygiene.** Expired offers and terms shorter than 12 months are not eligible.
-6. [ ] **Freshness health endpoint.** It returns only "ok" or "degraded" when a scheduled source
+5. [~] **Lease hygiene.** Expired offers and terms shorter than 12 months are not eligible.
+   Expired offers already leave queues and reports, through `isCurrentListingRow`. The term guard
+   is still open.
+6. [~] **Freshness health endpoint** (PR #27). It returns only "ok" or "degraded" when a scheduled source
    stops returning results. An uptime monitor watches it.
-7. [ ] **Rescore production.** After the ranking release:
+7. [x] **Rescore production** (2026-10-11 00:06 UTC; recorded in STATUS). After the ranking release:
    - run a collection-only cycle;
    - check the top picks by hand against their comparables;
    - record the result.
@@ -59,9 +61,9 @@ Sprint 1 is done when:
 
 ## Sprint 2: an app people can run themselves
 
-1. [ ] **Edit a saved search in place.** Changing criteria sets `updated_at`, and matches are
+1. [~] **Edit a saved search in place** (PR #28). Changing criteria sets `updated_at`, and matches are
    re-confirmed (ADR-020).
-2. [ ] **Report settings per person:** frequency (daily, every third day, weekly) and a pause.
+2. [~] (PR #28) **Report settings per person:** frequency (daily, every third day, weekly) and a pause.
 3. [ ] **A lighter queue:** 24 cards per lane with "Show more".
 4. [ ] **Tidier cards:** display titles built from year, make, model and trim, and a placeholder
    when a listing photo fails.
@@ -101,3 +103,5 @@ Sprint 1 is done when:
 
 - 2026-10-10: Plan written from the audit. Sprint 1 started with item 1.
 - 2026-10-10: Item 1 released (PR #25). Items 2–4 in review together, with ADR-023.
+- 2026-10-11 (UTC): Items 2–4 released (PR #26), and production rescored (item 7). The health
+  endpoint is in review (PR #27), and Sprint 2 items 1–2 are in review (PR #28).
