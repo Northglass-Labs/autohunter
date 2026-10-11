@@ -296,6 +296,29 @@ describe("evaluateOffer", () => {
     });
   });
 
+  it("treats an active lease term shorter than a year as a parse error, not an offer", () => {
+    const lease = {
+      offerKind: "lease" as const,
+      condition: "new" as const,
+      source: "marketcheck_incentives" as const,
+      url: "https://dealer.example/telluride-lease",
+      make: "Kia",
+      model: "Telluride",
+      title: "Kia Telluride lease",
+      location: "Northeast",
+      imageUrls: [],
+      manualEvidence: [],
+      monthlyPayment: 367,
+      dueAtSigning: 3_999,
+      annualMiles: 10_000,
+      region: "Northeast",
+    };
+    const policy = { offerKind: "lease" as const, make: "Kia", model: "Telluride", transmission: "any" as const, region: "Northeast" };
+
+    expect(evaluateOffer({ ...lease, termMonths: 7 }, policy)).toMatchObject({ eligible: false, reason: "lease_terms_incomplete" });
+    expect(evaluateOffer({ ...lease, termMonths: 36 }, policy)).toMatchObject({ eligible: true });
+  });
+
   it("keeps signed benchmarks and official market signals visible without treating them as live offers", () => {
     const policy = {
       offerKind: "lease" as const,

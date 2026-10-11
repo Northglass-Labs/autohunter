@@ -238,7 +238,8 @@ function evaluateLeaseOffer(
       verificationStatus: "not_applicable",
     };
   }
-  if (effectiveMonthly === null) {
+  // OEM and dealer leases run 24 to 48 months; a shorter parsed term is a parse error, not a deal.
+  if (effectiveMonthly === null || (listing.termMonths !== null && listing.termMonths !== undefined && listing.termMonths < 12)) {
     return rejected("lease_terms_incomplete", 0, listing.discountPercent ?? null, "not_applicable");
   }
   if (policy?.maxEffectiveMonthly && effectiveMonthly > policy.maxEffectiveMonthly) {
