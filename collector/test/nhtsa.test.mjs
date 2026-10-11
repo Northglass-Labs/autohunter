@@ -146,6 +146,31 @@ test("reports untested vehicles honestly and caps model groups without dropping 
   assert.equal(result.run.messageCode, "model_query_capped_1of2");
 });
 
+test("retries one transient NHTSA failure instead of losing the model group", async () => {
+  let failures = 1;
+  const requests = [];
+  const result = await enrichNhtsaSafety({
+    offers,
+    minimumIntervalMs: 0,
+    fetchImpl: async (input) => {
+      const url = new URL(input);
+      requests.push(url.pathname);
+      if (failures > 0) {
+        failures -= 1;
+        throw new Error("socket hang up");
+      }
+      if (url.pathname === "/recalls/recallsByVehicle") return jsonResponse({ Count: 0, results: [] });
+      if (url.pathname.includes("/model/X5")) return jsonResponse({ Count: 1, Results: [{ VehicleId: 19227, VehicleDescription: "2024 BMW X5 SUV AWD" }] });
+      return jsonResponse({ Results: [{ VehicleDescription: "2024 BMW X5 SUV AWD", OverallRating: "4", OverallFrontCrashRating: "4", OverallSideCrashRating: "5", RolloverRating: "4" }] });
+    },
+  });
+
+  assert.equal(result.run.status, "success");
+  assert.equal(result.run.messageCode, null);
+  assert.equal(result.offers[0].safetyEvidence.overallRating, 4);
+  assert.equal(requests.length, 4);
+});
+
 test("contains a bounded API failure without losing provider offers", async () => {
   const result = await enrichNhtsaSafety({
     offers,

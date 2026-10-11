@@ -27,6 +27,7 @@ export async function enrichNhtsaSafety({
   maximumModelGroups = 5,
   maximumVariantsPerGroup = 2,
   minimumIntervalMs = 500,
+  retryDelayMs = minimumIntervalMs * 4,
   sleep = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds)),
   now = new Date(),
 }) {
@@ -124,7 +125,15 @@ export async function enrichNhtsaSafety({
   const partialCode = failureCount > 0 ? `partial_api_failure_${failureCount}` : null;
   return finish(discoveredCount > 0 ? "success" : "empty", capCode ?? partialCode, enrichedOffers);
 
-  async function requestJson(url, { acceptEmpty400 = false } = {}) {
+  // One retry for a dropped connection, a server error or throttling; a second failure stands.
+  async function requestJson(url, options = {}) {
+    const first = await requestOnce(url, options);
+    if (first.ok || !(first.code === "network_error" || first.code === "rate_limited" || /^http_5\d\d$/.test(first.code))) return first;
+    if (retryDelayMs > 0) await sleep(retryDelayMs);
+    return requestOnce(url, options);
+  }
+
+  async function requestOnce(url, { acceptEmpty400 = false } = {}) {
     if (requestCount > 0 && minimumIntervalMs > 0) await sleep(minimumIntervalMs);
     requestCount += 1;
     let response;

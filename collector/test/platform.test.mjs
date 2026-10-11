@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { mergeRemoteSavedSearches, validatePlatformConfig } from "../src/platform-config.mjs";
-import { dueAdapterKeys, runPlatformCollection } from "../src/platform.mjs";
+import { allSourcesFailed, dueAdapterKeys, runPlatformCollection } from "../src/platform.mjs";
 
 const config = {
   version: 2,
@@ -296,4 +296,11 @@ test("rejects malformed provider cadence", async () => {
   const config = JSON.parse(await import("node:fs/promises").then((fs) => fs.readFile(new URL("../platform.example.json", import.meta.url), "utf8")));
   config.adapters.marketcheck.cadence = { everyDays: 0 };
   assert.throws(() => validatePlatformConfig(config, { allowEmptySearches: true }), /everyDays/);
+});
+
+test("treats a cycle as failed only when no source produced a working result", () => {
+  assert.equal(allSourcesFailed([{ status: "failed" }, { status: "unavailable" }, { status: "challenged" }]), true);
+  assert.equal(allSourcesFailed([{ status: "failed" }, { status: "empty" }]), false);
+  assert.equal(allSourcesFailed([{ status: "rate_limited" }, { status: "success" }]), false);
+  assert.equal(allSourcesFailed([]), false);
 });
