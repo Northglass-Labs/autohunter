@@ -5,7 +5,56 @@
 Plan: [`docs/plans/2026-10-overhaul.md`](plans/2026-10-overhaul.md), from the 2026-10-10
 requirements and quality audit.
 
-### Item 1: email-link sessions only (ADR-022)
+### Items 2–4: market value, implausible prices, and spread report picks (ADR-023)
+
+**Problem (audit):**
+- No listing had a market estimate, so used-car value fell back to provider MSRP. That is often not
+  the original sticker.
+- Price changed the score for 72 of the owner's 537 eligible matches.
+- One provider held 43 of the top 50 picks.
+- Placeholder prices from $190 were eligible.
+- One search could fill a report: 7 of the top 12 were R1S.
+
+**Code:**
+- At ingest, each used listing gets a market estimate from comparable listings already collected.
+  The estimate is stored with its comparable count, basis and spread.
+- A price below $1,000, or below 45% of its estimate, is ineligible as `price_suspect`.
+- **Used score:**
+  - 25 value points at market, plus or minus 2 per percent, from 0 to 50 (20 without an estimate);
+  - mileage up to 15, distance up to 10;
+  - provider MSRP scores new cars only.
+- Cards and reports say "$X below similar cars (N compared)", and flag a price 20% or more below as
+  unusual.
+- A report takes at most three picks from one search while other searches have candidates.
+- Migration `market_value_evidence` adds `market_comparables`, `market_basis`,
+  `market_spread_percent` and a comparable-lookup index. It was applied to production before the
+  merge as version `20261010235813`, and the file carries that version.
+
+**Simulated on production data (read-only, 2026-10-10):**
+- 534 of 537 eligible matches get an estimate, 525 of them from same-trim comparables.
+- The new top picks sit 8–25% below comparable cars.
+- Feature and family-fit scores are about equal across sources, so MarketCheck's remaining lead
+  comes from distance: Auto.dev's median is 107 miles against MarketCheck's 67.
+
+**Tests:**
+- Unit cases: the estimator (trim keys, year and mileage adjustment, fallbacks, outliers, fitted
+  rate), implausible prices, the market sentence, used and new scoring, the card and email lines,
+  and pick spreading.
+- pgTAP: the new columns, constraints and index.
+- E2E: comparables plus a target and a placeholder go through the ingest API. The card shows the
+  market line, and the placeholder never reaches the queue.
+
+### Item 1: email-link sessions only (ADR-022): released 2026-10-10
+
+**Deployed:**
+- PR #25 merged as `54a944c`.
+- Vercel production deployment `dpl_b3zthjCViAyWjrBrVa4EqfexS5JG` succeeded.
+- Signed-out `/reports` and `/reports/<id>` now redirect (307) to `/login`; before, they returned 500.
+- The owner's existing session still loads the dashboard: magic-link sessions keep their
+  authentication methods through token refresh.
+
+**CI:** collector, web, and database-and-e2e all passed, including both new stories on desktop and
+mobile.
 
 **Problem:**
 - Hosted sign-up is open behind the invite hook, and it confirms new accounts automatically.

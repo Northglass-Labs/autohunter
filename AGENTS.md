@@ -24,6 +24,8 @@ exact endorsement **a Northglass Product**.
   Summary text (headings, descriptions) marks at most `expected`; only listing-detail evidence
   confirms, and `EXPECTED_EQUIPMENT_RULES` entries must be factory-standard fitment only.
 - Recheck make/model/trim/year/price/mileage/radius and lease limits after provider normalization.
+- Used-car value comes from comparable listings (ADR-023). Provider MSRP never scores a used car,
+  and a price far below its comparables or under $1,000 is `price_suspect`, never a deal.
 - Change a saved search's criteria only together with `updated_at = now()`. Queues and reports
   ignore matches the collector has not re-confirmed since that change (ADR-020).
 - Keep provider queries bounded, cache shared detail requests, expire stale offers, and preserve

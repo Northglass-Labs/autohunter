@@ -2,10 +2,12 @@ import { matchesBodyStyle, matchesTrim } from "./vehicle-filters";
 import type { CandidateLeaseOffer, CandidateListing, CandidateOffer, ManualPhotoEvidence, OfferKind, RecommendationHistory, VehicleFeatureKey } from "./types";
 import { effectiveMonthlyCost, leaseDealScore } from "./offer-economics";
 import { SEARCH_POLICY } from "./search-policy";
+import { isImplausiblePrice } from "./market-value";
 
 export type EligibilityReason =
   | "eligible"
   | "price_over_cap"
+  | "price_suspect"
   | "mileage_over_cap"
   | "outside_radius"
   | "manual_photo_unverified"
@@ -142,9 +144,11 @@ function evaluatePurchaseOffer(
     ? manualVerification(listing)
     : { status: "not_applicable" as const, confidence: 0, evidence: null };
 
+  // Value is measured against comparable listings (ADR-023). Provider MSRP is not an original
+  // sticker for used cars, so only new-car offers fall back to it.
   const discountPercent = listing.marketEstimate
     ? ((listing.marketEstimate - listing.price) / listing.marketEstimate) * 100
-    : listing.msrp && listing.msrp > listing.price
+    : listing.offerKind === "new" && listing.msrp && listing.msrp > listing.price
       ? ((listing.msrp - listing.price) / listing.msrp) * 100
       : null;
   const reject = (reason: EligibilityReason) => rejected(
@@ -160,6 +164,8 @@ function evaluatePurchaseOffer(
     || (policy?.yearMax !== null && policy?.yearMax !== undefined && listing.year > policy.yearMax)) {
     return reject("year_out_of_range");
   }
+  // A placeholder such as a down payment in the price field is a data error, not a deal.
+  if (isImplausiblePrice(listing.price, listing.marketEstimate)) return reject("price_suspect");
   if (maxPrice !== null && listing.price > maxPrice) return reject("price_over_cap");
   if (maxMileage !== null && listing.mileage > maxMileage) return reject("mileage_over_cap");
   if (maxDistance !== null && listing.distanceMiles > maxDistance) return reject("outside_radius");
@@ -183,13 +189,15 @@ function evaluatePurchaseOffer(
     };
   }
 
-  const value = discountPercent === null ? 25 : Math.max(0, Math.min(55, discountPercent * 2));
-  const lowMileage = Math.max(0, Math.min(20, 20 - listing.mileage / 10_000));
-  const proximity = Math.max(0, Math.min(15, 15 - listing.distanceMiles / 25));
+  // Price against comparable cars leads: 25 points at market and 2 per percent either side
+  // (ADR-023). Low mileage and proximity follow; equipment and family fit are added afterwards.
+  const value = discountPercent === null ? 20 : Math.max(0, Math.min(50, 25 + discountPercent * 2));
+  const lowMileage = Math.max(0, Math.min(15, 15 - listing.mileage / 10_000));
+  const proximity = Math.max(0, Math.min(10, 10 - listing.distanceMiles / 25));
   return {
     eligible: true,
     reason: "eligible",
-    score: Math.round((value + lowMileage + proximity + 10) * 10) / 10,
+    score: Math.round((value + lowMileage + proximity) * 10) / 10,
     manualConfidence: 0,
     discountPercent,
     verificationStatus: "not_applicable",

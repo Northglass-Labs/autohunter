@@ -41,6 +41,8 @@ const listing: Listing = {
   securityDeposit: null,
   securityDepositRefundable: null,
   msrp: 98_000,
+  marketEstimate: null,
+  marketComparables: null,
   parseConfidence: 1,
   region: null,
   sellerName: "Example Rivian",
@@ -91,6 +93,13 @@ const listing: Listing = {
 };
 
 describe("ListingCard family queue", () => {
+  it("states how the price compares with similar cars", () => {
+    const html = renderToStaticMarkup(<ListingCard listing={{ ...listing, price: 58_500, marketEstimate: 64_500, marketComparables: 14 }} view="finds" />);
+
+    expect(html).toContain("$6,000 below similar cars (14 compared)");
+    expect(renderToStaticMarkup(<ListingCard listing={listing} view="finds" />)).not.toContain("similar cars");
+  });
+
   it("shows the lane, evidence confidence, family fit, real source link, and reversible decision", () => {
     const html = renderToStaticMarkup(<ListingCard listing={listing} view="interested" />);
 

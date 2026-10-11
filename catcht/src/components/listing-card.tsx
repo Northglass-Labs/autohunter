@@ -4,6 +4,7 @@ import { INSTANCE_CONFIG } from "@/lib/instance-config";
 import { DecisionSwipeCard } from "./decision-swipe-card";
 import Link from "next/link";
 import { buyingChecksFor } from "@/lib/buying-checks";
+import { describeMarketPosition } from "@/lib/market-value";
 
 type ListingView = "finds" | "pending" | "interested" | "ignored";
 
@@ -32,6 +33,7 @@ export function ListingCard({ listing, view }: { listing: Listing; view: Listing
   const isLease = listing.offerKind === "lease";
   const manualPending = listing.verificationStatus === "pending";
   const buyingChecks = buyingChecksFor(listing);
+  const market = isLease ? null : describeMarketPosition(listing.price, listing.marketEstimate, listing.marketComparables);
 
   return (
     <DecisionSwipeCard listingId={listing.id} view={view}>
@@ -72,6 +74,7 @@ export function ListingCard({ listing, view }: { listing: Listing; view: Listing
           <strong>{isLease ? (listing.monthlyPayment === null ? "Terms linked" : `${money(listing.monthlyPayment)}/mo`) : (listing.price === null ? "Ask dealer" : money(listing.price))}</strong>
           <span>{isLease ? (listing.effectiveMonthly === null ? "effective cost pending" : `${money(listing.effectiveMonthly)}/mo effective`) : (listing.mileage === null ? listing.condition : `${listing.mileage.toLocaleString()} mi`)}</span>
         </div>
+        {market ? <p className={`market-position ${market.tone}`}>{market.text}</p> : null}
         <p className="location">{[listing.sellerName, listing.region ?? listing.location].filter(Boolean).join(" · ")}</p>
 
         {isLease ? <LeaseTerms listing={listing} /> : <FactChips listing={listing} />}

@@ -35,6 +35,8 @@ const listing: ListingCard = {
   securityDeposit: null,
   securityDepositRefundable: null,
   msrp: null,
+  marketEstimate: null,
+  marketComparables: null,
   parseConfidence: 1,
   region: null,
   sellerName: null,
@@ -58,6 +60,19 @@ const listing: ListingCard = {
 };
 
 describe("renderDigestEmail", () => {
+  it("says how each car's price compares with similar cars in both email formats", () => {
+    const email = renderDigestEmail([{ ...listing, price: 10_500, marketEstimate: 14_000, marketComparables: 11 }], "2026-10-12", {
+      appUrl: "https://autohunter.example.com",
+      recipientId: "driver",
+      actionSecret: "a".repeat(32),
+      brandName: "AutoHunter",
+      maxPrice: 15_000,
+    });
+
+    expect(email.html).toContain("$3,500 (25%) below similar cars (11 compared). Unusually low: check title and history.");
+    expect(email.text).toContain("$3,500 (25%) below similar cars (11 compared). Unusually low: check title and history.");
+  });
+
   it("includes generation-appropriate S580 checks in HTML and plain text", () => {
     const s580: ListingCard = { ...listing, title: "2021 Mercedes-Benz S580", make: "Mercedes-Benz", model: "S-Class",
       trim: "S580 4MATIC", year: 2021, bodyStyle: "Sedan", price: 39900, garageGroup: "gas", powertrainCategory: "hybrid" };

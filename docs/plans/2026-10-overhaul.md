@@ -25,15 +25,15 @@ focused pull request with tests written first, and `docs/STATUS.md` records each
 
 ## Sprint 1: results you can trust
 
-1. [~] **Email-link sessions only.**
+1. [x] **Email-link sessions only** (PR #25, `54a944c`, released 2026-10-10).
    - The app accepts a session only when it came from an email link, and never one from a
      password or anonymous sign-in (ADR-022).
    - Signed-out visits to `/reports` go to the login page.
-2. [ ] **Implausible prices are not deals.**
+2. [~] **Implausible prices are not deals.**
    - A used listing priced far below its comparable listings, or below an absolute floor, is
      ineligible as `price_suspect`.
    - It is also kept out of other listings' comparables.
-3. [ ] **Market value from comparable listings (ADR-023).**
+3. [~] **Market value from comparable listings (ADR-023).**
    - Comparables are used listings seen in the last 90 days with the same make, model and trim
      family, within one model year.
    - Each comparable's price is adjusted for mileage and year.
@@ -41,7 +41,7 @@ focused pull request with tests written first, and `docs/STATUS.md` records each
    - Used-car value scores price against that estimate, symmetric around market. Provider MSRP no
      longer scores used cars.
    - Cards and reports show how far a car is below or above market, and from how many comparables.
-4. [ ] **Spread the 12 report picks** across searches: at most three from any one search, with any
+4. [~] **Spread the 12 report picks** across searches: at most three from any one search, with any
    remaining slots filled by score.
 5. [ ] **Lease hygiene.** Expired offers and terms shorter than 12 months are not eligible.
 6. [ ] **Freshness health endpoint.** It returns only "ok" or "degraded" when a scheduled source
@@ -100,3 +100,4 @@ Sprint 1 is done when:
 ## Progress log
 
 - 2026-10-10: Plan written from the audit. Sprint 1 started with item 1.
+- 2026-10-10: Item 1 released (PR #25). Items 2–4 in review together, with ADR-023.
