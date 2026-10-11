@@ -110,6 +110,7 @@ export default async function Home({
           </Link>
           <div className="account-cluster">
             <Link href="/reports">Reports</Link>
+            <Link href="/guides/how-it-works">How it works</Link>
             {user.role === "admin" ? <a href="#team">Household</a> : null}
             <span className="user-chip"><i aria-hidden="true">{user.displayName.charAt(0).toUpperCase()}</i>{user.displayName}</span>
             <form action={signOutAction}><button className="hero-signout" type="submit">Sign out</button></form>

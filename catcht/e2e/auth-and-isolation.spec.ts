@@ -48,6 +48,8 @@ test("anonymous visitors are sent to the invite-only magic-link screen", async (
   await expect(page).toHaveURL(/\/login(?:\?|$)/);
   await page.goto("/reports/00000000-0000-4000-8000-000000000000");
   await expect(page).toHaveURL(/\/login(?:\?|$)/);
+  await page.goto("/guides/how-it-works");
+  await expect(page).toHaveURL(/\/login(?:\?|$)/);
 });
 
 test("a password session for an invited address is refused and never claims the invitation", async ({ browser, request }, testInfo) => {
@@ -88,6 +90,11 @@ test("an invited user can complete a real magic-link flow and sign out", async (
   await expect(page.getByRole("navigation", { name: "Review queue" })).toBeVisible();
   await expect(page.getByRole("navigation", { name: "Vehicle lanes" })).toBeVisible();
   await expect(page.getByRole("heading", { name: /saved searches/i })).toBeVisible();
+  await page.getByRole("navigation", { name: "AutoHunter account" }).getByRole("link", { name: "How it works" }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "How AutoHunter works" })).toBeVisible();
+  await expect(page.getByText(/compared with similar ones AutoHunter has seen/)).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  await page.getByRole("link", { name: "Back to your hunt" }).click();
   await page.getByRole("button", { name: /sign out/i }).click();
   await expect(page).toHaveURL(/\/login(?:\?|$)/);
 });
