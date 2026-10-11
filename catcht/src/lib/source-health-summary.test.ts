@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isSourceHealthy, leaseInputsSummary, sourceStatusLabel, sourcesForOfferKinds } from "./source-health-summary";
+import { isSourceHealthy, leaseInputsSummary, scheduledSourcesHealthy, sourceStatusLabel, sourcesForOfferKinds } from "./source-health-summary";
 
 const now = Date.parse("2026-09-08T12:00:00Z");
 const source = { source: "auto_dev", status: "success", finishedAt: "2026-09-08T10:00:00Z", messageCode: null, acceptedCount: 5, discoveredCount: 10, searchedCount: 2 };
@@ -78,5 +78,25 @@ describe("lease inputs summary", () => {
     ], now);
     expect(summary).toBe("The authorized lease-alert importer last ran today and found 2 new items. The licensed OEM incentive feed is healthy and currently reports 14 programs.");
     expect(leaseInputsSummary([], now)).toBe("The authorized lease-alert importer has not run yet.");
+  });
+});
+
+describe("scheduled collection health", () => {
+  const scheduled = ["marketcheck", "auto_dev", "marketcheck_incentives", "nhtsa"].map((name) => ({ ...source, source: name, lastDiscoveryAt: "2026-09-08T10:00:00Z" }));
+
+  it("is healthy only while every scheduled source is fresh, working and returning results", () => {
+    expect(scheduledSourcesHealthy(scheduled, now)).toBe(true);
+    expect(scheduledSourcesHealthy(scheduled.filter((item) => item.source !== "auto_dev"), now)).toBe(false);
+    expect(scheduledSourcesHealthy(scheduled.map((item) => item.source === "marketcheck"
+      ? { ...item, status: "failed", messageCode: "rate_limited" } : item), now)).toBe(false);
+    expect(scheduledSourcesHealthy(scheduled.map((item) => item.source === "marketcheck_incentives"
+      ? { ...item, finishedAt: "2026-08-29T12:00:00Z" } : item), now)).toBe(false);
+    // A provider answering every query with nothing for a week is a silent outage.
+    expect(scheduledSourcesHealthy(scheduled.map((item) => item.source === "marketcheck_incentives"
+      ? { ...item, status: "empty", discoveredCount: 0, acceptedCount: 0, lastDiscoveryAt: "2026-08-30T12:00:00Z" } : item), now)).toBe(false);
+  });
+
+  it("ignores optional and manual inputs", () => {
+    expect(scheduledSourcesHealthy([...scheduled, { ...source, source: "email_alert", finishedAt: "2026-08-10T08:24:01Z" }], now)).toBe(true);
   });
 });
