@@ -285,7 +285,9 @@ a, button, input, select, textarea { outline-offset: 3px; }
 .saved-search strong { font-size: 11px; }
 .saved-search small { color: #a7bbb1; font-size: 8px; }
 .saved-search.paused { opacity: .53; }
-.saved-search form { position: absolute; top: 9px; right: 9px; }
+.saved-search-actions { position: absolute; top: 9px; right: 9px; display: flex; gap: 4px; }
+.saved-search-actions form { position: static; }
+.saved-search strong, .saved-search small { padding-right: 86px; }
 .saved-search button { border: 1px solid rgba(255,255,255,.15); border-radius: 6px; padding: 4px 6px; background: rgba(255,255,255,.04); color: #c3d3cb; cursor: pointer; font-size: 7px; font-weight: 760; }
 
 .search-form, .invite-form, .search-owners { align-self: start; border: 1px solid #d7d0c3; border-radius: 17px; padding: 22px; background: #faf7f0; color: var(--ink); box-shadow: 0 14px 34px rgba(6,27,19,.22); }
@@ -308,6 +310,8 @@ a, button, input, select, textarea { outline-offset: 3px; }
 .search-presets a { color: #d9ccff; font-size: 13px; text-underline-offset: 3px; }
 .search-form label { font-size: 11px; letter-spacing: .02em; text-transform: none; }
 .search-form .search-submit { min-height: 44px; font-size: 13px; }
+.search-form-actions { display: flex; gap: 8px; }
+.search-form-actions .search-submit { flex: 1; }
 .saved-search { padding: 15px; gap: 7px; }
 .saved-search > span { font-size: 10px; }
 .saved-search strong { font-size: 14px; }

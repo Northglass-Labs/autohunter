@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { addSavedSearchAction, setSavedSearchActiveAction, type AddSavedSearchState } from "@/app/actions";
+import { addSavedSearchAction, setSavedSearchActiveAction, updateSavedSearchAction, type AddSavedSearchState } from "@/app/actions";
 import type { SavedSearch } from "@/lib/dal";
 import Link from "next/link";
 import { sClassPreset } from "@/lib/search-presets";
@@ -21,8 +21,11 @@ export function SavedSearchPanel({ searches }: SavedSearchPanelProps) {
   const [formVersion, setFormVersion] = useState(0);
   const [desired, setDesired] = useState<VehicleFeatureKey[]>([]);
   const [required, setRequired] = useState<VehicleFeatureKey[]>([]);
+  const [editing, setEditing] = useState<SavedSearch | null>(null);
   const [state, formAction, pending] = useActionState(addSavedSearchAction, initialState);
+  const [updateState, updateAction, updatePending] = useActionState(updateSavedSearchAction, initialState);
   const isLease = offerKind === "lease";
+  const result = editing ? updateState : state;
   const existingLocation = searches.find((search) => search.offerKind === "used" && search.active && search.zip);
   function applyPreset(variant: "560" | "450" | "580") {
     const next = sClassPreset(variant);
@@ -31,6 +34,26 @@ export function SavedSearchPanel({ searches }: SavedSearchPanelProps) {
     setRequired([]);
     setOfferKind("used");
     setGarageGroup("gas");
+    setEditing(null);
+    setFormVersion((version) => version + 1);
+  }
+  // Loads a search into the form. Saving replaces its criteria in place (ADR-020).
+  function startEditing(search: SavedSearch) {
+    setEditing(search);
+    setPreset(null);
+    setOfferKind(search.offerKind);
+    setGarageGroup(search.garageGroup);
+    setDesired(search.desiredFeatures);
+    setRequired(search.requiredFeatures);
+    setFormVersion((version) => version + 1);
+    document.getElementById("search-form")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+  function stopEditing() {
+    setEditing(null);
+    setOfferKind("used");
+    setGarageGroup("other");
+    setDesired([]);
+    setRequired([]);
     setFormVersion((version) => version + 1);
   }
 
@@ -58,17 +81,21 @@ export function SavedSearchPanel({ searches }: SavedSearchPanelProps) {
               <strong>{search.name}</strong>
               <small>{search.make} {search.model}{search.trim ? ` ${search.trim}` : ""}</small>
               <small>{searchSummary(search)}</small>
-              <form action={toggle}><button type="submit">{search.active ? "Pause" : "Resume"}</button></form>
+              <div className="saved-search-actions">
+                <button type="button" onClick={() => startEditing(search)} aria-label={`Edit ${search.name}`}>Edit</button>
+                <form action={toggle}><button type="submit">{search.active ? "Pause" : "Resume"}</button></form>
+              </div>
             </article>
           );})}
         </div>
       </div>
 
-      <form key={formVersion} action={formAction} className="search-form">
+      <form key={formVersion} id="search-form" action={editing ? updateAction : formAction} className="search-form">
+        {editing ? <input type="hidden" name="searchId" value={editing.id} /> : null}
         <div className="form-heading">
           <div>
-            <p className="eyebrow">New target</p>
-            <h3>What should join the hunt?</h3>
+            <p className="eyebrow">{editing ? `Editing ${editing.name}` : "New target"}</p>
+            <h3>{editing ? "Edit search" : "What should join the hunt?"}</h3>
           </div>
           <label>
             Offer type
@@ -89,14 +116,14 @@ export function SavedSearchPanel({ searches }: SavedSearchPanelProps) {
         </div>
 
         <div className="form-grid">
-          <label className="span-2">Search name<input name="name" required maxLength={120} placeholder="Manual weekend car" defaultValue={preset?.name} /></label>
-          <label>Make<input name="make" required maxLength={100} placeholder="Mazda" defaultValue={preset?.make} /></label>
-          <label>Model<input name="model" required maxLength={150} placeholder="MX-5 Miata" defaultValue={preset?.model} /></label>
-          <label>Trim, optional<input name="trim" maxLength={150} placeholder="Club" defaultValue={preset?.trim ?? ""} /></label>
-          <label>Body style<select name="bodyStyle" aria-label="Body style" defaultValue={preset?.bodyStyle ?? ""}><option value="">Any body style</option>{BODY_STYLES.map((style) => <option key={style} value={style}>{style === "suv" ? "SUV" : style[0].toUpperCase() + style.slice(1)}</option>)}</select></label>
+          <label className="span-2">Search name<input name="name" required maxLength={120} placeholder="Manual weekend car" defaultValue={editing?.name ?? preset?.name} /></label>
+          <label>Make<input name="make" required maxLength={100} placeholder="Mazda" defaultValue={editing?.make ?? preset?.make} /></label>
+          <label>Model<input name="model" required maxLength={150} placeholder="MX-5 Miata" defaultValue={editing?.model ?? preset?.model} /></label>
+          <label>Trim, optional<input name="trim" maxLength={150} placeholder="Club" defaultValue={editing ? editing.trim ?? "" : preset?.trim ?? ""} /></label>
+          <label>Body style<select name="bodyStyle" aria-label="Body style" defaultValue={editing ? editing.bodyStyle ?? "" : preset?.bodyStyle ?? ""}><option value="">Any body style</option>{BODY_STYLES.map((style) => <option key={style} value={style}>{style === "suv" ? "SUV" : style[0].toUpperCase() + style.slice(1)}</option>)}</select></label>
           <label>
             Transmission
-            <select name="transmission" defaultValue={preset?.transmission ?? "any"}>
+            <select name="transmission" defaultValue={editing?.transmission ?? preset?.transmission ?? "any"}>
               <option value="any">Any</option>
               <option value="manual">Manual</option>
               <option value="automatic">Automatic</option>
@@ -114,7 +141,7 @@ export function SavedSearchPanel({ searches }: SavedSearchPanelProps) {
           </label>
           <label>
             Search profile
-            <select name="profile" defaultValue={preset?.profile ?? "general"}>
+            <select name="profile" defaultValue={editing?.profile ?? preset?.profile ?? "general"}>
               <option value="family_ev">Family EV</option>
               <option value="family_gas">Family gas</option>
               <option value="lease">Lease</option>
@@ -124,7 +151,7 @@ export function SavedSearchPanel({ searches }: SavedSearchPanelProps) {
           </label>
           <label>
             Powertrain
-            <select name="powertrainCategory" defaultValue={preset?.powertrainCategory ?? "any"}>
+            <select name="powertrainCategory" defaultValue={editing?.powertrainCategory ?? preset?.powertrainCategory ?? "any"}>
               <option value="any">Any</option>
               <option value="ev">EV</option>
               <option value="gas">Gas</option>
@@ -135,33 +162,36 @@ export function SavedSearchPanel({ searches }: SavedSearchPanelProps) {
 
           {isLease ? (
             <>
-              <label>Region<input name="region" required maxLength={150} placeholder="Northeast" /></label>
-              <label>ZIP code<input name="zip" required inputMode="numeric" pattern="[0-9]{5}" maxLength={5} placeholder="10001" /></label>
-              <label>Max effective / month<input name="maxEffectiveMonthly" inputMode="numeric" placeholder="650" /></label>
-              <label>Max due at signing<input name="maxDueAtSigning" inputMode="numeric" placeholder="3000" /></label>
-              <label>Minimum annual miles<input name="minAnnualMiles" inputMode="numeric" placeholder="10000" /></label>
+              <label>Region<input name="region" required maxLength={150} placeholder="Northeast" defaultValue={editing?.region ?? ""} /></label>
+              <label>ZIP code<input name="zip" required inputMode="numeric" pattern="[0-9]{5}" maxLength={5} placeholder="10001" defaultValue={editing?.zip ?? ""} /></label>
+              <label>Max effective / month<input name="maxEffectiveMonthly" inputMode="numeric" placeholder="650" defaultValue={editing?.maxEffectiveMonthly ?? ""} /></label>
+              <label>Max due at signing<input name="maxDueAtSigning" inputMode="numeric" placeholder="3000" defaultValue={editing?.maxDueAtSigning ?? ""} /></label>
+              <label>Minimum annual miles<input name="minAnnualMiles" inputMode="numeric" placeholder="10000" defaultValue={editing?.minAnnualMiles ?? ""} /></label>
             </>
           ) : (
             <>
-              <label>ZIP code<input name="zip" required inputMode="numeric" pattern="[0-9]{5}" maxLength={5} placeholder="10001" defaultValue={preset ? existingLocation?.zip ?? "" : ""} /></label>
-              <label>Radius in miles<input name="radiusMiles" required inputMode="numeric" placeholder="150" defaultValue={preset ? existingLocation?.radiusMiles ?? preset.radiusMiles ?? "" : ""} /></label>
-              <label>Max price<input name="maxPrice" inputMode="numeric" placeholder="25000" defaultValue={preset?.maxPrice ?? ""} /></label>
-              <label>Target price<input name="targetPrice" inputMode="numeric" placeholder="22000" defaultValue={preset?.targetPrice ?? ""} /></label>
-              <label>Max mileage<input name="maxMileage" inputMode="numeric" placeholder={offerKind === "new" ? "500" : "100000"} defaultValue={preset?.maxMileage ?? ""} /></label>
-              <label>Minimum model year<input name="yearMin" inputMode="numeric" placeholder="2018" defaultValue={preset?.yearMin ?? ""} /></label>
-              <label>Maximum model year<input name="yearMax" inputMode="numeric" placeholder="2026" defaultValue={preset?.yearMax ?? ""} /></label>
+              <label>ZIP code<input name="zip" required inputMode="numeric" pattern="[0-9]{5}" maxLength={5} placeholder="10001" defaultValue={editing ? editing.zip ?? "" : preset ? existingLocation?.zip ?? "" : ""} /></label>
+              <label>Radius in miles<input name="radiusMiles" required inputMode="numeric" placeholder="150" defaultValue={editing ? editing.radiusMiles ?? "" : preset ? existingLocation?.radiusMiles ?? preset.radiusMiles ?? "" : ""} /></label>
+              <label>Max price<input name="maxPrice" inputMode="numeric" placeholder="25000" defaultValue={editing ? editing.maxPrice ?? "" : preset?.maxPrice ?? ""} /></label>
+              <label>Target price<input name="targetPrice" inputMode="numeric" placeholder="22000" defaultValue={editing ? editing.targetPrice ?? "" : preset?.targetPrice ?? ""} /></label>
+              <label>Max mileage<input name="maxMileage" inputMode="numeric" placeholder={offerKind === "new" ? "500" : "100000"} defaultValue={editing ? editing.maxMileage ?? "" : preset?.maxMileage ?? ""} /></label>
+              <label>Minimum model year<input name="yearMin" inputMode="numeric" placeholder="2018" defaultValue={editing ? editing.yearMin ?? "" : preset?.yearMin ?? ""} /></label>
+              <label>Maximum model year<input name="yearMax" inputMode="numeric" placeholder="2026" defaultValue={editing ? editing.yearMax ?? "" : preset?.yearMax ?? ""} /></label>
             </>
           )}
           <FeaturePicker name="desiredFeatures" legend="Equipment you want" selected={desired} onChange={setDesired} />
           <details className="span-2 required-features"><summary>Require equipment to appear in results</summary><p>Only offers with confirmed or expected evidence qualify. Leave this empty to discover cars whose listings still need a build sheet.</p><FeaturePicker name="requiredFeatures" legend="Required equipment" selected={required} onChange={setRequired} /></details>
-          <label className="span-2">Why it belongs<textarea name="rationale" maxLength={500} placeholder="Family utility, highway tech, driving character, and value thesis." defaultValue={preset?.rationale ?? ""} /></label>
-          <label>Priority (0–100)<input name="priority" inputMode="numeric" placeholder="80" defaultValue={preset?.priority ?? ""} /></label>
+          <label className="span-2">Why it belongs<textarea name="rationale" maxLength={500} placeholder="Family utility, highway tech, driving character, and value thesis." defaultValue={editing ? editing.rationale ?? "" : preset?.rationale ?? ""} /></label>
+          <label>Priority (0–100)<input name="priority" inputMode="numeric" placeholder="80" defaultValue={editing?.priority ?? preset?.priority ?? ""} /></label>
         </div>
 
-        <button className="button primary search-submit" type="submit" disabled={pending}>
-          {pending ? "Adding radar…" : "Add saved search"}
-        </button>
-        {state.message ? <p className={`form-message ${state.ok ? "success" : "error"}`} role="status">{state.message}</p> : null}
+        <div className="search-form-actions">
+          <button className="button primary search-submit" type="submit" disabled={editing ? updatePending : pending}>
+            {editing ? (updatePending ? "Saving…" : "Save changes") : pending ? "Adding radar…" : "Add saved search"}
+          </button>
+          {editing ? <button className="button secondary" type="button" onClick={stopEditing}>{updateState.ok ? "Done" : "Cancel"}</button> : null}
+        </div>
+        {result.message ? <p className={`form-message ${result.ok ? "success" : "error"}`} role="status">{result.message}</p> : null}
       </form>
     </section>
   );

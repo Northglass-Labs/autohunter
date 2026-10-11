@@ -8,6 +8,7 @@ import {
   setDisposition,
   setSavedSearchActive,
   setSavedSearchOwner,
+  updateSavedSearch,
 } from "@/lib/dal";
 import { requireUser } from "@/lib/auth";
 import { normalizeEmail } from "@/lib/auth-policy";
@@ -39,6 +40,27 @@ export async function addSavedSearchAction(
   if (!added) return { ok: false, message: "An active search already uses that name." };
   revalidatePath("/");
   return { ok: true, message: `${parsed.data.name} is now on the radar.` };
+}
+
+export async function updateSavedSearchAction(
+  _state: AddSavedSearchState,
+  formData: FormData,
+): Promise<AddSavedSearchState> {
+  const user = await requireUser();
+  const id = entityIdSchema.safeParse(formData.get("searchId"));
+  if (!id.success) return { ok: false, message: "That search could not be found." };
+  const parsed = savedSearchInputSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) {
+    return {
+      ok: false,
+      message: parsed.error.issues[0]?.message ?? "Review the search settings and try again.",
+    };
+  }
+  const result = await updateSavedSearch(user.id, id.data, parsed.data);
+  if (result === "not_found") return { ok: false, message: "That search could not be found." };
+  if (result === "name_taken") return { ok: false, message: "Another active search already uses that name." };
+  revalidatePath("/");
+  return { ok: true, message: `${parsed.data.name} was updated. Its matches return after the next collection.` };
 }
 
 export async function setSavedSearchActiveAction(id: string, active: boolean) {
