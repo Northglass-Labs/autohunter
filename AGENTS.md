@@ -11,7 +11,8 @@ licensed feeds, expressly authorized notifications, or manual imports and emits 
 health. `catcht/` is the Next.js/Supabase Auth/private Postgres/reporting app. The normal runtime
 does not depend on Hermes, OpenClaw, a browser daemon, or mailbox-wide access.
 
-The original manual-car monitor and `catcht` schema names are migration compatibility details.
+The `catcht` schema name is a migration compatibility detail. The original manual-car monitor was
+retired on 2026-10-11 (ADR-024).
 Public product copy, package names, sender copy, and deployment surfaces use **AutoHunter** and the
 exact endorsement **a Northglass Product**.
 

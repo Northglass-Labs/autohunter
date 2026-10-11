@@ -1,9 +1,8 @@
 # AutoHunter web application
 
 This package owns AutoHunter's invite-only decision desk, saved searches, validated ingest,
-evidence-aware ranking, per-user decisions, report archive, email rendering, and optional
-manual-shifter photo verification. `catcht` is a historical directory/schema name retained for
-database compatibility; the product is AutoHunter.
+evidence-aware ranking, per-user decisions, report archive, and email rendering. `catcht` is a
+historical directory/schema name retained for database compatibility; the product is AutoHunter.
 
 ## Stack and trust boundary
 
@@ -14,7 +13,6 @@ database compatibility; the product is AutoHunter.
 - global canonical listings/evidence; owner-scoped searches, matches, decisions, and reports
 - Resend reports (daily when something is new, otherwise a weekly check-in) with signed,
   confirmation-gated Interested/Pass actions
-- optional OpenAI or Vercel AI Gateway vision for bounded manual-shifter evidence
 
 `proxy.ts` refreshes Auth cookies. It is not an authorization boundary. Every protected page,
 route, and Server Action validates the Supabase user and active private profile. Foreign report IDs

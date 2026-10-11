@@ -7,7 +7,7 @@ import Link from "next/link";
 import { buyingChecksFor } from "@/lib/buying-checks";
 import { describeMarketPosition } from "@/lib/market-value";
 
-type ListingView = "finds" | "pending" | "interested" | "ignored";
+type ListingView = "finds" | "interested" | "ignored";
 
 const SHORT_FEATURE_LABELS: Record<string, string> = {
   hands_free_highway: "Hands-free highway",
@@ -32,7 +32,6 @@ export function ListingCard({ listing, view }: { listing: Listing; view: Listing
   const passed = setDispositionAction.bind(null, listing.id, "ignored");
   const review = setDispositionAction.bind(null, listing.id, "neutral");
   const isLease = listing.offerKind === "lease";
-  const manualPending = listing.verificationStatus === "pending";
   const buyingChecks = buyingChecksFor(listing);
   const market = isLease ? null : describeMarketPosition(listing.price, listing.marketEstimate, listing.marketComparables);
 
@@ -55,9 +54,7 @@ export function ListingCard({ listing, view }: { listing: Listing; view: Listing
         )}
         <div className="photo-topline">
           <span className="source-chip">{sourceLabel(listing.source)}</span>
-          <span className={`score-chip ${manualPending ? "pending" : ""}`}>
-            {manualPending ? "photo pending" : `${Math.round(listing.dealScore)} deal`}
-          </span>
+          <span className="score-chip">{Math.round(listing.dealScore)} deal</span>
         </div>
         <div className="photo-badges">
           <span className={`garage-badge ${listing.garageGroup}`}>{laneLabel(listing)}</span>
@@ -101,7 +98,7 @@ export function ListingCard({ listing, view }: { listing: Listing; view: Listing
           <a href={listing.url} target="_blank" rel="noopener noreferrer" className="button primary">
             {isLease ? listing.offerRole === "active_offer" ? "Open deal" : "Open source" : "View listing"} <span aria-hidden="true">↗</span>
           </a>
-          {view === "finds" || view === "pending" ? (
+          {view === "finds" ? (
             <>
               <form action={interested} data-disposition="interested"><button className="button interested">Interested</button></form>
               <form action={passed} data-disposition="ignored"><button className="button secondary">Pass</button></form>
@@ -158,17 +155,11 @@ function FeatureChips({ listing }: { listing: Listing }) {
 
 function VerificationStrip({ listing }: { listing: Listing }) {
   const isLease = listing.offerKind === "lease";
-  const manualPending = listing.verificationStatus === "pending";
-  const manualVerified = listing.verificationStatus === "verified";
   const familyLane = listing.garageGroup === "ev" || listing.garageGroup === "gas";
   return (
-    <div className={`verification-strip ${manualPending ? "pending" : ""} ${isLease ? "lease" : ""}`}>
-      <span className="verification-icon" aria-hidden="true">{isLease ? "L" : manualVerified || manualPending ? "H" : "✓"}</span>
-      {manualPending ? (
-        <span><strong>Manual listing; photo proof pending</strong><small>The collector will retry the full interior gallery.</small></span>
-      ) : manualVerified ? (
-        <span><strong>Manual lever visually verified</strong><small>{Math.round(listing.manualConfidence * 100)}% photo confidence{listing.manualConfidence < 0.8 ? " · pattern not required" : ""}</small></span>
-      ) : isLease ? (
+    <div className={`verification-strip ${isLease ? "lease" : ""}`}>
+      <span className="verification-icon" aria-hidden="true">{isLease ? "L" : "✓"}</span>
+      {isLease ? (
         listing.offerRole === "benchmark" ? (
           <span><strong>Signed benchmark</strong><small>Comparison only · this is not a current offer</small></span>
         ) : listing.offerRole === "market_signal" ? (
@@ -263,7 +254,6 @@ function laneLabel(listing: Listing) {
   if (listing.garageGroup === "ev") return "EV";
   if (listing.garageGroup === "gas") return listing.powertrainCategory === "phev" ? "PHEV" : listing.powertrainCategory === "hybrid" ? "Hybrid" : "Gas";
   if (listing.garageGroup === "lease") return "Lease";
-  if (listing.garageGroup === "enthusiast") return "Enthusiast";
   return listing.powertrainCategory === "ev" ? "EV" : "Other";
 }
 

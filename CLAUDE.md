@@ -16,7 +16,8 @@ invoke due reports. Current adapters are MarketCheck inventory, Auto.dev invento
 incentives, bounded NHTSA model-year safety enrichment, and a read-only GOG importer for the
 dedicated `AutoHunter/Lease Inputs` label.
 Leasehackr scheduled crawling is prohibited; authorized notifications and manual imports are the
-supported inputs. Camoufox is a disabled migration path for the original enthusiast monitor.
+supported inputs. Camoufox is a disabled path left from the original manual-car monitor, which was
+retired on 2026-10-11 (ADR-024); its removal is scheduled.
 
 ### `catcht/`
 
@@ -45,7 +46,8 @@ typed report contract represented in `/reports`; email decision links require a 
 
 ## Compatibility and deployment
 
-Preserve existing listing IDs, VIN correlation, decisions, report history, and enthusiast searches.
+Preserve existing listing IDs, VIN correlation, decisions, and report history. The enthusiast
+searches were deleted by owner decision on 2026-10-11 (ADR-024).
 The `catcht` directory/schema names stay internal. Primary runtime variables and public surfaces use
 AutoHunter; old environment names remain read-only fallbacks during cutover.
 

@@ -139,7 +139,7 @@ export const ingestCandidateSchema = z.object({
   parseConfidence: z.number().min(0).max(1).default(1),
   publishedAt: z.string().datetime().nullish(),
   expiresAt: z.string().datetime().nullish(),
-  garageGroup: z.enum(["ev", "gas", "lease", "enthusiast", "other"]).optional(),
+  garageGroup: z.enum(["ev", "gas", "lease", "other"]).optional(),
   powertrainCategory: z.enum(["ev", "gas", "phev", "hybrid", "any"]).optional(),
   bodyStyle: z.string().trim().min(1).max(100).nullish(),
   seatingCapacity: z.number().int().min(2).max(15).nullish(),

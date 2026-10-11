@@ -12,7 +12,6 @@ This is the release gate for an invite-only AutoHunter installation. The detaile
 - [x] Cloudflare DNS control for `autohunter.northglass.io`
 - [x] licensed MarketCheck and/or Auto.dev credentials
 - [x] optional MarketCheck OEM-incentives entitlement
-- [ ] optional Vercel AI Gateway or OpenAI credential for bounded photo verification
 
 Generate independent high-entropy `ACTION_SIGNING_SECRET`, `INGEST_SECRET`, and `CRON_SECRET`
 values. Store them only in scoped platform or host secret stores.

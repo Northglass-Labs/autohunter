@@ -1,10 +1,12 @@
 ---
 title: Correlate exact VINs and keep photo verification optional and keyless on Vercel
-status: accepted
+status: accepted (photo verification superseded by ADR-024 on 2026-10-11)
 date: 2026-07-16
 ---
 
 # ADR-009: Correlate exact VINs and keep photo verification optional and keyless on Vercel
+
+> ADR-024 retired photo verification on 2026-10-11. VIN correlation remains in force.
 
 ## Context
 

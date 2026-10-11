@@ -23,7 +23,6 @@ import {
   canonicalizeVehicleRows,
   isCurrentListingRow,
   matchesListingView,
-  needsManualPhotoVerification,
 } from "./deduplication";
 import {
   evaluateOffer,
@@ -964,28 +963,6 @@ function dateOnly(value: unknown) {
   return match?.[0] ?? new Date(raw).toISOString().slice(0, 10);
 }
 
-export interface PendingVerificationCandidate {
-  candidate: CandidateListing;
-  rawPayload: unknown;
-}
-
-export async function getPendingVerificationCandidates(limit = 5): Promise<PendingVerificationCandidate[]> {
-  const sql = getDb();
-  const rows = await sql`
-    select * from catcht.listings
-    where offer_kind in ('used', 'new')
-    order by last_seen_at desc
-    limit 2000
-  `;
-  const now = new Date();
-  return canonicalizeVehicleRows(asListingRows(rows), now)
-    .filter((row) => needsManualPhotoVerification(row, now)
-      && Array.isArray(row.image_urls)
-      && row.image_urls.length > 0)
-    .slice(0, Math.max(1, Math.min(10, limit)))
-    .map((row) => ({ candidate: candidateFromRow(row), rawPayload: row.source_payload ?? {} }));
-}
-
 export async function getPersistedManualEvidence(candidate: CandidateOffer): Promise<ManualPhotoEvidence[]> {
   if (candidate.offerKind === "lease") return [];
   const sql = getDb();
@@ -1224,55 +1201,6 @@ function asUserListingRows(rows: Iterable<Record<string, unknown>>): ListingRow[
   }));
 }
 
-function candidateFromRow(row: ListingRow): CandidateListing {
-  const imageUrls = Array.isArray(row.image_urls) ? row.image_urls.map(String) : [];
-  return {
-    offerKind: row.offer_kind === "new" ? "new" : "used",
-    condition: (row.vehicle_condition ?? row.offer_kind ?? "used") as VehicleCondition,
-    source: String(row.source) as CandidateListing["source"],
-    originSource: row.origin_source ? String(row.origin_source) : null,
-    sourceListingId: row.source_listing_id ? String(row.source_listing_id) : null,
-    searchId: row.search_id ? String(row.search_id) : null,
-    url: String(row.url),
-    vin: row.vin ? String(row.vin) : null,
-    year: requiredNumber(row.year, "year"),
-    make: String(row.make),
-    model: String(row.model),
-    trim: row.trim ? String(row.trim) : null,
-    title: vehicleTitle(row.title, row),
-    price: requiredNumber(row.price, "price"),
-    mileage: requiredNumber(row.mileage, "mileage"),
-    distanceMiles: requiredNumber(row.distance_miles, "distance_miles"),
-    location: String(row.location),
-    transmissionClaim: row.transmission_claim ? String(row.transmission_claim) : null,
-    imageUrls,
-    primaryImageUrl: row.primary_image_url ? String(row.primary_image_url) : imageUrls[0] ?? null,
-    marketEstimate: row.market_estimate === null || row.market_estimate === undefined ? null : Number(row.market_estimate),
-    msrp: row.msrp === null || row.msrp === undefined ? null : Number(row.msrp),
-    sellerName: row.seller_name ? String(row.seller_name) : null,
-    requiresManualVerification: true,
-    parseConfidence: row.parse_confidence === null || row.parse_confidence === undefined ? 1 : Number(row.parse_confidence),
-    expiresAt: row.expires_at ? new Date(String(row.expires_at)).toISOString() : null,
-    garageGroup: (row.garage_group ?? "other") as GarageGroup,
-    powertrainCategory: (row.powertrain_category ?? "any") as PowertrainCategory,
-    bodyStyle: row.body_style ? String(row.body_style) : null,
-    seatingCapacity: row.seating_capacity === null || row.seating_capacity === undefined ? null : Number(row.seating_capacity),
-    packageNames: Array.isArray(row.package_names) ? row.package_names.map(String) : [],
-    featureEvidence: featureEvidenceFromRow(row.feature_evidence),
-    featureMatchScore: Number(row.feature_match_score ?? 0),
-    familyFitScore: Number(row.family_fit_score ?? 0),
-    daysOnMarket: row.days_on_market === null || row.days_on_market === undefined ? null : Number(row.days_on_market),
-    priceChange: row.price_change === null || row.price_change === undefined ? null : Number(row.price_change),
-    oneOwner: row.one_owner === null || row.one_owner === undefined ? null : Boolean(row.one_owner),
-    cleanTitle: row.clean_title === null || row.clean_title === undefined ? null : Boolean(row.clean_title),
-    exteriorColor: row.exterior_color ? String(row.exterior_color) : null,
-    interiorColor: row.interior_color ? String(row.interior_color) : null,
-    enrichmentStatus: (row.enrichment_status ?? "not_requested") as EnrichmentStatus,
-    safetyEvidence: parseSafetyEvidence(row.safety_evidence),
-    manualEvidence: [],
-  };
-}
-
 function evidenceFromRow(row: Record<string, unknown>): ManualPhotoEvidence {
   return {
     imageUrl: String(row.image_url),
@@ -1297,12 +1225,6 @@ function digestCandidateIsDue(row: ListingRow, now: Date) {
   const monthly = nullableNumber(row.effective_monthly);
   const lastMonthly = nullableNumber(row.user_last_emailed_effective_monthly ?? row.last_emailed_effective_monthly);
   return Number.isFinite(monthly) && Number.isFinite(lastMonthly) && monthly <= lastMonthly * 0.95;
-}
-
-function requiredNumber(value: unknown, field: string) {
-  const result = Number(value);
-  if (!Number.isFinite(result)) throw new Error(`pending verification row is missing ${field}`);
-  return result;
 }
 
 function number(value: unknown) {

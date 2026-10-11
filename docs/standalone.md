@@ -14,7 +14,6 @@ browser, and 1Password are not product dependencies.
 - DNS control for the canonical HTTPS origin
 - a daily scheduler such as GitHub Actions, launchd, or systemd
 
-Optional photo verification can use Vercel AI Gateway workload identity or a server-only OpenAI key.
 The ordinary collector needs outbound HTTPS only.
 
 ## 2. Verify a fresh clone
@@ -166,7 +165,7 @@ Auto.dev, OEM lease programs, and NHTSA.
   `503 {"status":"degraded"}`.
 - It reveals nothing else, so an uptime monitor can poll it without credentials. The dashboard
   shows which source needs attention.
-- Optional and manual inputs, such as the email importer and photo checks, do not affect it.
+- Optional and manual inputs, such as the email importer, do not affect it.
 
 ## 9. Release verification
 
