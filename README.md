@@ -105,6 +105,7 @@ email addresses, roles, cookies, or Auth IDs.
 | `catcht/supabase/` | additive migrations, Auth templates, local seed, and pgTAP contracts |
 | `collector/` | licensed/authorized adapters, orchestration, source health, and bounded legacy code |
 | `collector/platform.example.json` | portable source policy and example search definitions |
+| `workers/ebay-account-deletion/` | source-controlled Cloudflare callback required by the production eBay application |
 | `.github/workflows/collector.yml` | daily hosted collection with secret-store injection |
 | `docs/adr/012-autohunter-product-and-source-architecture.md` | current product/source decision |
 | `docs/adr/013-nhtsa-safety-evidence.md` | bounded official safety-evidence decision |
