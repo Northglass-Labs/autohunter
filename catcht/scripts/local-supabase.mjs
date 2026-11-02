@@ -22,17 +22,16 @@ function resourceIsMissing(error) {
 }
 
 export function ensureLoopbackNetwork(run = command) {
-  let hostBinding;
-  try {
-    hostBinding = run("docker", [
-      "network",
-      "inspect",
-      "--format",
-      `{{ index .Options "${HOST_BINDING_OPTION}" }}`,
-      LOCAL_SUPABASE_NETWORK,
-    ]).trim();
-  } catch (error) {
-    if (!resourceIsMissing(error)) throw error;
+  const networks = run("docker", [
+    "network",
+    "ls",
+    "--filter",
+    `name=^${LOCAL_SUPABASE_NETWORK}$`,
+    "--format",
+    "{{.Name}}",
+  ]).trim().split("\n").filter(Boolean);
+
+  if (!networks.includes(LOCAL_SUPABASE_NETWORK)) {
     run("docker", [
       "network",
       "create",
@@ -42,6 +41,14 @@ export function ensureLoopbackNetwork(run = command) {
     ]);
     return LOCAL_SUPABASE_NETWORK;
   }
+
+  const hostBinding = run("docker", [
+    "network",
+    "inspect",
+    "--format",
+    `{{ index .Options "${HOST_BINDING_OPTION}" }}`,
+    LOCAL_SUPABASE_NETWORK,
+  ]).trim();
 
   if (hostBinding !== "127.0.0.1") {
     throw new Error(

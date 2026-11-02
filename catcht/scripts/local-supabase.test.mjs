@@ -18,8 +18,38 @@ function recorder(responses = []) {
 }
 
 describe("loopback-bound local Supabase", () => {
+  it("creates the loopback-bound network when an exact-name lookup is empty", () => {
+    const { calls, run } = recorder(["\n", "created\n"]);
+
+    expect(ensureLoopbackNetwork(run)).toBe(LOCAL_SUPABASE_NETWORK);
+    expect(calls).toEqual([
+      [
+        "docker",
+        [
+          "network",
+          "ls",
+          "--filter",
+          `name=^${LOCAL_SUPABASE_NETWORK}$`,
+          "--format",
+          "{{.Name}}",
+        ],
+      ],
+      [
+        "docker",
+        [
+          "network",
+          "create",
+          "-o",
+          "com.docker.network.bridge.host_binding_ipv4=127.0.0.1",
+          LOCAL_SUPABASE_NETWORK,
+        ],
+      ],
+    ]);
+  });
+
   it("starts Supabase on an existing loopback-bound Docker network", () => {
     const { calls, run } = recorder([
+      `${LOCAL_SUPABASE_NETWORK}\n`,
       "127.0.0.1\n",
       JSON.stringify({ [LOCAL_SUPABASE_NETWORK]: {} }),
       "started\n",
@@ -30,6 +60,17 @@ describe("loopback-bound local Supabase", () => {
     startLocalSupabase(run);
 
     expect(calls).toEqual([
+      [
+        "docker",
+        [
+          "network",
+          "ls",
+          "--filter",
+          `name=^${LOCAL_SUPABASE_NETWORK}$`,
+          "--format",
+          "{{.Name}}",
+        ],
+      ],
       ["docker", ["network", "inspect", "--format", expect.any(String), LOCAL_SUPABASE_NETWORK]],
       ["docker", ["container", "inspect", "--format", expect.any(String), "supabase_db_car-hunt"]],
       ["supabase", ["start", "--network-id", LOCAL_SUPABASE_NETWORK]],
@@ -39,16 +80,12 @@ describe("loopback-bound local Supabase", () => {
   });
 
   it("creates the loopback-bound network when it is absent", () => {
-    const missing = Object.assign(new Error("network missing"), {
-      status: 1,
-      stderr: "Error: No such network: autohunter-loopback",
-    });
     const containerMissing = Object.assign(new Error("container missing"), {
       status: 1,
       stderr: "Error: No such object: supabase_db_car-hunt",
     });
     const { calls, run } = recorder([
-      missing,
+      "\n",
       "created\n",
       containerMissing,
       "started\n",
@@ -77,6 +114,7 @@ describe("loopback-bound local Supabase", () => {
 
   it("stops an active stack before moving it off an insecure network", () => {
     const { calls, run } = recorder([
+      `${LOCAL_SUPABASE_NETWORK}\n`,
       "127.0.0.1\n",
       JSON.stringify({ "supabase_network_car-hunt": {} }),
       "stopped\n",
@@ -87,17 +125,17 @@ describe("loopback-bound local Supabase", () => {
 
     startLocalSupabase(run);
 
-    expect(calls.slice(2, 4)).toEqual([
+    expect(calls.slice(3, 5)).toEqual([
       ["supabase", ["stop"]],
       ["supabase", ["start", "--network-id", LOCAL_SUPABASE_NETWORK]],
     ]);
   });
 
   it("refuses an existing network with a non-loopback host binding", () => {
-    const { calls, run } = recorder(["0.0.0.0\n"]);
+    const { calls, run } = recorder([`${LOCAL_SUPABASE_NETWORK}\n`, "0.0.0.0\n"]);
 
     expect(() => ensureLoopbackNetwork(run)).toThrow(/not loopback-bound/);
-    expect(calls).toHaveLength(1);
+    expect(calls).toHaveLength(2);
   });
 
   it("does not mistake Docker access failures for a missing network", () => {
@@ -117,6 +155,7 @@ describe("loopback-bound local Supabase", () => {
       stderr: "Error: No such object: supabase_db_car-hunt",
     });
     const { calls, run } = recorder([
+      `${LOCAL_SUPABASE_NETWORK}\n`,
       "127.0.0.1\n",
       containerMissing,
       "started\n",
