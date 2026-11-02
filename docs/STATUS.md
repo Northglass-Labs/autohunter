@@ -41,6 +41,32 @@
   `car-hunt` containers. Local database/E2E checks remain unavailable on this host until the CLI
   can produce effective loopback bindings; CI remains the safe database/E2E verification path.
 
+## Completed — private-schema privilege contract (2026-11-02)
+
+- Supabase's hosted advisor reports the eleven `catcht` tables as lacking RLS, but a live
+  privilege audit found zero schema usage, zero table privileges, and zero default privileges for
+  `PUBLIC`, `anon`, `authenticated`, and `service_role`. `catcht` is intentionally outside the Data
+  API and is reached only by the server's least-privileged direct-Postgres role.
+- A new 13-assertion pgTAP contract discovers every private base table, proves that boundary, and
+  verifies either runtime login when present. A static unit test also prevents `catcht` from being
+  added to the Data API configuration without an explicit code change.
+- The audit found and removed one historical privilege drift: production `mookmobile_app` retained
+  `UPDATE` on append-only `digest_items` and `source_runs`. Migration
+  `20261102030000_restrict_append_only_runtime_access.sql` revoked those grants after source review
+  proved the app only selects and inserts them. The production login now has the exact expected
+  eight-table update set and no delete privilege; login and source-health checks both return 200.
+- RLS was not enabled. Doing so would change the direct application role's behavior and is neither
+  needed for the current private-schema boundary nor safe without a separately designed policy
+  migration.
+- Local Supabase remains intentionally stopped by its fail-closed LAN-binding wrapper, so the
+  database test is left for CI and for a future isolated loopback-safe local stack. The full 193-test
+  unit suite and lint pass in the isolated worktree.
+- The same verification pass upgraded Vitest `4.1.11` to `4.1.12`, closing its two moderate
+  development-server/mock advisories. `npm audit --omit=dev` is clean. The complete audit still
+  reports 16 moderate development-only package nodes in the ESLint/minimatch chain; npm offers only
+  incompatible ESLint/Next-config downgrades, so that toolchain debt is recorded rather than
+  applying a destructive automated fix.
+
 ## Overhaul (started 2026-10-10): Sprints 1 and 2 released, Sprint 3 decisions made
 
 ### Sprint 3: owner decisions (2026-10-11)
