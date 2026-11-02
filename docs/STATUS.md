@@ -1,6 +1,6 @@
 # AutoHunter status
 
-## 2026-11-02: eBay callback source recovery and secret migration
+## 2026-11-02: eBay callback source recovery and secret migration (complete)
 
 - Live Cloudflare readback recovered the provider-only
   `ebay-account-deletion` Worker and confirmed its current verification token
@@ -13,10 +13,14 @@
   behavior, requires the verification token as a Cloudflare secret, redacts
   query strings from observability, and no longer logs notification bodies or
   signatures.
-- Production cutover requires a secret-binding write followed by a code deploy,
-  source/binding/version readback, and a live challenge comparison. A later
-  value rotation also needs authenticated access to eBay Developer settings so
-  both sides change together.
+- Production version `431c960c-2c6b-4319-be40-42fc6ea4d7f5` is 100% deployed.
+  Provider readback shows the binding as `secret_text`, the bundled source
+  references the binding and contains no copy of the vault token, and the live
+  GET challenge matches the vault value. A harmless live POST also returned
+  200. The preceding secret-add version remains the immediate rollback target.
+- The existing value was moved out of source without changing eBay's configured
+  token. A later value rotation still needs authenticated access to eBay
+  Developer settings so both sides change together.
 
 ## Overhaul (started 2026-10-10): Sprints 1 and 2 released, Sprint 3 decisions made
 
