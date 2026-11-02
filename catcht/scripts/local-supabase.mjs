@@ -124,6 +124,16 @@ export function startLocalSupabase(run = command) {
   }
 }
 
+export function resetLocalSupabase(run = command) {
+  run("supabase", [
+    "db",
+    "reset",
+    "--local",
+    "--network-id",
+    LOCAL_SUPABASE_NETWORK,
+  ]);
+}
+
 const invokedDirectly = process.argv[1]
   && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 

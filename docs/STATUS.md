@@ -30,7 +30,9 @@
 - `catcht/scripts/local-supabase.mjs` now starts through a dedicated Docker network, inspects the
   effective addresses returned by `docker port`, and immediately runs the data-preserving
   `supabase stop` if any binding is not loopback. `npm run supabase:start` and the E2E runner share
-  that path; eight focused tests cover creation, migration, access failures and fail-closed cleanup.
+  that path; nine focused tests cover creation, migration, reset, access failures and fail-closed
+  cleanup. The E2E database reset carries the same network ID so recreated containers retain
+  internal DNS while the host-side loopback binding remains in force.
 - Network and database-container discovery use exact-name, non-erroring Docker lists before their
   detailed inspections. This keeps genuinely absent resources distinguishable from Docker access
   failures even when a caller inherits rather than captures Docker stderr, as the GitHub E2E

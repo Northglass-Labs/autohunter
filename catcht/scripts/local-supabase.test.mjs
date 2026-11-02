@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   LOCAL_SUPABASE_NETWORK,
   ensureLoopbackNetwork,
+  resetLocalSupabase,
   startLocalSupabase,
 } from "./local-supabase.mjs";
 
@@ -107,6 +108,19 @@ describe("loopback-bound local Supabase", () => {
     ]);
     expect(calls).not.toContainEqual(["supabase", ["stop"]]);
     expect(calls).toContainEqual(["supabase", ["start", "--network-id", LOCAL_SUPABASE_NETWORK]]);
+  });
+
+  it("keeps the loopback network while resetting the local database", () => {
+    const { calls, run } = recorder(["reset\n"]);
+
+    resetLocalSupabase(run);
+
+    expect(calls).toEqual([
+      [
+        "supabase",
+        ["db", "reset", "--local", "--network-id", LOCAL_SUPABASE_NETWORK],
+      ],
+    ]);
   });
 
   it("creates the loopback-bound network when it is absent", () => {
