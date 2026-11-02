@@ -22,6 +22,22 @@
   token. A later value rotation still needs authenticated access to eBay
   Developer settings so both sides change together.
 
+## Local Supabase LAN exposure closed (2026-11-02)
+
+- The Mac mini's disposable local stack had published Kong, Postgres, Studio, Mailpit and Analytics
+  on every IPv4/IPv6 interface (`55421`, `55422`, `55423`, `55424`, `55427`). Ubuntu Dev could
+  reach all five ports.
+- `catcht/scripts/local-supabase.mjs` now starts through a dedicated Docker network, inspects the
+  effective addresses returned by `docker port`, and immediately runs the data-preserving
+  `supabase stop` if any binding is not loopback. `npm run supabase:start` and the E2E runner share
+  that path; six focused tests cover creation, migration, access failures and fail-closed cleanup.
+- Docker Desktop currently ignores the network's loopback default because Supabase CLI 2.117.0
+  supplies empty/wildcard host addresses explicitly. The guarded startup therefore rejects and
+  stops the stack by design. The local schema, data and roles were dumped before migration.
+- Fresh Ubuntu Dev probes confirm all five ports are now blocked and `docker ps` shows no running
+  `car-hunt` containers. Local database/E2E checks remain unavailable on this host until the CLI
+  can produce effective loopback bindings; CI remains the safe database/E2E verification path.
+
 ## Overhaul (started 2026-10-10): Sprints 1 and 2 released, Sprint 3 decisions made
 
 ### Sprint 3: owner decisions (2026-10-11)

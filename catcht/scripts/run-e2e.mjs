@@ -1,5 +1,7 @@
 import { execFileSync, spawnSync } from "node:child_process";
 
+import { startLocalSupabase } from "./local-supabase.mjs";
+
 function command(binary, args) {
   return execFileSync(binary, args, { encoding: "utf8", stdio: ["ignore", "pipe", "inherit"] });
 }
@@ -13,7 +15,7 @@ function parseEnv(output) {
   }));
 }
 
-command("supabase", ["start"]);
+startLocalSupabase(command);
 command("supabase", ["db", "reset", "--local"]);
 const local = parseEnv(command("supabase", ["status", "-o", "env"]));
 // `db reset` restarts Auth with a new container IP while the local gateway can retain its old
