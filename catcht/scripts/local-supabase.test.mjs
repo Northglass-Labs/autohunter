@@ -51,6 +51,7 @@ describe("loopback-bound local Supabase", () => {
     const { calls, run } = recorder([
       `${LOCAL_SUPABASE_NETWORK}\n`,
       "127.0.0.1\n",
+      "supabase_db_car-hunt\n",
       JSON.stringify({ [LOCAL_SUPABASE_NETWORK]: {} }),
       "started\n",
       "supabase_kong_car-hunt\n",
@@ -72,6 +73,7 @@ describe("loopback-bound local Supabase", () => {
         ],
       ],
       ["docker", ["network", "inspect", "--format", expect.any(String), LOCAL_SUPABASE_NETWORK]],
+      ["docker", ["container", "ls", "--all", "--filter", expect.any(String), "--format", "{{.Names}}"]],
       ["docker", ["container", "inspect", "--format", expect.any(String), "supabase_db_car-hunt"]],
       ["supabase", ["start", "--network-id", LOCAL_SUPABASE_NETWORK]],
       ["docker", ["ps", "--filter", expect.any(String), "--format", "{{.Names}}"]],
@@ -79,15 +81,39 @@ describe("loopback-bound local Supabase", () => {
     ]);
   });
 
+  it("starts when the project database container is absent", () => {
+    const { calls, run } = recorder([
+      `${LOCAL_SUPABASE_NETWORK}\n`,
+      "127.0.0.1\n",
+      "\n",
+      "started\n",
+      "supabase_db_car-hunt\n",
+      "5432/tcp -> 127.0.0.1:55422\n",
+    ]);
+
+    startLocalSupabase(run);
+
+    expect(calls[2]).toEqual([
+      "docker",
+      [
+        "container",
+        "ls",
+        "--all",
+        "--filter",
+        "name=^/supabase_db_car-hunt$",
+        "--format",
+        "{{.Names}}",
+      ],
+    ]);
+    expect(calls).not.toContainEqual(["supabase", ["stop"]]);
+    expect(calls).toContainEqual(["supabase", ["start", "--network-id", LOCAL_SUPABASE_NETWORK]]);
+  });
+
   it("creates the loopback-bound network when it is absent", () => {
-    const containerMissing = Object.assign(new Error("container missing"), {
-      status: 1,
-      stderr: "Error: No such object: supabase_db_car-hunt",
-    });
     const { calls, run } = recorder([
       "\n",
       "created\n",
-      containerMissing,
+      "\n",
       "started\n",
       "supabase_db_car-hunt\n",
       "5432/tcp -> 127.0.0.1:55422\n",
@@ -107,7 +133,7 @@ describe("loopback-bound local Supabase", () => {
     ]);
     expect(calls[2]).toEqual([
       "docker",
-      ["container", "inspect", "--format", expect.any(String), "supabase_db_car-hunt"],
+      ["container", "ls", "--all", "--filter", expect.any(String), "--format", "{{.Names}}"],
     ]);
     expect(calls[3]).toEqual(["supabase", ["start", "--network-id", LOCAL_SUPABASE_NETWORK]]);
   });
@@ -116,6 +142,7 @@ describe("loopback-bound local Supabase", () => {
     const { calls, run } = recorder([
       `${LOCAL_SUPABASE_NETWORK}\n`,
       "127.0.0.1\n",
+      "supabase_db_car-hunt\n",
       JSON.stringify({ "supabase_network_car-hunt": {} }),
       "stopped\n",
       "started\n",
@@ -125,7 +152,7 @@ describe("loopback-bound local Supabase", () => {
 
     startLocalSupabase(run);
 
-    expect(calls.slice(3, 5)).toEqual([
+    expect(calls.slice(4, 6)).toEqual([
       ["supabase", ["stop"]],
       ["supabase", ["start", "--network-id", LOCAL_SUPABASE_NETWORK]],
     ]);
@@ -150,14 +177,10 @@ describe("loopback-bound local Supabase", () => {
   });
 
   it("stops the stack and refuses wildcard port publishing", () => {
-    const containerMissing = Object.assign(new Error("container missing"), {
-      status: 1,
-      stderr: "Error: No such object: supabase_db_car-hunt",
-    });
     const { calls, run } = recorder([
       `${LOCAL_SUPABASE_NETWORK}\n`,
       "127.0.0.1\n",
-      containerMissing,
+      "\n",
       "started\n",
       "supabase_kong_car-hunt\n",
       "8000/tcp -> 0.0.0.0:55421\n8000/tcp -> [::]:55421\n",

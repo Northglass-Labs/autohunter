@@ -30,10 +30,11 @@
 - `catcht/scripts/local-supabase.mjs` now starts through a dedicated Docker network, inspects the
   effective addresses returned by `docker port`, and immediately runs the data-preserving
   `supabase stop` if any binding is not loopback. `npm run supabase:start` and the E2E runner share
-  that path; seven focused tests cover creation, migration, access failures and fail-closed cleanup.
-- Network creation uses an exact-name, non-erroring Docker list before inspecting the binding. This
-  keeps a genuinely absent network distinguishable from Docker access failure even when a caller
-  inherits rather than captures Docker stderr, as the GitHub E2E runner does.
+  that path; eight focused tests cover creation, migration, access failures and fail-closed cleanup.
+- Network and database-container discovery use exact-name, non-erroring Docker lists before their
+  detailed inspections. This keeps genuinely absent resources distinguishable from Docker access
+  failures even when a caller inherits rather than captures Docker stderr, as the GitHub E2E
+  runner does.
 - Docker Desktop currently ignores the network's loopback default because Supabase CLI 2.117.0
   supplies empty/wildcard host addresses explicitly. The guarded startup therefore rejects and
   stops the stack by design. The local schema, data and roles were dumped before migration.

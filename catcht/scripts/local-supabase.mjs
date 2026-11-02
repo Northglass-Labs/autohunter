@@ -15,12 +15,6 @@ function command(binary, args) {
   });
 }
 
-function resourceIsMissing(error) {
-  if (!error || typeof error !== "object" || error.status !== 1) return false;
-  const detail = `${error.message ?? ""}\n${String(error.stderr ?? "")}`;
-  return /(?:not found|no such (?:object|network|container))/i.test(detail);
-}
-
 export function ensureLoopbackNetwork(run = command) {
   const networks = run("docker", [
     "network",
@@ -60,19 +54,26 @@ export function ensureLoopbackNetwork(run = command) {
 }
 
 function activeDatabaseNetworks(run) {
-  try {
-    const output = run("docker", [
-      "container",
-      "inspect",
-      "--format",
-      "{{json .NetworkSettings.Networks}}",
-      PROJECT_DATABASE_CONTAINER,
-    ]);
-    return Object.keys(JSON.parse(output));
-  } catch (error) {
-    if (resourceIsMissing(error)) return [];
-    throw error;
-  }
+  const containers = run("docker", [
+    "container",
+    "ls",
+    "--all",
+    "--filter",
+    `name=^/${PROJECT_DATABASE_CONTAINER}$`,
+    "--format",
+    "{{.Names}}",
+  ]).trim().split("\n").filter(Boolean);
+
+  if (!containers.includes(PROJECT_DATABASE_CONTAINER)) return [];
+
+  const output = run("docker", [
+    "container",
+    "inspect",
+    "--format",
+    "{{json .NetworkSettings.Networks}}",
+    PROJECT_DATABASE_CONTAINER,
+  ]);
+  return Object.keys(JSON.parse(output));
 }
 
 function assertLoopbackPublishedPorts(run) {
