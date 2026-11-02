@@ -5,6 +5,7 @@ import {
   ensureLoopbackNetwork,
   resetLocalSupabase,
   startLocalSupabase,
+  testLocalSupabase,
 } from "./local-supabase.mjs";
 
 function recorder(responses = []) {
@@ -120,6 +121,16 @@ describe("loopback-bound local Supabase", () => {
         "supabase",
         ["db", "reset", "--local", "--network-id", LOCAL_SUPABASE_NETWORK],
       ],
+    ]);
+  });
+
+  it("runs pgTAP on the same loopback network", () => {
+    const { calls, run } = recorder(["tests passed\n"]);
+
+    testLocalSupabase(run);
+
+    expect(calls).toEqual([
+      ["supabase", ["test", "db", "--network-id", LOCAL_SUPABASE_NETWORK]],
     ]);
   });
 

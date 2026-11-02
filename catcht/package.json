@@ -13,7 +13,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "supabase:start": "node scripts/local-supabase.mjs",
-    "test:db": "supabase test db",
+    "test:db": "node scripts/test-local-supabase.mjs",
     "test:e2e": "node scripts/run-e2e.mjs"
   },
   "dependencies": {
