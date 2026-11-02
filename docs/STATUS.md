@@ -22,6 +22,29 @@
   token. A later value rotation still needs authenticated access to eBay
   Developer settings so both sides change together.
 
+## Local Supabase LAN exposure closed (2026-11-02)
+
+- The Mac mini's disposable local stack had published Kong, Postgres, Studio, Mailpit and Analytics
+  on every IPv4/IPv6 interface (`55421`, `55422`, `55423`, `55424`, `55427`). Ubuntu Dev could
+  reach all five ports.
+- `catcht/scripts/local-supabase.mjs` now starts through a dedicated Docker network, inspects the
+  effective addresses returned by `docker port`, and immediately runs the data-preserving
+  `supabase stop` if any binding is not loopback. `npm run supabase:start` and the E2E runner share
+  that path; ten focused tests cover creation, migration, reset, pgTAP, access failures and
+  fail-closed cleanup. The E2E database reset and pgTAP helper carry the same network ID so
+  recreated and one-shot containers retain internal DNS while the host-side loopback binding
+  remains in force.
+- Network and database-container discovery use exact-name, non-erroring Docker lists before their
+  detailed inspections. This keeps genuinely absent resources distinguishable from Docker access
+  failures even when a caller inherits rather than captures Docker stderr, as the GitHub E2E
+  runner does.
+- Docker Desktop currently ignores the network's loopback default because Supabase CLI 2.117.0
+  supplies empty/wildcard host addresses explicitly. The guarded startup therefore rejects and
+  stops the stack by design. The local schema, data and roles were dumped before migration.
+- Fresh Ubuntu Dev probes confirm all five ports are now blocked and `docker ps` shows no running
+  `car-hunt` containers. Local database/E2E checks remain unavailable on this host until the CLI
+  can produce effective loopback bindings; CI remains the safe database/E2E verification path.
+
 ## Completed — private-schema privilege contract (2026-11-02)
 
 - Supabase's hosted advisor reports the eleven `catcht` tables as lacking RLS, but a live

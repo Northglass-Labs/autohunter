@@ -21,6 +21,13 @@ return 404 without rendering listing data.
 ## Local verification
 
 Docker is required for the isolated Supabase/Postgres/Auth/Mailpit browser suite.
+Start the local stack only through the repository wrapper. It requests a loopback-bound Docker
+network, verifies every effective published address, and stops the stack if Docker or the Supabase
+CLI creates a wildcard binding:
+
+```bash
+npm run supabase:start
+```
 
 ```bash
 nvm use
@@ -33,8 +40,11 @@ npm run build
 npm audit --omit=dev
 ```
 
-`npm run test:e2e` starts/resets only the local project and exercises real magic-link delivery on
-desktop Chromium and a Pixel-sized mobile viewport. It covers anonymous redirects, sign-in/out,
+`npm run test:e2e` uses the same fail-closed startup path, starts/resets only the local project, and
+exercises real magic-link delivery on desktop Chromium and a Pixel-sized mobile viewport. On the
+Mac mini's current Docker Desktop/Supabase CLI combination the CLI overrides the network default
+with wildcard port publishing, so the wrapper deliberately stops the stack and E2E must run in CI
+until that tooling honors loopback publishing. The suite covers anonymous redirects, sign-in/out,
 cross-user searches/listings/decisions/reports, report IDOR denial, search creation, real HTTPS
 photos/source links, invitations, and ownership transfer.
 

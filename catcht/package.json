@@ -12,7 +12,8 @@
     "lint": "eslint",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:db": "supabase test db",
+    "supabase:start": "node scripts/local-supabase.mjs",
+    "test:db": "node scripts/test-local-supabase.mjs",
     "test:e2e": "node scripts/run-e2e.mjs"
   },
   "dependencies": {
