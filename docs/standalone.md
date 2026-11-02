@@ -42,6 +42,12 @@ Historical migrations retain the internal `catcht` schema and an earlier schema 
 installations preserve IDs and history. The finished application schema is revoked from `PUBLIC`,
 `anon`, `authenticated`, and `service_role`; the browser receives Auth identity only.
 
+Supabase may still report these private tables as lacking RLS. Treat that advisory as a prompt to
+run `npm run test:db` and inspect actual grants, not as permission to enable RLS blindly. The
+`private_schema_privileges` contract dynamically covers every `catcht` table, the Data API roles,
+default privileges, and the optional runtime logins. RLS would require separately designed policies
+that preserve the direct application's least-privileged access.
+
 Use the provisioned role's transaction-pooler URL as `DATABASE_URL`. Store the project CA as the
 complete `DATABASE_CA_CERT` PEM and use `DATABASE_SSL_MODE=verify-full` in production. The app fails
 closed when production TLS configuration is missing or invalid.

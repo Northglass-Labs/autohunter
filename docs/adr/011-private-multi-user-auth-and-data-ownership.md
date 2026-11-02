@@ -74,3 +74,22 @@ access already passes through server-only code.
   explicit and testable instead of being inferred from deployment environment variables.
 - Existing HMAC dashboard sessions are retired at cutover. Signed one-time email decision links
   remain supported, now scoped to a real profile identifier.
+
+## Verification update — 2026-11-02
+
+Supabase's generic security advisor flags tables without RLS even when they are outside the Data
+API. A live privilege audit therefore checked the actual boundary instead of enabling RLS by
+default. All eleven `catcht` base tables had zero schema usage, table privileges, or matching
+default privileges for `PUBLIC`, `anon`, `authenticated`, and `service_role`.
+
+The audit did find that the legacy `mookmobile_app` login retained `UPDATE` on the append-only
+`digest_items` and `source_runs` tables. Application source uses only `SELECT` and `INSERT` for
+those tables. Migration `20261102030000_restrict_append_only_runtime_access.sql` removed the two
+excess grants, bringing the production compatibility login back to the canonical provisioning
+contract. A dynamic pgTAP test now covers the table inventory, browser-facing roles, default
+privileges, and both optional runtime logins.
+
+This evidence confirms the existing decision: private schema plus revoked browser roles is the
+current authorization boundary. RLS remains a possible future defense-in-depth design, but it must
+arrive with explicit policies for the direct runtime role and cross-user integration tests rather
+than as an advisor-driven toggle.
