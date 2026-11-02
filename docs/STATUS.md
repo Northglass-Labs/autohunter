@@ -42,6 +42,11 @@
 - Local Supabase remains intentionally stopped by its fail-closed LAN-binding wrapper, so the
   database test is left for CI and for a future isolated loopback-safe local stack. The full 193-test
   unit suite and lint pass in the isolated worktree.
+- The same verification pass upgraded Vitest `4.1.11` to `4.1.12`, closing its two moderate
+  development-server/mock advisories. `npm audit --omit=dev` is clean. The complete audit still
+  reports 16 moderate development-only package nodes in the ESLint/minimatch chain; npm offers only
+  incompatible ESLint/Next-config downgrades, so that toolchain debt is recorded rather than
+  applying a destructive automated fix.
 
 ## Overhaul (started 2026-10-10): Sprints 1 and 2 released, Sprint 3 decisions made
 
