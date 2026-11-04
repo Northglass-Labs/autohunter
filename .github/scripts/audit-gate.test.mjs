@@ -94,6 +94,16 @@ test("partial, empty, inconsistent, or string-only cyclic advisory graphs fail c
         second: { name: "second", severity: "critical", via: ["first"] },
       },
     },
+    {
+      vulnerabilities: {
+        first: {
+          name: "first",
+          severity: "critical",
+          via: ["second", advisory("first", "GHSA-low-ground", "low")],
+        },
+        second: { name: "second", severity: "critical", via: ["first"] },
+      },
+    },
   ];
 
   for (const malformed of malformedReports) {
@@ -113,6 +123,35 @@ test("every direct advisory requires a stable URL or numeric source identifier",
   };
 
   assert.throws(() => auditFindings(malformed, [], "2026-10-10"), /stable identifier/);
+});
+
+test("a branching ungrounded graph fails in bounded time", () => {
+  const vulnerabilities = {};
+  const packageCount = 35;
+  for (let index = 0; index < packageCount - 2; index += 1) {
+    vulnerabilities[`package-${index}`] = {
+      name: `package-${index}`,
+      severity: "critical",
+      via: [`package-${index + 1}`, `package-${index + 2}`],
+    };
+  }
+  vulnerabilities[`package-${packageCount - 2}`] = {
+    name: `package-${packageCount - 2}`,
+    severity: "critical",
+    via: [`package-${packageCount - 1}`],
+  };
+  vulnerabilities[`package-${packageCount - 1}`] = {
+    name: `package-${packageCount - 1}`,
+    severity: "critical",
+    via: [`package-${packageCount - 2}`],
+  };
+
+  const startedAt = performance.now();
+  assert.throws(
+    () => auditFindings({ vulnerabilities }, [], "2026-10-10"),
+    /does not resolve to a direct advisory/,
+  );
+  assert.ok(performance.now() - startedAt < 1_000, "graph validation must stay polynomially bounded");
 });
 
 test("today and exception expiries require real zero-padded ISO calendar dates", () => {

@@ -137,32 +137,41 @@ function validateAuditGraph(vulnerabilities) {
     }
   }
 
+  const derivedRanks = new Map();
   for (const [name, vulnerability] of Object.entries(vulnerabilities)) {
-    const viaRanks = vulnerability.via.map((via) => {
-      if (typeof via !== "string") return severityRank(via.severity, name);
-      const referencedRank = claimedRanks.get(via);
-      if (referencedRank === undefined) {
+    const directRanks = vulnerability.via
+      .filter((via) => typeof via !== "string")
+      .map((via) => severityRank(via.severity, name));
+    derivedRanks.set(name, directRanks.length ? Math.max(...directRanks) : Number.NEGATIVE_INFINITY);
+    for (const via of vulnerability.via) {
+      if (typeof via === "string" && !claimedRanks.has(via)) {
         throw new Error(`malformed npm audit graph: ${name} references missing package ${via}`);
       }
-      return referencedRank;
-    });
-    if (claimedRanks.get(name) !== Math.max(...viaRanks)) {
-      throw new Error(`malformed npm audit graph: ${name} severity does not match its via entries`);
     }
   }
 
-  function reachesDirectAdvisory(name, visiting) {
-    const vulnerability = vulnerabilities[name];
-    if (vulnerability.via.some((via) => typeof via !== "string")) return true;
-    if (visiting.has(name)) return false;
-    const next = new Set(visiting);
-    next.add(name);
-    return vulnerability.via.some((via) => reachesDirectAdvisory(via, next));
-  }
+  let changed;
+  do {
+    changed = false;
+    for (const [name, vulnerability] of Object.entries(vulnerabilities)) {
+      let derivedRank = derivedRanks.get(name);
+      for (const via of vulnerability.via) {
+        if (typeof via === "string") derivedRank = Math.max(derivedRank, derivedRanks.get(via));
+      }
+      if (derivedRank > derivedRanks.get(name)) {
+        derivedRanks.set(name, derivedRank);
+        changed = true;
+      }
+    }
+  } while (changed);
 
   for (const name of Object.keys(vulnerabilities)) {
-    if (!reachesDirectAdvisory(name, new Set())) {
-      throw new Error(`malformed npm audit graph: ${name} does not reach a direct advisory`);
+    const derivedRank = derivedRanks.get(name);
+    if (!Number.isFinite(derivedRank)) {
+      throw new Error(`malformed npm audit graph: ${name} does not resolve to a direct advisory`);
+    }
+    if (claimedRanks.get(name) !== derivedRank) {
+      throw new Error(`malformed npm audit graph: ${name} severity is not grounded by direct advisories`);
     }
   }
 }
