@@ -9,11 +9,13 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 const SEVERITY_RANK = new Map([
+  ["info", -1],
   ["low", 0],
   ["moderate", 1],
   ["high", 2],
   ["critical", 3],
 ]);
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/u;
 
 const AUDIT_MODES = {
   full: {
@@ -46,6 +48,39 @@ export function parseAuditReport(output) {
   }
 }
 
+function validateIsoDate(value, label) {
+  if (typeof value !== "string" || !ISO_DATE.test(value)) {
+    throw new Error(`invalid ${label}: expected YYYY-MM-DD`);
+  }
+  const date = new Date(`${value}T00:00:00.000Z`);
+  if (!Number.isFinite(date.getTime()) || date.toISOString().slice(0, 10) !== value) {
+    throw new Error(`invalid ${label}: expected a real calendar date`);
+  }
+  return value;
+}
+
+function validateAuditAllowlist(allowlist) {
+  if (!Array.isArray(allowlist)) throw new Error("invalid audit allowlist: expected an array");
+  const seen = new Set();
+  for (const [index, entry] of allowlist.entries()) {
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+      throw new Error(`invalid audit allowlist entry ${index}: expected an object`);
+    }
+    for (const field of ["package", "id", "reason"]) {
+      if (typeof entry[field] !== "string" || !entry[field] || entry[field].trim() !== entry[field]) {
+        throw new Error(`invalid audit allowlist entry ${index}: ${field} must be an exact non-empty string`);
+      }
+    }
+    validateIsoDate(entry.expires, "audit exception expiry");
+    const key = JSON.stringify([entry.package, entry.id]);
+    if (seen.has(key)) {
+      throw new Error(`invalid audit allowlist: duplicate package and advisory at entry ${index}`);
+    }
+    seen.add(key);
+  }
+  return allowlist;
+}
+
 export function auditFindings(
   report,
   allowlist,
@@ -66,17 +101,30 @@ export function auditFindings(
 
   const minimumRank = SEVERITY_RANK.get(minimumSeverity);
   if (minimumRank === undefined) throw new Error(`unsupported minimum audit severity: ${minimumSeverity}`);
+  validateIsoDate(today, "audit date");
+  const validatedAllowlist = validateAuditAllowlist(allowlist);
 
   const blocking = [];
   const excepted = [];
   for (const [name, vulnerability] of Object.entries(report.vulnerabilities ?? {})) {
-    for (const via of vulnerability.via ?? []) {
+    if (!vulnerability || typeof vulnerability !== "object" || !Array.isArray(vulnerability.via)) {
+      throw new Error(`npm audit returned malformed vulnerability data for ${name}`);
+    }
+    for (const via of vulnerability.via) {
       // String entries point at another vulnerable package, which is reported on its own.
-      if (typeof via !== "object" || (SEVERITY_RANK.get(via.severity) ?? -1) < minimumRank) continue;
+      if (typeof via === "string") continue;
+      if (!via || typeof via !== "object" || Array.isArray(via)) {
+        throw new Error(`npm audit returned malformed advisory data for ${name}`);
+      }
+      const severityRank = SEVERITY_RANK.get(via.severity);
+      if (severityRank === undefined) {
+        throw new Error(`unsupported npm audit severity for ${name}: ${String(via.severity)}`);
+      }
+      if (severityRank < minimumRank) continue;
       const id = String(via.url ?? via.source).split("/").pop();
       const finding = `${name} ${id} (${via.severity})`;
       const exception = allowExceptions
-        ? allowlist.find((entry) => entry.id === id && entry.package === name && today <= entry.expires)
+        ? validatedAllowlist.find((entry) => entry.id === id && entry.package === name && today <= entry.expires)
         : undefined;
       if (exception) excepted.push(`${finding} until ${exception.expires}: ${exception.reason}`);
       else blocking.push(finding);

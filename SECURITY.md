@@ -28,7 +28,8 @@ CI audits every npm package root. Production dependencies block on moderate, hig
 advisories with no exceptions (`audit-gate.mjs production`). The full dependency tree blocks on high
 or critical advisories (`audit-gate.mjs full`) except entries in `.github/audit-allowlist.json`.
 Each exception names one advisory on one package, gives a reason, and expires, after which it blocks
-again. Use an exception only for a development dependency with no compatible patched release.
+again. Malformed or duplicate exception policy and unknown audit severities fail the gate closed.
+Use an exception only for a development dependency with no compatible patched release.
 
 Pull requests also receive dependency review, and CodeQL analyzes JavaScript and TypeScript on pull
 requests, `main`, and a weekly schedule. The Worker CI job retains a secret-free Wrangler dry-run

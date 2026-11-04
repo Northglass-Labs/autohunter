@@ -25,6 +25,48 @@ test("an expired exception blocks again", () => {
   assert.ok(blocking.includes("braces GHSA-vfj7-8cjw-p6xm (high)"));
 });
 
+test("missing or unknown advisory severities fail closed", () => {
+  for (const severity of [undefined, "future-severity"]) {
+    const malformed = {
+      vulnerabilities: {
+        package: {
+          via: [{ source: 1, url: "https://github.com/advisories/GHSA-unknown", severity }],
+        },
+      },
+    };
+    assert.throws(
+      () => auditFindings(malformed, [], "2026-10-10"),
+      /unsupported npm audit severity/,
+    );
+  }
+});
+
+test("today and exception expiries require real zero-padded ISO calendar dates", () => {
+  for (const today of ["2026-2-01", "2026-02-30", "not-a-date"]) {
+    assert.throws(() => auditFindings(report, allowlist, today), /invalid audit date/);
+  }
+  for (const expires of ["9999-not-a-date", "2026-2-01", "2026-02-30"]) {
+    assert.throws(
+      () => auditFindings(report, [{ ...allowlist[0], expires }], "2026-10-10"),
+      /invalid audit exception expiry/,
+    );
+  }
+});
+
+test("the exception allowlist requires exact non-empty unique package and advisory entries", () => {
+  const invalidAllowlists = [
+    {},
+    [null],
+    [{ ...allowlist[0], package: "" }],
+    [{ ...allowlist[0], id: " GHSA-vfj7-8cjw-p6xm" }],
+    [{ ...allowlist[0], reason: "  " }],
+    [allowlist[0], { ...allowlist[0], reason: "duplicate" }],
+  ];
+  for (const invalid of invalidAllowlists) {
+    assert.throws(() => auditFindings(report, invalid, "2026-10-10"), /invalid audit allowlist/);
+  }
+});
+
 test("an exception never covers the same advisory on a different package", () => {
   const moved = { vulnerabilities: { other: { name: "other", severity: "critical", via: [advisory("other", "GHSA-vfj7-8cjw-p6xm", "critical")] } } };
   assert.deepEqual(auditFindings(moved, allowlist, "2026-10-10").blocking, ["other GHSA-vfj7-8cjw-p6xm (critical)"]);
@@ -90,7 +132,10 @@ test("CI applies both audit policies to every npm root and isolates attestation 
   assert.equal(workflow.match(/node \.\.\/\.\.\/\.github\/scripts\/audit-gate\.mjs production/g)?.length, 1);
   assert.equal(workflow.match(/node \.\.\/\.\.\/\.github\/scripts\/audit-gate\.mjs full/g)?.length, 1);
   assert.match(workflow, /github\.repository == 'Northglass-Labs\/autohunter'/);
-  assert.match(workflow, /run: git diff --exit-code -- \./);
+  assert.match(
+    workflow,
+    /- name: Verify checks did not modify tracked Worker files\n\s+run: \|\n\s+git diff --exit-code -- \.\n\s+git diff --cached --exit-code -- \./,
+  );
   assert.match(workflow, /xargs -0 sha256sum --/);
   assert.match(workflow, /uses: actions\/download-artifact@[0-9a-f]{40}/);
   assert.match(workflow, /subject-path: \$\{\{ runner\.temp \}\}\/ebay-account-deletion-worker\.tar\.gz/);
