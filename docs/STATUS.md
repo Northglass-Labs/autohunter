@@ -40,7 +40,7 @@
   graph, imports the production entrypoint cleanly, and has zero runtime advisories. Each enabled,
   required, due core provider gates independently; optional/non-due providers and NHTSA cannot mask
   a required failure, while partial offers and the digest-before-fail order are preserved.
-- Fresh Node 22 verification: 220 web unit tests, lint, TypeScript production build, 136 collector
+- Fresh Node 22 verification: 221 web unit tests, lint, TypeScript production build, 136 collector
   tests, 18 Worker tests, generated-type check, TypeScript check, Wrangler dry-run, both dependency
   audit modes in all three roots, 18 audit-gate tests, Actionlint, and `git diff --check` pass.
   A disposable loopback-only Supabase PostgreSQL 17 run applied every migration and passed all six
