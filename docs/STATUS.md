@@ -857,6 +857,12 @@ truthfully.
 
 ## Fresh complete local verification
 
+- The 2026-11-03 security-hardening PR's first hosted browser run correctly failed closed when the
+  local Auth configuration disabled the email provider as well as account creation. Supabase treats
+  the provider-specific email switch as sign-in availability: the top-level Auth switch now blocks
+  new accounts while the email provider remains enabled for preprovisioned users. A focused config
+  regression failed before the correction and the full 220-test web suite now passes; a fresh
+  hosted Linux Auth/Mailpit run is still required before merge.
 - Web unit/integration: 126 tests across 33 files pass, including the queue-cap and swipe-decision
   contracts, exported identity contract, and aggregate-only digest response contract.
 - Local database: every migration applies from empty state; 31 pgTAP assertions pass, including the

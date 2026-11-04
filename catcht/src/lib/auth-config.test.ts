@@ -11,12 +11,12 @@ describe("local authentication configuration", () => {
     expect(config).toContain('enable_anonymous_sign_ins = false');
   });
 
-  it("disables every public user-creation path", () => {
+  it("disables account creation while keeping existing-user email sign-in enabled", () => {
     const auth = config.match(/\[auth\]([\s\S]*?)\[auth\.rate_limit\]/)?.[1];
     const email = config.match(/\[auth\.email\]([\s\S]*?)\[auth\.email\.smtp\]/)?.[1];
 
     expect(auth).toContain("enable_signup = false");
-    expect(email).toContain("enable_signup = false");
+    expect(email).toContain("enable_signup = true");
   });
 
   it("captures auth mail in local Mailpit instead of contacting production SMTP", () => {
