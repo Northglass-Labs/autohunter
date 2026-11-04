@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { mergeRemoteSavedSearches, validatePlatformConfig } from "../src/platform-config.mjs";
-import { allSourcesFailed, dueAdapterKeys, runPlatformCollection } from "../src/platform.mjs";
+import { dueAdapterKeys, requiredProviderFailures, runPlatformCollection } from "../src/platform.mjs";
 
 const config = {
   version: 2,
@@ -19,9 +19,9 @@ const config = {
     active: true,
   }],
   adapters: {
-    marketcheck: { enabled: true, rowsPerSearch: 20, maximumRadiusMiles: 100, maximumSearchCalls: 13, detailFetchLimit: 3 },
-    autodev: { enabled: true, rowsPerSearch: 20, maximumRadiusMiles: 250, maximumSearchCalls: 13 },
-    marketcheckIncentives: { enabled: true, rowsPerGroup: 10, maximumSearchCalls: 13 },
+    marketcheck: { enabled: true, required: true, rowsPerSearch: 20, maximumRadiusMiles: 100, maximumSearchCalls: 13, detailFetchLimit: 3 },
+    autodev: { enabled: true, required: false, rowsPerSearch: 20, maximumRadiusMiles: 250, maximumSearchCalls: 13 },
+    marketcheckIncentives: { enabled: true, required: true, rowsPerGroup: 10, maximumSearchCalls: 13 },
     nhtsa: { enabled: false, maximumModelGroups: 5, maximumVariantsPerGroup: 2, minimumIntervalMs: 500 },
     leasehackr: { enabled: false, mode: "manual_import" },
   },
@@ -64,6 +64,9 @@ test("validates a reusable v2 platform profile and rejects scheduled Leasehackr 
   const excessiveNhtsaGroups = structuredClone(config);
   excessiveNhtsaGroups.adapters.nhtsa.maximumModelGroups = 26;
   assert.throws(() => validatePlatformConfig(excessiveNhtsaGroups), /nhtsa.*maximumModelGroups/i);
+  const malformedRequirement = structuredClone(config);
+  malformedRequirement.adapters.marketcheck.required = "yes";
+  assert.throws(() => validatePlatformConfig(malformedRequirement), /marketcheck.*required/i);
 });
 
 test("accepts family intelligence fields without silently widening a saved search", () => {
@@ -298,9 +301,109 @@ test("rejects malformed provider cadence", async () => {
   assert.throws(() => validatePlatformConfig(config, { allowEmptySearches: true }), /everyDays/);
 });
 
-test("treats a cycle as failed only when no source produced a working result", () => {
-  assert.equal(allSourcesFailed([{ status: "failed" }, { status: "unavailable" }, { status: "challenged" }]), true);
-  assert.equal(allSourcesFailed([{ status: "failed" }, { status: "empty" }]), false);
-  assert.equal(allSourcesFailed([{ status: "rate_limited" }, { status: "success" }]), false);
-  assert.equal(allSourcesFailed([]), false);
+test("fails each required due provider without letting optional sources or NHTSA mask it", () => {
+  const policy = structuredClone(config);
+  policy.adapters.marketcheckIncentives.enabled = false;
+
+  assert.deepEqual(requiredProviderFailures(policy, [
+    { source: "marketcheck", status: "failed" },
+    { source: "auto_dev", status: "success" },
+    { source: "nhtsa", status: "empty", messageCode: "no_purchase_offers" },
+  ]), [{ adapter: "marketcheck", source: "marketcheck", status: "failed" }]);
+
+  assert.deepEqual(requiredProviderFailures(policy, [
+    { source: "marketcheck", status: "empty" },
+    { source: "auto_dev", status: "failed" },
+  ]), []);
+
+  const allRequired = structuredClone(config);
+  allRequired.adapters.autodev.required = true;
+  assert.deepEqual(requiredProviderFailures(allRequired, [
+    { source: "marketcheck", status: "success" },
+    { source: "auto_dev", status: "unavailable" },
+    { source: "marketcheck_incentives", status: "challenged" },
+    { source: "nhtsa", status: "success" },
+  ]), [
+    { adapter: "autodev", source: "auto_dev", status: "unavailable" },
+    { adapter: "marketcheckIncentives", source: "marketcheck_incentives", status: "challenged" },
+  ]);
+});
+
+test("does not require disabled, optional, or cadence-skipped providers", () => {
+  const disabled = structuredClone(config);
+  disabled.adapters.marketcheck.enabled = false;
+  disabled.adapters.marketcheckIncentives.enabled = false;
+  assert.deepEqual(requiredProviderFailures(disabled, []), []);
+
+  const optional = structuredClone(config);
+  optional.adapters.marketcheck.required = false;
+  optional.adapters.marketcheckIncentives.enabled = false;
+  assert.deepEqual(requiredProviderFailures(optional, [{ source: "marketcheck", status: "failed" }]), []);
+
+  const skipped = structuredClone(config);
+  skipped.adapters.marketcheck.cadence = { everyDays: 2 };
+  skipped.adapters.autodev.enabled = false;
+  skipped.adapters.marketcheckIncentives.enabled = false;
+  const notDue = new Date("2026-10-13T15:00:00Z");
+  assert.deepEqual(requiredProviderFailures(skipped, [], notDue), []);
+  skipped.collector.ignoreCadence = true;
+  assert.deepEqual(requiredProviderFailures(skipped, [], notDue), [
+    { adapter: "marketcheck", source: "marketcheck", status: "missing" },
+  ]);
+});
+
+test("fails closed when a required due provider has no run", () => {
+  const policy = structuredClone(config);
+  delete policy.adapters.marketcheck.required;
+  policy.adapters.autodev.enabled = false;
+  policy.adapters.marketcheckIncentives.enabled = false;
+  assert.deepEqual(requiredProviderFailures(policy, []), [
+    { adapter: "marketcheck", source: "marketcheck", status: "missing" },
+  ]);
+});
+
+test("persists partial offers before reporting a required provider failure", async () => {
+  const payloads = [];
+  const policy = structuredClone(config);
+  policy.adapters.autodev.enabled = false;
+  policy.adapters.marketcheckIncentives.enabled = false;
+  const partialOffer = {
+    offerKind: "new",
+    condition: "new",
+    source: "marketcheck",
+    sourceListingId: "partial-1",
+    searchId: policy.searches[0].id,
+    url: "https://dealer.example/partial-1",
+    year: 2026,
+    make: "Toyota",
+    model: "GR86",
+    title: "2026 Toyota GR86",
+    price: 34_995,
+    mileage: 5,
+    distanceMiles: 20,
+    location: "Philadelphia, PA",
+    imageUrls: ["https://images.example/partial-1.jpg"],
+    manualEvidence: [],
+  };
+  const result = await runPlatformCollection({
+    config: policy,
+    adapters: [async () => ({
+      offers: [partialOffer],
+      run: {
+        ...sourceRun("marketcheck-inventory-v2", "marketcheck"),
+        status: "failed",
+        messageCode: "network_error",
+      },
+    })],
+    ingestImpl: async (payload) => {
+      payloads.push(payload);
+      return payload.candidates.length;
+    },
+  });
+
+  assert.equal(result.ingested, 1);
+  assert.deepEqual(payloads[0].candidates, [partialOffer]);
+  assert.deepEqual(result.requiredProviderFailures, [
+    { adapter: "marketcheck", source: "marketcheck", status: "failed" },
+  ]);
 });

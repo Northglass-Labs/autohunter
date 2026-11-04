@@ -3,11 +3,12 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
 test("scheduler templates collect daily while the app owns the digest cooldown", async () => {
-  const [launchd, systemd, github, ci] = await Promise.all([
+  const [launchd, systemd, github, ci, platformCycle] = await Promise.all([
     readFile(new URL("../deploy/launchd/io.northglass.autohunter.collector.plist.example", import.meta.url), "utf8"),
     readFile(new URL("../deploy/systemd/autohunter-collector.timer.example", import.meta.url), "utf8"),
     readFile(new URL("../../.github/workflows/collector.yml", import.meta.url), "utf8"),
     readFile(new URL("../../.github/workflows/ci.yml", import.meta.url), "utf8"),
+    readFile(new URL("../src/platform-cycle.mjs", import.meta.url), "utf8"),
   ]);
 
   assert.match(launchd, /<key>StartInterval<\/key>\s*<integer>86400<\/integer>/);
@@ -26,7 +27,7 @@ test("scheduler templates collect daily while the app owns the digest cooldown",
   assert.match(github, /uses: actions\/checkout@[0-9a-f]{40}/);
   assert.match(github, /uses: actions\/setup-node@[0-9a-f]{40}/);
   assert.match(github, /^\s+persist-credentials: false\s*$/m);
-  assert.match(github, /^\s+- run: npm ci --ignore-scripts\s*$/m);
+  assert.match(github, /^\s+- run: npm ci --ignore-scripts --omit=dev\s*$/m);
   assert.match(github, /^\s+- run: npm run platform:cycle\s*$/m);
 
   for (const name of [
@@ -40,11 +41,14 @@ test("scheduler templates collect daily while the app owns the digest cooldown",
       new RegExp(`^\\s+${name}: \\$\\{\\{ secrets\\.${name} \\}\\}\\s*$`, "m"),
     );
   }
-  assert.ok(github.indexOf("npm ci --ignore-scripts") < github.indexOf("AUTOHUNTER_APP_URL:"));
+  assert.ok(github.indexOf("npm ci --ignore-scripts --omit=dev") < github.indexOf("AUTOHUNTER_APP_URL:"));
   assert.doesNotMatch(github, /(?:printenv|env\s*$|set -x|--body)/m);
+
+  assert.ok(platformCycle.indexOf("const digest = await requestDigest()")
+    < platformCycle.indexOf("collection.requiredProviderFailures"));
 
   for (const workflow of [github, ci]) {
     assert.match(workflow, /actions\/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7\.0\.1/);
-    assert.match(workflow, /actions\/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7\.0\.0/);
+    assert.match(workflow, /actions\/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7\.1\.0/);
   }
 });

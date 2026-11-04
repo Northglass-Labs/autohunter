@@ -19,10 +19,12 @@
     "test": "node --test test/*.test.mjs"
   },
   "dependencies": {
-    "camoufox-js": "0.11.2",
     "fast-xml-parser": "5.10.1",
-    "playwright-core": "1.61.1",
     "zipcodes": "^8.0.0"
+  },
+  "devDependencies": {
+    "camoufox-js": "0.11.2",
+    "playwright-core": "1.61.1"
   },
   "overrides": {
     "adm-zip": "0.6.1",

@@ -97,6 +97,9 @@ export function validatePlatformConfig(config, { allowEmptySearches = false } = 
   integer(config.adapters.marketcheckIncentives?.rowsPerGroup, "adapters.marketcheckIncentives.rowsPerGroup", { min: 1, max: 10 });
   integer(config.adapters.marketcheckIncentives?.maximumSearchCalls ?? 13, "adapters.marketcheckIncentives.maximumSearchCalls", { min: 1, max: 50 });
   for (const key of ["marketcheck", "autodev", "marketcheckIncentives"]) {
+    if (config.adapters[key]?.required !== undefined && typeof config.adapters[key].required !== "boolean") {
+      throw new Error(`adapters.${key}.required must be a boolean`);
+    }
     validateCadence(config.adapters[key]?.cadence, `adapters.${key}.cadence`);
   }
   if (typeof config.adapters.nhtsa?.enabled !== "boolean") throw new Error("adapters.nhtsa.enabled must be a boolean");

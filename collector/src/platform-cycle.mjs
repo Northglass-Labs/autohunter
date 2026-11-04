@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { allSourcesFailed, runPlatformFromConfig } from "./platform.mjs";
+import { runPlatformFromConfig } from "./platform.mjs";
 import { requestDigest } from "./digest.mjs";
 
 const configIndex = process.argv.indexOf("--config");
@@ -11,8 +11,9 @@ try {
   const digest = await requestDigest();
   process.stdout.write(`${JSON.stringify({ collection, digest })}\n`);
   // Reports still go out with their source-health notes; the run itself is marked failed.
-  if (allSourcesFailed(collection.runs)) {
-    process.stderr.write("autohunter cycle: every source failed\n");
+  if (collection.requiredProviderFailures.length > 0) {
+    const summary = collection.requiredProviderFailures.map(({ source, status }) => `${source}:${status}`).join(", ");
+    process.stderr.write(`autohunter cycle: required providers failed: ${summary}\n`);
     process.exitCode = 1;
   }
 } catch (error) {
