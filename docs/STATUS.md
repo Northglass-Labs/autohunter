@@ -67,9 +67,13 @@
   without a stable URL or numeric source identifier. Fixtures shaped like the installed
   Camoufox-to-glob-to-minimatch graph and a branching cycle protect compatibility and runtime
   bounds.
-- Current step: rerun every local promotion gate, freeze a new exact head, and obtain a fresh
-  independent exact-head security review before handing the candidate back without pushing,
-  opening a PR, changing provider state, or deploying.
+- The first hosted Auth/Mailpit run failed closed because the provider-specific email switch had
+  disabled existing-user sign-in as well as account creation. The code correction now disables
+  global public user creation while keeping the email provider enabled and retaining
+  `shouldCreateUser: false`; a test also requires every operator runbook to describe that exact
+  split.
+- Current step: require a fresh hosted Linux Auth/Mailpit pass and independent review of the final
+  exact head before merge. Provider state and production deployment remain unchanged.
 
 ## 2026-11-02: eBay callback source recovery and secret migration (complete)
 

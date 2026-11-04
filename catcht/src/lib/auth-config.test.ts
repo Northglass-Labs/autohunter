@@ -3,6 +3,11 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 const config = readFileSync(resolve(process.cwd(), "supabase/config.toml"), "utf8");
+const operatorDocs = [
+  "../docs/adr/026-preprovision-and-bind-invitation-identities.md",
+  "../docs/standalone.md",
+  "../docs/deployment-checklist.md",
+].map((path) => [path, readFileSync(resolve(process.cwd(), path), "utf8")] as const);
 
 describe("local authentication configuration", () => {
   it("keeps local magic links on the E2E origin and retains the invite-only database hook", () => {
@@ -17,6 +22,17 @@ describe("local authentication configuration", () => {
 
     expect(auth).toContain("enable_signup = false");
     expect(email).toContain("enable_signup = true");
+  });
+
+  it("keeps every invite-only Auth runbook aligned with the provider split", () => {
+    for (const [path, document] of operatorDocs) {
+      const normalized = document.replace(/\s+/g, " ");
+
+      expect(normalized, path).not.toMatch(/disable both global and email/i);
+      expect(normalized, path).toMatch(/global public user creation (?:is disabled|disabled)/i);
+      expect(normalized, path).toMatch(/email provider (?:remains|must remain) enabled/i);
+      expect(normalized, path).toContain("shouldCreateUser: false");
+    }
   });
 
   it("captures auth mail in local Mailpit instead of contacting production SMTP", () => {

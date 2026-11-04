@@ -46,7 +46,9 @@ supabase db advisors
 - [x] set the Auth site URL to `https://autohunter.northglass.io`
 - [x] allow only intentional `/auth/confirm` redirect origins
 - [ ] apply and enable the latest deterministic-identity `catcht.authorize_invited_user` hook
-- [ ] disable both global and email public user creation and read the settings back
+- [ ] confirm global public user creation is disabled, the email provider remains enabled for
+      existing preprovisioned identities, and the app uses `shouldCreateUser: false`; read both
+      Auth settings back
 - [ ] install the checked-in magic-link template unchanged
 - [x] configure custom SMTP; local Mailpit is test-only
 - [ ] configure `SUPABASE_SECRET_KEY` as a server-only deployment secret

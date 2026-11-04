@@ -28,9 +28,11 @@ never be sufficient to create its identity.
    profile UUID. The profile is bound only to that exact UUID and normalized
    email.
 2. The before-user-created hook accepts only an active profile's reserved UUID
-   and exact email. Public signup cannot choose the Auth UUID, and both global
-   and email signup are disabled in checked-in local configuration. Hosted
-   signup disablement and readback remain a promotion gate.
+   and exact email. Public signup cannot choose the Auth UUID. Global public
+   user creation is disabled, while the email provider remains enabled for
+   existing preprovisioned identities. Login still calls `signInWithOtp` with
+   `shouldCreateUser: false`. Hosted readback of that split remains a promotion
+   gate.
 3. Retries may adopt only the same deterministic UUID with the same normalized
    email. An email owned by another Auth UUID is a hard conflict. A failed or
    ambiguous bind is followed by an exact profile readback. The identity is not
