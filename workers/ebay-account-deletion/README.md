@@ -7,33 +7,41 @@ AutoHunter's production eBay application. Its canonical endpoint is:
 https://ebay-account-deletion.tom-c-stetson.workers.dev/.well-known/ebay-deletion
 ```
 
-`GET` returns eBay's SHA-256 challenge response. `POST` acknowledges a deletion
-notification without persisting or logging the notification body, user
+`GET` returns eBay's SHA-256 challenge response. `POST` bounds the raw body,
+validates eBay's signature envelope, obtains and caches the identified eBay
+P-256 public key, and acknowledges only a signature that verifies over those
+exact bytes. The Worker does not persist or log the notification body, user
 identifier, or signature. AutoHunter does not store other eBay users' account
 data.
 
 ## Secret boundary
 
-The verification token is the Cloudflare Worker secret binding
-`EBAY_DELETION_VERIFICATION_TOKEN`. Its canonical value remains in 1Password
-under the HomeLab vault reference `ebay-deletion-verification-token`; the value
-must never be placed in this repository, Wrangler config, command arguments, or
-logs. `.dev.vars*` and `.env*` are ignored for local-only test values.
+The Cloudflare Worker requires three secret bindings:
+
+- `EBAY_DELETION_VERIFICATION_TOKEN` for the GET challenge contract;
+- `EBAY_CLIENT_ID` and `EBAY_CLIENT_SECRET` for eBay's application-token and
+  notification public-key APIs.
+
+Their canonical values remain in the approved secret store. Values must never
+be placed in this repository, Wrangler config, command arguments, or logs.
+`.dev.vars*` and `.env*` are ignored for local-only test values.
 
 ## Verify and deploy
 
 ```bash
 npm ci
 npm run check
+node ../../.github/scripts/audit-gate.mjs production
+node ../../.github/scripts/audit-gate.mjs full
 ```
 
 For a production change:
 
 1. Confirm the current deployed version and run the live challenge probe.
-2. Set `EBAY_DELETION_VERIFICATION_TOKEN` with `wrangler secret put`, supplying
-   the value through the approved secret-store integration rather than a shell
-   argument.
-3. Run `wrangler deploy` only after `npm run check` passes.
+2. Confirm all three required bindings above exist, using `wrangler secret put`
+   through the approved secret-store integration rather than shell arguments
+   for any missing or rotated value.
+3. Run `wrangler deploy` only after the checks and both dependency-audit modes above pass.
 4. Read back the deployed binding name/type, source hash, deployment version,
    and live challenge response. Cloudflare deliberately never returns a secret
    value after it is set.
