@@ -2,21 +2,54 @@ import "server-only";
 import { normalizeEmail } from "./auth-policy";
 import {
   bindUserProfileAuthIdentity,
+  getUserProfileById,
   inviteUserProfile,
   type UserProfile,
 } from "./dal";
 import { createSupabaseAdminClient } from "./supabase/admin";
 
-function matchesReservedIdentity(
-  user: { id: string; email?: string | null } | null,
-  profile: UserProfile,
-  email: string,
-): boolean {
-  if (!user?.email || user.id !== profile.id) return false;
+function matchesEmail(candidate: string | null | undefined, email: string): boolean {
+  if (!candidate) return false;
   try {
-    return normalizeEmail(user.email) === email;
+    return normalizeEmail(candidate) === email;
   } catch {
     return false;
+  }
+}
+
+function matchesIdentity(
+  user: { id: string; email?: string | null } | null,
+  expectedId: string,
+  email: string,
+): boolean {
+  return Boolean(user && user.id === expectedId && matchesEmail(user.email, email));
+}
+
+function matchesBoundProfile(
+  candidate: UserProfile | null,
+  reserved: UserProfile,
+  email: string,
+): candidate is UserProfile {
+  if (
+    !candidate?.active ||
+    candidate.id !== reserved.id ||
+    candidate.authUserId !== reserved.id ||
+    !matchesEmail(candidate.email, email)
+  ) {
+    return false;
+  }
+  return true;
+}
+
+async function readExactBinding(
+  profile: UserProfile,
+  email: string,
+): Promise<UserProfile | null> {
+  try {
+    const current = await getUserProfileById(profile.id);
+    return matchesBoundProfile(current, profile, email) ? current : null;
+  } catch {
+    return null;
   }
 }
 
@@ -26,9 +59,20 @@ export async function preprovisionInvitation(
 ): Promise<UserProfile> {
   const email = normalizeEmail(requestedEmail);
   const profile = await inviteUserProfile(email, displayName);
-  if (profile.authUserId) return profile;
-
   const supabase = createSupabaseAdminClient();
+
+  if (profile.authUserId) {
+    const existing = await supabase.auth.admin.getUserById(profile.authUserId);
+    if (
+      existing.error ||
+      !matchesIdentity(existing.data.user, profile.authUserId, email) ||
+      !matchesEmail(profile.email, email)
+    ) {
+      throw new Error("The bound invitation identity could not be safely verified.");
+    }
+    return profile;
+  }
+
   const created = await supabase.auth.admin.createUser({
     id: profile.id,
     email,
@@ -36,27 +80,26 @@ export async function preprovisionInvitation(
   });
 
   let identity = created.data.user;
-  let createdHere = !created.error && Boolean(identity);
-  if (!matchesReservedIdentity(identity, profile, email)) {
-    if (createdHere && identity) await supabase.auth.admin.deleteUser(identity.id);
-    createdHere = false;
+  if (!matchesIdentity(identity, profile.id, email)) {
     const existing = await supabase.auth.admin.getUserById(profile.id);
     identity = existing.error ? null : existing.data.user;
   }
 
-  if (!matchesReservedIdentity(identity, profile, email)) {
+  if (!matchesIdentity(identity, profile.id, email)) {
     throw new Error("The invitation identity could not be safely provisioned.");
   }
 
-  let bound: UserProfile | null;
   try {
-    bound = await bindUserProfileAuthIdentity(profile.id, profile.id, email);
+    const bound = await bindUserProfileAuthIdentity(profile.id, profile.id, email);
+    if (matchesBoundProfile(bound, profile, email)) return bound;
   } catch {
-    if (createdHere) await supabase.auth.admin.deleteUser(profile.id);
-    throw new Error("The invitation identity could not be safely bound.");
+    // The database may have committed before its response failed. Reconcile below.
   }
-  if (bound) return bound;
 
-  if (createdHere) await supabase.auth.admin.deleteUser(profile.id);
+  const reconciled = await readExactBinding(profile, email);
+  if (reconciled) return reconciled;
+
+  // Do not delete here: a concurrent or ambiguously committed bind may own this
+  // deterministic identity after the read. Retaining it is fail-closed and retryable.
   throw new Error("The invitation identity could not be safely bound.");
 }

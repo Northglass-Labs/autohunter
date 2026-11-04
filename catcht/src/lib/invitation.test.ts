@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   bindUserProfileAuthIdentity,
+  getUserProfileById,
   inviteUserProfile,
   type UserProfile,
 } from "./dal";
@@ -10,6 +11,7 @@ import { createSupabaseAdminClient } from "./supabase/admin";
 
 vi.mock("./dal", () => ({
   bindUserProfileAuthIdentity: vi.fn(),
+  getUserProfileById: vi.fn(),
   inviteUserProfile: vi.fn(),
 }));
 vi.mock("./supabase/admin", () => ({ createSupabaseAdminClient: vi.fn() }));
@@ -53,11 +55,24 @@ describe("preprovisionInvitation", () => {
 
   it("does not create another identity for an already-bound profile", async () => {
     vi.mocked(inviteUserProfile).mockResolvedValue(boundProfile);
+    getUserById.mockResolvedValue({ data: { user: { id, email } }, error: null });
 
     await expect(preprovisionInvitation(email, "Member")).resolves.toEqual(boundProfile);
 
-    expect(createSupabaseAdminClient).not.toHaveBeenCalled();
+    expect(getUserById).toHaveBeenCalledWith(id);
     expect(createUser).not.toHaveBeenCalled();
+  });
+
+  it("fails closed when an already-bound profile has no matching Auth identity", async () => {
+    vi.mocked(inviteUserProfile).mockResolvedValue(boundProfile);
+    getUserById.mockResolvedValue({ data: { user: null }, error: new Error("not found") });
+
+    await expect(preprovisionInvitation(email, "Member")).rejects.toThrow(
+      "could not be safely verified",
+    );
+
+    expect(createUser).not.toHaveBeenCalled();
+    expect(bindUserProfileAuthIdentity).not.toHaveBeenCalled();
   });
 
   it("recovers an uncertain retry only when the deterministic identity has the exact email", async () => {
@@ -79,23 +94,39 @@ describe("preprovisionInvitation", () => {
     expect(bindUserProfileAuthIdentity).not.toHaveBeenCalled();
   });
 
-  it("removes a newly created identity when the profile cannot be bound", async () => {
+  it("returns an exact bound readback when binding returns no row", async () => {
     createUser.mockResolvedValue({ data: { user: { id, email } }, error: null });
     vi.mocked(bindUserProfileAuthIdentity).mockResolvedValue(null);
-    deleteUser.mockResolvedValue({ data: null, error: null });
+    vi.mocked(getUserProfileById).mockResolvedValue(boundProfile);
 
-    await expect(preprovisionInvitation(email, "Member")).rejects.toThrow("could not be safely bound");
+    await expect(preprovisionInvitation(email, "Member")).resolves.toEqual(boundProfile);
 
-    expect(deleteUser).toHaveBeenCalledWith(id);
+    expect(getUserProfileById).toHaveBeenCalledWith(id);
+    expect(deleteUser).not.toHaveBeenCalled();
   });
 
-  it("removes a newly created identity when binding throws", async () => {
+  it("returns an exact bound readback when binding throws after commit", async () => {
     createUser.mockResolvedValue({ data: { user: { id, email } }, error: null });
     vi.mocked(bindUserProfileAuthIdentity).mockRejectedValue(new Error("database unavailable"));
-    deleteUser.mockResolvedValue({ data: null, error: null });
+    vi.mocked(getUserProfileById).mockResolvedValue(boundProfile);
+
+    await expect(preprovisionInvitation(email, "Member")).resolves.toEqual(boundProfile);
+
+    expect(getUserProfileById).toHaveBeenCalledWith(id);
+    expect(deleteUser).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["absent", null],
+    ["still unbound", pendingProfile],
+    ["bound elsewhere", { ...boundProfile, authUserId: "33333333-3333-4333-8333-333333333333" }],
+  ])("fails closed without deleting the identity when bind readback is %s", async (_label, readback) => {
+    createUser.mockResolvedValue({ data: { user: { id, email } }, error: null });
+    vi.mocked(bindUserProfileAuthIdentity).mockRejectedValue(new Error("database unavailable"));
+    vi.mocked(getUserProfileById).mockResolvedValue(readback);
 
     await expect(preprovisionInvitation(email, "Member")).rejects.toThrow("could not be safely bound");
 
-    expect(deleteUser).toHaveBeenCalledWith(id);
+    expect(deleteUser).not.toHaveBeenCalled();
   });
 });

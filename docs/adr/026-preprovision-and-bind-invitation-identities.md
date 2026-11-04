@@ -32,8 +32,10 @@ never be sufficient to create its identity.
    and email signup are disabled in checked-in local configuration. Hosted
    signup disablement and readback remain a promotion gate.
 3. Retries may adopt only the same deterministic UUID with the same normalized
-   email. An email owned by another Auth UUID is a hard conflict. A newly
-   created identity is removed if its profile cannot be bound.
+   email. An email owned by another Auth UUID is a hard conflict. A failed or
+   ambiguous bind is followed by an exact profile readback. The identity is not
+   deleted after a bind attempt because the database may have committed before
+   returning an error, or a concurrent retry may have completed the bind.
 4. Login always uses `signInWithOtp` with `shouldCreateUser: false`. Every valid
    address receives the same browser response, and the application never
    queries membership before requesting the link.
@@ -52,5 +54,8 @@ never be sufficient to create its identity.
   invitations must be audited and preprovisioned before promotion.
 - Ambiguous pre-existing identities fail closed and require an explicitly
   reviewed recovery action; the app never binds them by email.
+- A deterministic identity left unbound after a confirmed bind failure is
+  retained for a safe retry or reviewed recovery. This avoids deleting an
+  identity that an ambiguous or concurrent bind already owns.
 - The server-only Supabase secret becomes a required deployment secret and must
   never enter browser code, logs, or committed configuration.

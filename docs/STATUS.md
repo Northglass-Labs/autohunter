@@ -40,7 +40,7 @@
   graph, imports the production entrypoint cleanly, and has zero runtime advisories. Each enabled,
   required, due core provider gates independently; optional/non-due providers and NHTSA cannot mask
   a required failure, while partial offers and the digest-before-fail order are preserved.
-- Fresh Node 22 verification: 216 web unit tests, lint, TypeScript production build, 136 collector
+- Fresh Node 22 verification: 220 web unit tests, lint, TypeScript production build, 136 collector
   tests, 18 Worker tests, generated-type check, TypeScript check, Wrangler dry-run, both dependency
   audit modes in all three roots, 11 audit-gate tests, Actionlint, and `git diff --check` pass.
   A disposable loopback-only Supabase PostgreSQL 17 run applied every migration and passed all six
@@ -49,8 +49,15 @@
   publishes the Supabase CLI stack on wildcard interfaces, and the repository guard rejected and
   stopped it. The new E2E stories are included for the isolated Linux CI gate; a successful CI run
   is required before promotion.
-- Current step: run an independent exact-head security review of the focused commits, then hand the
-  candidate back without pushing, opening a PR, changing provider state, or deploying.
+- The first independent candidate review found an ambiguous-bind race in invitation cleanup: a
+  committed or concurrent profile bind could be followed by deletion of its Auth identity. New
+  regressions cover throw-after-commit, null-after-concurrent-bind, missing/mismatched readback, and
+  verification of already-bound identities. The fix retains deterministic identities after every
+  bind attempt and accepts only an exact bound readback; it never treats an uncertain read as proof
+  that deletion is safe.
+- Current step: rerun every local promotion gate, freeze a new exact head, and obtain a fresh
+  independent exact-head security review before handing the candidate back without pushing,
+  opening a PR, changing provider state, or deploying.
 
 ## 2026-11-02: eBay callback source recovery and secret migration (complete)
 
