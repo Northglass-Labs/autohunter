@@ -32,8 +32,9 @@ evidence, decisions, and report history through the rebrand.
 - Saved searches edited in place, and a per-person report frequency (daily, every 3 days,
   weekly, or paused) on the Reports page.
 - A signed-in guide, `/guides/how-it-works`, that explains sources, ranking, and reports.
-- Invite-only Supabase email links. Sign-up is limited to invited addresses, and the app accepts
-  only sessions created by an email link, never a password session (ADR-022).
+- Invite-only Supabase email links. An administrator preprovisions and binds each email-only Auth
+  identity before login; public user creation is disabled, magic-link requests cannot create a
+  user, and the app still refuses password sessions (ADR-026).
 - Email and in-app reports with a bottom line, new/changed finds, normalized lease sections,
   caveats, and a source-health snapshot. Quiet days send nothing; after a quiet week a check-in
   names the last report date.
@@ -93,7 +94,7 @@ flowchart LR
 
 The browser gets only Supabase Auth identity. Application tables stay in the private `catcht`
 schema, outside the Supabase Data API, and every protected page, route, and Server Action maps the
-authenticated user to an active invited profile. The collector receives opaque search IDs and no
+authenticated user by Auth UUID to an active pre-bound profile. The collector receives opaque search IDs and no
 email addresses, roles, cookies, or Auth IDs.
 
 ## Repository map
@@ -123,23 +124,30 @@ git clone https://github.com/Northglass-Labs/autohunter.git
 cd autohunter
 nvm use
 
-(cd catcht && npm ci && npm test && npm run test:db && npm run test:e2e && npm run lint && npm run build)
-(cd collector && npm ci && npm test)
+(cd catcht && npm ci && npm test && npm run test:db && npm run test:e2e && npm run lint && npm run build && node ../.github/scripts/audit-gate.mjs production && node ../.github/scripts/audit-gate.mjs full)
+(cd collector && npm ci && npm test && node ../.github/scripts/audit-gate.mjs production && node ../.github/scripts/audit-gate.mjs full)
+(cd workers/ebay-account-deletion && npm ci && npm run check && node ../../.github/scripts/audit-gate.mjs production && node ../../.github/scripts/audit-gate.mjs full)
 ```
 
 `npm run test:e2e` resets only this repository's local Supabase project, captures real magic-link
 emails in Mailpit, and runs the household-isolation stories in desktop Chromium and a Pixel-sized
 mobile viewport. It does not touch a linked hosted database.
 
-GitHub CI runs the unit, lint, build, dependency, clean-database pgTAP, and full desktop/mobile E2E
-gates on every `main` push and pull request. Every third-party action is pinned to an immutable
-commit and checkout credentials are not persisted.
+GitHub CI runs the unit, lint, build, dependency, clean-database pgTAP, full desktop/mobile E2E,
+and Worker generated-type/typecheck/test/dry-run gates on every `main` push and pull request. The
+secret-free Worker dry-run bundle includes an SBOM and tracked-source manifest. Pushes to `main` in
+the upstream repository are the only events allowed to request artifact attestation; pull-request
+jobs receive no attestation or secret permissions. CodeQL also runs on pushes, pull requests, and a
+weekly schedule, while dependency review runs on pull requests. These hosted checks still depend on
+the repository's GitHub Actions, security-feature, and required-check settings. Every third-party
+action is pinned to an immutable commit and checkout credentials are not persisted.
 
 ## Production setup
 
 1. Create a Supabase project and apply the checked-in migrations after a dry run.
-2. Configure the invite-only before-user-created hook and the checked-in AutoHunter email templates,
-   then require email confirmation (ADR-022).
+2. Apply the deterministic-identity before-user-created hook, disable public user creation, install
+   the checked-in magic-link template, and provision every invitation through the admin-only bound
+   identity flow (ADR-026).
 3. Deploy `catcht/` to Vercel with the variables in [`catcht/.env.example`](catcht/.env.example).
 4. Verify `carhunt@northglass.io` (or another Northglass sender) with the configured mail provider.
 5. Map `autohunter.northglass.io`, set the exact Auth site/redirect URLs, and test one administrator
@@ -187,7 +195,7 @@ and reports then wait for the collector to re-confirm each match under the new d
 - Signed email actions open a confirmation page before mutation so link scanners cannot change a
   queue.
 - Provider states are recorded as `success`, `empty`, `unavailable`, `challenged`, or `failed`.
-- Both npm packages must audit at zero known vulnerabilities before deployment.
+- Every npm package root must pass the repository dependency-audit policy before deployment.
 
 Report suspected vulnerabilities privately according to [`SECURITY.md`](SECURITY.md).
 

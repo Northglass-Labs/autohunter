@@ -1,26 +1,83 @@
 #!/usr/bin/env node
 
-// Full dependency audit for CI. Every high or critical advisory blocks, except entries in
-// .github/audit-allowlist.json: each names one advisory on one package, gives a reason, and
-// expires. CI runs `npm audit --omit=dev` first with no exceptions, so only development
-// dependencies can ever be excepted here.
+// Dependency audit gate for CI. Production audits block moderate, high, and critical advisories
+// without exceptions. Full audits block high and critical advisories except entries in
+// .github/audit-allowlist.json: each names one advisory on one package, gives a reason, and expires.
 
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
-const BLOCKING_SEVERITIES = new Set(["high", "critical"]);
+const SEVERITY_RANK = new Map([
+  ["low", 0],
+  ["moderate", 1],
+  ["high", 2],
+  ["critical", 3],
+]);
 
-export function auditFindings(report, allowlist, today) {
+const AUDIT_MODES = {
+  full: {
+    allowExceptions: true,
+    minimumSeverity: "high",
+    npmArgs: ["audit", "--json"],
+  },
+  production: {
+    allowExceptions: false,
+    minimumSeverity: "moderate",
+    npmArgs: ["audit", "--omit=dev", "--json"],
+  },
+};
+
+export function resolveAuditMode(modeName) {
+  const mode = AUDIT_MODES[modeName];
+  if (!mode) throw new Error("usage: audit-gate.mjs [full|production]");
+  return mode;
+}
+
+export function parseAuditReport(output) {
+  try {
+    return JSON.parse(output);
+  } catch (error) {
+    const noticeMarker = "\nℹ Safe-chain:";
+    const noticeIndex = output.indexOf(noticeMarker);
+    const notice = noticeIndex === -1 ? "" : output.slice(noticeIndex + 1);
+    if (!/^ℹ Safe-chain: [^\r\n]+(?:\r?\n {2}[^\r\n]+)*\r?\n?$/u.test(notice)) throw error;
+    return JSON.parse(output.slice(0, noticeIndex));
+  }
+}
+
+export function auditFindings(
+  report,
+  allowlist,
+  today,
+  { minimumSeverity = "high", allowExceptions = true } = {},
+) {
+  if (
+    !report ||
+    typeof report !== "object" ||
+    Array.isArray(report) ||
+    report.error ||
+    !report.vulnerabilities ||
+    typeof report.vulnerabilities !== "object" ||
+    Array.isArray(report.vulnerabilities)
+  ) {
+    throw new Error("npm audit did not return vulnerability data");
+  }
+
+  const minimumRank = SEVERITY_RANK.get(minimumSeverity);
+  if (minimumRank === undefined) throw new Error(`unsupported minimum audit severity: ${minimumSeverity}`);
+
   const blocking = [];
   const excepted = [];
   for (const [name, vulnerability] of Object.entries(report.vulnerabilities ?? {})) {
     for (const via of vulnerability.via ?? []) {
       // String entries point at another vulnerable package, which is reported on its own.
-      if (typeof via !== "object" || !BLOCKING_SEVERITIES.has(via.severity)) continue;
+      if (typeof via !== "object" || (SEVERITY_RANK.get(via.severity) ?? -1) < minimumRank) continue;
       const id = String(via.url ?? via.source).split("/").pop();
       const finding = `${name} ${id} (${via.severity})`;
-      const exception = allowlist.find((entry) => entry.id === id && entry.package === name && today <= entry.expires);
+      const exception = allowExceptions
+        ? allowlist.find((entry) => entry.id === id && entry.package === name && today <= entry.expires)
+        : undefined;
       if (exception) excepted.push(`${finding} until ${exception.expires}: ${exception.reason}`);
       else blocking.push(finding);
     }
@@ -29,23 +86,38 @@ export function auditFindings(report, allowlist, today) {
 }
 
 function main() {
+  const modeName = process.argv[2];
+  let mode;
+  try {
+    mode = resolveAuditMode(modeName);
+  } catch (error) {
+    console.error(error.message);
+    process.exitCode = 2;
+    return;
+  }
+
   const allowlistPath = fileURLToPath(new URL("../audit-allowlist.json", import.meta.url));
   const { advisories } = JSON.parse(readFileSync(allowlistPath, "utf8"));
   let output;
   try {
-    output = execFileSync("npm", ["audit", "--json"], { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
+    output = execFileSync("npm", mode.npmArgs, { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
   } catch (error) {
     // npm audit exits non-zero whenever it reports a vulnerability; the JSON is still on stdout.
     if (!error.stdout) throw error;
     output = error.stdout;
   }
-  const { blocking, excepted } = auditFindings(JSON.parse(output), advisories, new Date().toISOString().slice(0, 10));
+  const { blocking, excepted } = auditFindings(
+    parseAuditReport(output),
+    advisories,
+    new Date().toISOString().slice(0, 10),
+    mode,
+  );
   for (const line of excepted) console.log(`excepted: ${line}`);
   if (blocking.length) {
     for (const line of blocking) console.error(`blocking: ${line}`);
     process.exitCode = 1;
   } else {
-    console.log("audit gate: no blocking high or critical advisories");
+    console.log(`audit gate (${modeName}): no blocking advisories at ${mode.minimumSeverity} or higher`);
   }
 }
 

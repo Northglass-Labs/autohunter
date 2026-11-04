@@ -72,8 +72,9 @@ exact endorsement **a Northglass Product**.
 ## Required checks
 
 ```bash
-(cd catcht && npm test && npm run test:db && npm run test:e2e && npm run lint && npm run build && npm audit --omit=dev)
-(cd collector && npm test && npm audit --omit=dev)
+(cd catcht && npm test && npm run test:db && npm run test:e2e && npm run lint && npm run build && node ../.github/scripts/audit-gate.mjs production && node ../.github/scripts/audit-gate.mjs full)
+(cd collector && npm test && node ../.github/scripts/audit-gate.mjs production && node ../.github/scripts/audit-gate.mjs full)
+(cd workers/ebay-account-deletion && npm run check && node ../../.github/scripts/audit-gate.mjs production && node ../../.github/scripts/audit-gate.mjs full)
 ```
 
 Use `npm run platform:health -- --config platform.example.json` only for a deliberate live no-write

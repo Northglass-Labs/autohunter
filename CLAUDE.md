@@ -58,8 +58,9 @@ additional recipient.
 ## Verification
 
 ```bash
-(cd catcht && npm test && npm run test:db && npm run test:e2e && npm run lint && npm run build && npm audit --omit=dev)
-(cd collector && npm test && npm audit --omit=dev)
+(cd catcht && npm test && npm run test:db && npm run test:e2e && npm run lint && npm run build && node ../.github/scripts/audit-gate.mjs production && node ../.github/scripts/audit-gate.mjs full)
+(cd collector && npm test && node ../.github/scripts/audit-gate.mjs production && node ../.github/scripts/audit-gate.mjs full)
+(cd workers/ebay-account-deletion && npm run check && node ../../.github/scripts/audit-gate.mjs production && node ../../.github/scripts/audit-gate.mjs full)
 ```
 
 See `README.md`, `AGENTS.md`, `docs/standalone.md`, `docs/STATUS.md`, ADR-012, ADR-013, and ADR-014.

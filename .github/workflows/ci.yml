@@ -23,7 +23,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .nvmrc
           cache: npm
@@ -31,9 +31,10 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: node --test ../.github/scripts/audit-gate.test.mjs
-      # Production dependencies: no exceptions. Full audit: documented, expiring exceptions only.
-      - run: npm audit --omit=dev --audit-level=high
-      - run: node ../.github/scripts/audit-gate.mjs
+      # Production dependencies: moderate or higher, no exceptions. Full audit: high or critical,
+      # with documented, expiring development-only exceptions.
+      - run: node ../.github/scripts/audit-gate.mjs production
+      - run: node ../.github/scripts/audit-gate.mjs full
 
   web:
     runs-on: ubuntu-latest
@@ -45,7 +46,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .nvmrc
           cache: npm
@@ -54,8 +55,71 @@ jobs:
       - run: npm test
       - run: npm run lint
       - run: npm run build
-      - run: npm audit --omit=dev --audit-level=high
-      - run: node ../.github/scripts/audit-gate.mjs
+      - run: node ../.github/scripts/audit-gate.mjs production
+      - run: node ../.github/scripts/audit-gate.mjs full
+
+  worker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: workers/ebay-account-deletion
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: workers/ebay-account-deletion/package-lock.json
+      - run: npm ci
+      - run: npm run check
+      - run: node ../../.github/scripts/audit-gate.mjs production
+      - run: node ../../.github/scripts/audit-gate.mjs full
+      - name: Verify checks did not modify tracked Worker files
+        run: git diff --exit-code -- .
+      - name: Generate Worker SBOM
+        uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
+        with:
+          path: workers/ebay-account-deletion
+          format: spdx-json
+          output-file: workers/ebay-account-deletion/dist/sbom.spdx.json
+          upload-artifact: false
+          upload-release-assets: false
+      - name: Generate tracked-source manifest
+        run: git ls-files -z -- . | LC_ALL=C sort -z | xargs -0 sha256sum -- > dist/source-manifest.sha256
+      - name: Package dry-run bundle
+        run: tar --sort=name --mtime='UTC 1970-01-01' --owner=0 --group=0 --numeric-owner -czf "$RUNNER_TEMP/ebay-account-deletion-worker.tar.gz" -C dist .
+      - name: Upload dry-run bundle
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ebay-account-deletion-worker.tar.gz
+          path: ${{ runner.temp }}/ebay-account-deletion-worker.tar.gz
+          archive: false
+          if-no-files-found: error
+          retention-days: 14
+
+  worker-attestation:
+    if: github.repository == 'Northglass-Labs/autohunter' && github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: worker
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      artifact-metadata: write
+      attestations: write
+      contents: read
+      id-token: write
+    steps:
+      - name: Download Worker dry-run bundle
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: ebay-account-deletion-worker.tar.gz
+          path: ${{ runner.temp }}
+      - name: Attest Worker dry-run bundle
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-path: ${{ runner.temp }}/ebay-account-deletion-worker.tar.gz
 
   database-and-e2e:
     runs-on: ubuntu-latest
@@ -67,12 +131,12 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .nvmrc
           cache: npm
           cache-dependency-path: catcht/package-lock.json
-      - uses: supabase/setup-cli@46f7f98c7f948ad727d22c1e67fab04c223a0520 # v3.0.0
+      - uses: supabase/setup-cli@689adcfb80d947100a1eab127289b97d1fb07b13 # v3.2.0
         with:
           version: 2.113.0
       - run: npm ci --ignore-scripts

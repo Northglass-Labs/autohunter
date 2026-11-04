@@ -1,0 +1,18 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /catcht
+    schedule:
+      interval: weekly
+  - package-ecosystem: npm
+    directory: /collector
+    schedule:
+      interval: weekly
+  - package-ecosystem: npm
+    directory: /workers/ebay-account-deletion
+    schedule:
+      interval: weekly
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly

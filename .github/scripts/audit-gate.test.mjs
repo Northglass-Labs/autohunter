@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
-import { auditFindings } from "./audit-gate.mjs";
+import { auditFindings, parseAuditReport, resolveAuditMode } from "./audit-gate.mjs";
 
 const advisory = (name, id, severity = "high") => ({ source: 1, name, severity, url: `https://github.com/advisories/${id}` });
 const report = {
@@ -29,6 +30,68 @@ test("an exception never covers the same advisory on a different package", () =>
   assert.deepEqual(auditFindings(moved, allowlist, "2026-10-10").blocking, ["other GHSA-vfj7-8cjw-p6xm (critical)"]);
 });
 
+test("a production audit blocks moderate advisories without exceptions", () => {
+  const productionAllowlist = [
+    ...allowlist,
+    { id: "GHSA-xxxx-moderate", package: "left-pad", reason: "must not apply to runtime", expires: "2026-12-31" },
+  ];
+  const { blocking, excepted } = auditFindings(report, productionAllowlist, "2026-10-10", {
+    minimumSeverity: "moderate",
+    allowExceptions: false,
+  });
+
+  assert.deepEqual(blocking, [
+    "braces GHSA-vfj7-8cjw-p6xm (high)",
+    "next GHSA-3w37-wq28-93x7 (high)",
+    "left-pad GHSA-xxxx-moderate (moderate)",
+  ]);
+  assert.deepEqual(excepted, []);
+});
+
+test("a full audit keeps moderate development findings non-blocking", () => {
+  const { blocking } = auditFindings(report, allowlist, "2026-10-10", {
+    minimumSeverity: "high",
+    allowExceptions: true,
+  });
+
+  assert.equal(blocking.some((finding) => finding.includes("GHSA-xxxx-moderate")), false);
+});
+
 test("a clean report passes", () => {
   assert.deepEqual(auditFindings({ vulnerabilities: {} }, allowlist, "2026-10-10"), { blocking: [], excepted: [] });
+});
+
+test("audit JSON accepts the local Safe-chain informational suffix", () => {
+  const output = `${JSON.stringify(report)}\nℹ Safe-chain: Some package versions were suppressed.\n  To disable this check, use the documented override.\n`;
+  assert.deepEqual(parseAuditReport(output), report);
+});
+
+test("audit JSON rejects unrecognized trailing output", () => {
+  assert.throws(() => parseAuditReport(`${JSON.stringify(report)}\nunexpected output\n`), SyntaxError);
+});
+
+test("an npm audit transport error fails closed", () => {
+  const failedAudit = { error: { code: "EAUDITENDPOINT", summary: "audit endpoint returned an error" } };
+  assert.throws(
+    () => auditFindings(failedAudit, allowlist, "2026-10-10"),
+    /npm audit did not return vulnerability data/,
+  );
+});
+
+test("an audit mode must be explicit", () => {
+  assert.throws(() => resolveAuditMode(), /usage: audit-gate\.mjs \[full\|production\]/);
+  assert.equal(resolveAuditMode("production").minimumSeverity, "moderate");
+});
+
+test("CI applies both audit policies to every npm root and isolates attestation permissions", () => {
+  const workflow = readFileSync(new URL("../workflows/ci.yml", import.meta.url), "utf8");
+  assert.equal(workflow.match(/node \.\.\/\.github\/scripts\/audit-gate\.mjs production/g)?.length, 2);
+  assert.equal(workflow.match(/node \.\.\/\.github\/scripts\/audit-gate\.mjs full/g)?.length, 2);
+  assert.equal(workflow.match(/node \.\.\/\.\.\/\.github\/scripts\/audit-gate\.mjs production/g)?.length, 1);
+  assert.equal(workflow.match(/node \.\.\/\.\.\/\.github\/scripts\/audit-gate\.mjs full/g)?.length, 1);
+  assert.match(workflow, /github\.repository == 'Northglass-Labs\/autohunter'/);
+  assert.match(workflow, /run: git diff --exit-code -- \./);
+  assert.match(workflow, /xargs -0 sha256sum --/);
+  assert.match(workflow, /uses: actions\/download-artifact@[0-9a-f]{40}/);
+  assert.match(workflow, /subject-path: \$\{\{ runner\.temp \}\}\/ebay-account-deletion-worker\.tar\.gz/);
 });
