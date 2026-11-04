@@ -23,7 +23,7 @@
   GitHub runs the merged workflows and the required-check settings are read back.
 - Supply-chain verification on Node `22.23.3`/npm `10.9.9`: audit-gate tests pass 11/11, both audit
   modes pass in all three npm roots, and a clean Worker install/check passes generated-type
-  consistency, typecheck, 17 tests, and the Wrangler dry run. `actionlint 1.7.12`, YAML parsing,
+  consistency, typecheck, 18 tests, and the Wrangler dry run. `actionlint 1.7.12`, YAML parsing,
   immutable-action-pin format checks, and `git diff --check` also pass. Hosted SBOM generation,
   fork-PR permissions, upstream attestation, and repository rules remain pending GitHub execution.
 - Invitation identities are now admin-preprovisioned at the profile UUID, bound before login,
@@ -32,8 +32,8 @@
   additive hook migration rejects a guessed invited email exactly like an unknown email. Hosted
   signup disablement, unbound-identity audit/recovery, and secret configuration remain promotion
   gates; no hosted Auth state was changed.
-- The eBay Worker now verifies eBay's published ECDSA/SHA-1 fixture over exact bounded bytes using
-  Workers Web Crypto, validates and caches only P-256 SPKI keys from fixed eBay origins, preserves
+- The eBay Worker now verifies the published eBay ECDSA/SHA-1 envelope/key format over exact bounded
+  bytes using Workers Web Crypto, validates and caches only P-256 SPKI keys from fixed eBay origins, preserves
   the independent GET challenge, and logs only outcome/request ID. OAuth/key-service failures retry
   with `503`; malformed, unknown-key, or invalid signatures fail with `412`; oversize fails `413`.
 - The scheduled collector installs only nine production packages, contains no Camoufox/Playwright
@@ -49,7 +49,7 @@
   publishes the Supabase CLI stack on wildcard interfaces, and the repository guard rejected and
   stopped it. The new E2E stories are included for the isolated Linux CI gate; a successful CI run
   is required before promotion.
-- Current step: create focused commits, run an independent exact-head security review, and hand the
+- Current step: run an independent exact-head security review of the focused commits, then hand the
   candidate back without pushing, opening a PR, changing provider state, or deploying.
 
 ## 2026-11-02: eBay callback source recovery and secret migration (complete)
