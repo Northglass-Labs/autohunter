@@ -24,8 +24,17 @@ access to Northglass infrastructure.
 
 ## Dependency audit gate
 
-CI fails on any high or critical npm advisory. Production dependencies are audited with no
-exceptions (`npm audit --omit=dev`). The full audit runs through `.github/scripts/audit-gate.mjs`,
-which accepts only entries in `.github/audit-allowlist.json`. Each entry names one advisory on one
-package, gives a reason, and expires, after which it blocks again. Use an exception only for a
-development dependency with no patched release.
+CI audits every npm package root. Production dependencies block on moderate, high, or critical
+advisories with no exceptions (`audit-gate.mjs production`). The full dependency tree blocks on high
+or critical advisories (`audit-gate.mjs full`) except entries in `.github/audit-allowlist.json`.
+Each exception names one advisory on one package, gives a reason, and expires, after which it blocks
+again. Malformed or duplicate exception policy, unknown severities, incomplete advisory graphs, and
+advisories without stable identifiers fail the gate closed. Use an exception only for a development
+dependency with no compatible patched release.
+
+Pull requests also receive dependency review, and CodeQL analyzes JavaScript and TypeScript on pull
+requests, `main`, and a weekly schedule. The Worker CI job retains a secret-free Wrangler dry-run
+bundle with its SBOM and tracked-source manifest. Only a push to `main` in
+`Northglass-Labs/autohunter` can request the scoped OIDC and repository permissions that attest that
+artifact. GitHub must still have Actions and the relevant security features enabled, and branch or
+ruleset settings must require these checks before they are enforcement rather than workflow policy.

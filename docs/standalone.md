@@ -20,8 +20,9 @@ The ordinary collector needs outbound HTTPS only.
 
 ```bash
 nvm use
-(cd catcht && npm ci && npm test && npm run test:db && npm run test:e2e && npm run lint && npm run build && npm audit --omit=dev)
-(cd collector && npm ci && npm test && npm audit --omit=dev)
+(cd catcht && npm ci && npm test && npm run test:db && npm run test:e2e && npm run lint && npm run build && node ../.github/scripts/audit-gate.mjs production && node ../.github/scripts/audit-gate.mjs full)
+(cd collector && npm ci && npm test && node ../.github/scripts/audit-gate.mjs production && node ../.github/scripts/audit-gate.mjs full)
+(cd workers/ebay-account-deletion && npm ci && npm run check && node ../../.github/scripts/audit-gate.mjs production && node ../../.github/scripts/audit-gate.mjs full)
 ```
 
 The local E2E runner starts/resets the local Supabase project only. Never configure it with a hosted
@@ -56,25 +57,30 @@ closed when production TLS configuration is missing or invalid.
 
 1. Set the Supabase Auth site URL to the canonical origin and allow only intentional
    `/auth/confirm` redirects.
-2. Enable `catcht.authorize_invited_user` as the before-user-created hook. Once step 3's templates
-   are in place, require email confirmation; the app accepts only email-link sessions either way
-   (ADR-022).
-3. Install `supabase/templates/confirmation.html` and `magic-link.html` without changing the
-   token-hash, callback, or type query parameters.
+2. Enable the latest `catcht.authorize_invited_user` as the before-user-created hook. Global public
+   user creation is disabled; the email provider remains enabled for existing preprovisioned
+   identities, and the app calls `signInWithOtp` with `shouldCreateUser: false`. Read both Auth
+   settings back before promotion (ADR-026).
+3. Install `supabase/templates/magic-link.html` without changing the token-hash, callback, or type
+   query parameters.
 4. Configure custom SMTP. Mailpit exists only for deterministic local tests.
-5. Insert each intended normalized email into private `catcht.user_profiles` before that person
-   requests a link.
+5. Configure the server-only `SUPABASE_SECRET_KEY`, then create each invitation through the
+   authenticated administrator UI. That fail-closed flow reserves the profile, creates its deterministic
+   email-only Auth identity, and binds the two before login.
+6. Audit every active profile before promotion. An unbound profile or an email already owned by a
+   different Auth UUID is a hard stop requiring separately reviewed recovery.
 
 Unknown and invited addresses receive the same login response. The callback exchanges a one-time
-code for HTTP-only cookies, validates the identity with Supabase, then requires an active private
-profile. Every data read and mutation also constrains the current profile; cookie refresh is not an
-authorization boundary.
+code for HTTP-only cookies, validates the identity with Supabase, then resolves only the active
+profile already bound to that Auth UUID. Every data read and mutation also constrains the current
+profile; cookie refresh is not an authorization boundary.
 
 ## 5. Configure and deploy the web app
 
 Use [`catcht/.env.example`](../catcht/.env.example) as the environment contract. Generate
 `ACTION_SIGNING_SECRET`, `INGEST_SECRET`, and `CRON_SECRET` independently with at least 32 random
-bytes. Only `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` may be public.
+bytes. Configure `SUPABASE_SECRET_KEY` only in the server runtime. Only
+`NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` may be public.
 
 Important production values:
 
@@ -85,7 +91,8 @@ EMAIL_FROM=Northglass AutoHunter <carhunt@northglass.io>
 DATABASE_SSL_MODE=verify-full
 ```
 
-Never prefix a database, signing, ingestion, scheduler, mail, or AI credential with `NEXT_PUBLIC_`.
+Never prefix the Supabase secret key, database, signing, ingestion, scheduler, mail, or AI
+credential with `NEXT_PUBLIC_`.
 
 ```bash
 vercel link

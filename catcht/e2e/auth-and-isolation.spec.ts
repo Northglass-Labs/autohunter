@@ -52,7 +52,7 @@ test("anonymous visitors are sent to the invite-only magic-link screen", async (
   await expect(page).toHaveURL(/\/login(?:\?|$)/);
 });
 
-test("a password session for an invited address is refused and never claims the invitation", async ({ browser, request }, testInfo) => {
+test("public password signup cannot pre-register either an invited or unknown address", async ({ browser, request }, testInfo) => {
   const email = `password-probe-${testInfo.project.name}@example.test`;
   const adminContext = await browser.newContext();
   const adminPage = await adminContext.newPage();
@@ -60,25 +60,39 @@ test("a password session for an invited address is refused and never claims the 
   await adminPage.getByLabel("Name", { exact: true }).fill(`Probe ${testInfo.project.name}`);
   await adminPage.getByLabel("Email", { exact: true }).fill(email);
   await adminPage.getByRole("button", { name: "Allow magic-link access" }).click();
-  await expect(adminPage.getByRole("status")).toContainText("can now request an AutoHunter magic link");
+  await expect(adminPage.getByRole("status")).toContainText("is ready for AutoHunter magic-link access");
 
-  // Sign-up auto-confirms, so anyone who knows an invited address can register it with a password
-  // and receive a session without access to that inbox (ADR-022).
-  const signUp = await passwordSignUp(request, email);
-  if (signUp.session) {
-    const attackerContext = await browser.newContext();
-    await attackerContext.addCookies(sessionCookies(signUp.supabaseUrl, signUp.session));
-    const attackerPage = await attackerContext.newPage();
-    await attackerPage.goto("/");
-    await expect(attackerPage).toHaveURL(/\/login(?:\?|$)/);
-    await attackerPage.goto("/reports");
-    await expect(attackerPage).toHaveURL(/\/login(?:\?|$)/);
-    await attackerContext.close();
-  }
+  const invited = await passwordSignUp(request, email);
+  const unknown = await passwordSignUp(request, `unknown-${testInfo.project.name}@example.test`);
+
+  expect(invited.ok).toBe(false);
+  expect(unknown.ok).toBe(false);
+  expect({ status: invited.status, body: invited.body }).toEqual({
+    status: unknown.status,
+    body: unknown.body,
+  });
 
   await adminPage.reload();
-  await expect(adminPage.locator(".person-row", { hasText: email })).toContainText("Invite pending");
+  await expect(adminPage.locator(".person-row", { hasText: email })).toContainText("Magic-link ready");
   await adminContext.close();
+});
+
+test("signing out one browser session does not revoke another device session", async ({ browser, request }) => {
+  const firstContext = await browser.newContext();
+  const secondContext = await browser.newContext();
+  const firstPage = await firstContext.newPage();
+  const secondPage = await secondContext.newPage();
+
+  await signIn(firstPage, request, "admin@example.test");
+  await signIn(secondPage, request, "admin@example.test");
+  await firstPage.getByRole("button", { name: /sign out/i }).click();
+  await expect(firstPage).toHaveURL(/\/login(?:\?|$)/);
+
+  await secondPage.reload();
+  await expect(secondPage.getByRole("navigation", { name: "Review queue" })).toBeVisible();
+
+  await firstContext.close();
+  await secondContext.close();
 });
 
 test("an invited user can complete a real magic-link flow and sign out", async ({ page, request }) => {
@@ -353,8 +367,8 @@ test("an admin can invite household members and transfer a starter search", asyn
   await adminPage.getByLabel("Name", { exact: true }).fill("Alex");
   await adminPage.getByLabel("Email", { exact: true }).fill("alex@example.test");
   await adminPage.getByRole("button", { name: "Allow magic-link access" }).click();
-  await expect(adminPage.getByRole("status")).toContainText("can now request an AutoHunter magic link");
-  await expect(adminPage.locator(".person-row", { hasText: "Alex" })).toContainText("Invite pending");
+  await expect(adminPage.getByRole("status")).toContainText("is ready for AutoHunter magic-link access");
+  await expect(adminPage.locator(".person-row", { hasText: "Alex" })).toContainText("Magic-link ready");
 
   const ownership = adminPage.getByLabel("Owner for Rivian R1S");
   await ownership.selectOption({ label: "Member" });
@@ -452,22 +466,8 @@ async function passwordSignUp(request: APIRequestContext, email: string) {
     headers: { apikey: publishableKey },
     data: { email, password: `E2e-${crypto.randomUUID()}` },
   });
-  expect(response.ok()).toBe(true);
-  const body = await response.json() as { access_token?: string };
-  // With confirmations required, sign-up returns no session and the provider has already refused.
-  return { supabaseUrl, session: body.access_token ? body : null };
-}
-
-// Writes a session the way @supabase/ssr stores it: a base64url value behind the `base64-` prefix,
-// split into numbered chunks when it exceeds the 3,180-character cookie budget.
-function sessionCookies(supabaseUrl: string, session: object) {
-  const appUrl = process.env.PLAYWRIGHT_BASE_URL ?? "http://127.0.0.1:3100";
-  const name = `sb-${new URL(supabaseUrl).hostname.split(".")[0]}-auth-token`;
-  const value = `base64-${Buffer.from(JSON.stringify(session)).toString("base64url")}`;
-  const chunks = value.match(/.{1,3180}/g) ?? [];
-  return chunks.length === 1
-    ? [{ name, value, url: appUrl }]
-    : chunks.map((chunk, index) => ({ name: `${name}.${index}`, value: chunk, url: appUrl }));
+  const body = await response.json() as { code?: string; message?: string };
+  return { ok: response.ok(), status: response.status(), body };
 }
 
 interface Mailbox {

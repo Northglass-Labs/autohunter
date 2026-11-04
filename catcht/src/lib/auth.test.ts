@@ -1,11 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { redirect } from "next/navigation";
-import { claimUserProfile, getUserProfileByAuthUserId, type UserProfile } from "./dal";
+import { getUserProfileByAuthUserId, type UserProfile } from "./dal";
 import { createSupabaseServerClient } from "./supabase/server";
 import { currentUser, requirePageUser, requireUser } from "./auth";
 
 vi.mock("./dal", () => ({
-  claimUserProfile: vi.fn(),
   getUserProfileByAuthUserId: vi.fn(),
 }));
 vi.mock("./supabase/server", () => ({ createSupabaseServerClient: vi.fn() }));
@@ -43,13 +42,19 @@ describe("currentUser", () => {
     );
   });
 
-  it("claims the matching invitation for a session an email link created", async () => {
+  it("returns the pre-bound profile for a session an email link created", async () => {
     session(["magiclink"]);
-    vi.mocked(getUserProfileByAuthUserId).mockResolvedValue(null);
-    vi.mocked(claimUserProfile).mockResolvedValue(profile);
+    vi.mocked(getUserProfileByAuthUserId).mockResolvedValue(profile);
 
     await expect(currentUser()).resolves.toEqual(profile);
-    expect(claimUserProfile).toHaveBeenCalledWith(authUserId, "member@example.test");
+    expect(getUserProfileByAuthUserId).toHaveBeenCalledWith(authUserId);
+  });
+
+  it("refuses an email-link session whose Auth identity is not pre-bound", async () => {
+    session(["magiclink"]);
+    vi.mocked(getUserProfileByAuthUserId).mockResolvedValue(null);
+
+    await expect(currentUser()).resolves.toBeNull();
   });
 
   it("refuses a password session without claiming the invitation", async () => {
@@ -59,7 +64,6 @@ describe("currentUser", () => {
 
     await expect(currentUser()).resolves.toBeNull();
     expect(getUserProfileByAuthUserId).not.toHaveBeenCalled();
-    expect(claimUserProfile).not.toHaveBeenCalled();
   });
 
   it("refuses a password session even when the profile is already claimed", async () => {
@@ -74,7 +78,7 @@ describe("currentUser", () => {
     getClaims.mockResolvedValue({ data: null, error: new Error("invalid JWT") });
 
     await expect(currentUser()).resolves.toBeNull();
-    expect(claimUserProfile).not.toHaveBeenCalled();
+    expect(getUserProfileByAuthUserId).not.toHaveBeenCalled();
   });
 
   it("sends a signed-out page visit to the login screen instead of failing", async () => {

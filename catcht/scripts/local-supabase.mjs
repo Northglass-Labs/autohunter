@@ -94,7 +94,7 @@ function assertLoopbackPublishedPorts(run) {
     const bindings = run("docker", ["port", name]).trim().split("\n").filter(Boolean);
     for (const binding of bindings) {
       if (!/-> (?:127\.0\.0\.1|\[::1\]):\d+$/.test(binding)) {
-        exposed.push(name);
+        exposed.push(`${name} (${binding})`);
       }
     }
   }

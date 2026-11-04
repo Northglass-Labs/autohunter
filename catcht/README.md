@@ -8,7 +8,7 @@ historical directory/schema name retained for database compatibility; the produc
 
 - Next.js 16 App Router, React 19, TypeScript
 - Supabase Auth passwordless email links with `@supabase/ssr`
-- active `catcht.user_profiles` invitation required by a before-user-created hook
+- admin-preprovisioned Supabase Auth identity bound to an active `catcht.user_profiles` row
 - direct server-only Postgres access to a private schema outside the Supabase Data API
 - global canonical listings/evidence; owner-scoped searches, matches, decisions, and reports
 - Resend reports (daily when something is new, otherwise a weekly check-in) with signed,
@@ -37,7 +37,8 @@ npm run test:db
 npm run test:e2e
 npm run lint
 npm run build
-npm audit --omit=dev
+node ../.github/scripts/audit-gate.mjs production
+node ../.github/scripts/audit-gate.mjs full
 ```
 
 `npm run test:e2e` uses the same fail-closed startup path, starts/resets only the local project, and
@@ -59,10 +60,11 @@ supabase db push --dry-run
 supabase db push
 ```
 
-Production Auth must use `https://autohunter.northglass.io` as the site URL and allow the exact
-`/auth/confirm` callback. Install the checked-in confirmation/magic-link templates and enable
-`catcht.authorize_invited_user` as the before-user-created Postgres hook. Provision invited profile
-emails privately; never commit them.
+Production Auth must use `https://autohunter.northglass.io` as the site URL, allow the exact
+`/auth/confirm` callback, and disable public user creation. Install the checked-in magic-link
+template and enable `catcht.authorize_invited_user` as the before-user-created Postgres hook. Every
+invitation must go through AutoHunter's admin-only preprovisioning flow so the Auth UUID and private
+profile are bound before login (ADR-026). Never commit invited addresses or secret keys.
 
 ## Server routes
 
@@ -83,7 +85,8 @@ The collector API never returns user email, Auth ID, role, cookie, or decision d
 
 Use [`.env.example`](.env.example) as the contract. Only
 `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` are intentionally public.
-Never expose the database URL, database CA, action/ingest/cron secrets, mail key, or AI credential.
+`SUPABASE_SECRET_KEY` is server-only and exists solely for invitation provisioning. Never expose it,
+the database URL, database CA, action/ingest/cron secrets, mail key, or AI credential.
 
 For Vercel, set this directory as Root Directory. The collector is deployed/scheduled separately.
 See the root README and [`../docs/standalone.md`](../docs/standalone.md).

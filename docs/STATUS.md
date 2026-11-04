@@ -1,5 +1,80 @@
 # AutoHunter status
 
+## 2026-11-03: security hardening tranche (in progress)
+
+- Objective: close the invited-email pre-registration/session-disruption boundary, authenticate
+  eBay deletion notifications over their exact bounded request bytes, remove the retired browser
+  collector from the scheduled production dependency graph, require health from each configured
+  core provider, and add repository-native security/supply-chain gates.
+- Work is isolated at base `6fe86a6a286e4a278969b0780ee203fde4d7b95a`. Changes are test-first and
+  additive; existing migration files and provider history will not be rewritten.
+- Provider and production state are out of scope for this implementation pass. Supabase, Cloudflare,
+  Vercel, GitHub settings, secrets, domains, live data, and deployments will not be changed. The
+  hosted Auth switch that disables new-user signup remains an explicit promotion gate after the
+  code and recovery path are reviewed.
+- Required verification includes clean installs, production dependency audits, focused hostile
+  security tests, unit/database/E2E checks where the fail-closed local Supabase boundary permits,
+  lint/typecheck/build, Worker generated-type consistency and dry-run bundle generation, scheduled
+  import-graph proof, final diff review, and an independent exact-head security review.
+- Repository-native supply-chain work now covers all three npm roots, adds moderate-or-higher
+  production audit enforcement, weekly dependency updates, dependency review, CodeQL, and a
+  secret-free Worker dry-run artifact with an SBOM/source manifest and an upstream-main-push-only
+  attestation workflow. Hosted execution and repository policy enforcement remain unverified until
+  GitHub runs the merged workflows and the required-check settings are read back.
+- Supply-chain verification on Node `22.23.3`/npm `10.9.9`: audit-gate tests pass 18/18, both audit
+  modes pass in all three npm roots, and a clean Worker install/check passes generated-type
+  consistency, typecheck, 18 tests, and the Wrangler dry run. `actionlint 1.7.12`, YAML parsing,
+  immutable-action-pin format checks, and `git diff --check` also pass. Hosted SBOM generation,
+  fork-PR permissions, upstream attestation, and repository rules remain pending GitHub execution.
+- Invitation identities are now admin-preprovisioned at the profile UUID, bound before login,
+  requested with `shouldCreateUser: false`, and resolved only by verified Auth UUID. Public signup
+  is disabled in checked-in local configuration, ordinary sign-out is session-local, and a new
+  additive hook migration rejects a guessed invited email exactly like an unknown email. Hosted
+  signup disablement, unbound-identity audit/recovery, and secret configuration remain promotion
+  gates; no hosted Auth state was changed.
+- The eBay Worker now verifies the published eBay ECDSA/SHA-1 envelope/key format over exact bounded
+  bytes using Workers Web Crypto, validates and caches only P-256 SPKI keys from fixed eBay origins, preserves
+  the independent GET challenge, and logs only outcome/request ID. OAuth/key-service failures retry
+  with `503`; malformed, unknown-key, or invalid signatures fail with `412`; oversize fails `413`.
+- The scheduled collector installs only nine production packages, contains no Camoufox/Playwright
+  graph, imports the production entrypoint cleanly, and has zero runtime advisories. Each enabled,
+  required, due core provider gates independently; optional/non-due providers and NHTSA cannot mask
+  a required failure, while partial offers and the digest-before-fail order are preserved.
+- Fresh Node 22 verification: 221 web unit tests, lint, TypeScript production build, 136 collector
+  tests, 18 Worker tests, generated-type check, TypeScript check, Wrangler dry-run, both dependency
+  audit modes in all three roots, 18 audit-gate tests, Actionlint, and `git diff --check` pass.
+  A disposable loopback-only Supabase PostgreSQL 17 run applied every migration and passed all six
+  pgTAP files (62 assertions).
+- The full Auth/Mailpit browser E2E remains intentionally not run on this Mac: Docker Desktop still
+  publishes the Supabase CLI stack on wildcard interfaces, and the repository guard rejected and
+  stopped it. The new E2E stories are included for the isolated Linux CI gate; a successful CI run
+  is required before promotion.
+- The first independent candidate review found an ambiguous-bind race in invitation cleanup: a
+  committed or concurrent profile bind could be followed by deletion of its Auth identity. New
+  regressions cover throw-after-commit, null-after-concurrent-bind, missing/mismatched readback, and
+  verification of already-bound identities. The fix retains deterministic identities after every
+  bind attempt and accepts only an exact bound readback; it never treats an uncertain read as proof
+  that deletion is safe.
+- The replacement review found three CI fail-open edges: a staged tracked-file mutation could evade
+  the Worker cleanliness check, unknown advisory severities were skipped, and malformed exception
+  expiry dates could compare as future strings. Regression coverage now requires separate worktree
+  and index cleanliness, known npm severity values, real round-tripped ISO calendar dates, and a
+  non-empty, unique, structurally valid exception allowlist before any exception is matched.
+- A follow-on review found that a partial npm v2 report containing only string `via` references
+  could otherwise omit its direct advisory and appear clean. The gate now validates exact package
+  references, derives propagated severity from direct advisories with a bounded fixed point,
+  requires every reported package to resolve to a direct advisory, and rejects direct advisories
+  without a stable URL or numeric source identifier. Fixtures shaped like the installed
+  Camoufox-to-glob-to-minimatch graph and a branching cycle protect compatibility and runtime
+  bounds.
+- The first hosted Auth/Mailpit run failed closed because the provider-specific email switch had
+  disabled existing-user sign-in as well as account creation. The code correction now disables
+  global public user creation while keeping the email provider enabled and retaining
+  `shouldCreateUser: false`; a test also requires every operator runbook to describe that exact
+  split.
+- Current step: require a fresh hosted Linux Auth/Mailpit pass and independent review of the final
+  exact head before merge. Provider state and production deployment remain unchanged.
+
 ## 2026-11-02: eBay callback source recovery and secret migration (complete)
 
 - Live Cloudflare readback recovered the provider-only
@@ -786,6 +861,12 @@ truthfully.
 
 ## Fresh complete local verification
 
+- The 2026-11-03 security-hardening PR's first hosted browser run correctly failed closed when the
+  local Auth configuration disabled the email provider as well as account creation. Supabase treats
+  the provider-specific email switch as sign-in availability: the top-level Auth switch now blocks
+  new accounts while the email provider remains enabled for preprovisioned users. A focused config
+  regression failed before the correction and the full 220-test web suite now passes; a fresh
+  hosted Linux Auth/Mailpit run is still required before merge.
 - Web unit/integration: 126 tests across 33 files pass, including the queue-cap and swipe-decision
   contracts, exported identity contract, and aggregate-only digest response contract.
 - Local database: every migration applies from empty state; 31 pgTAP assertions pass, including the

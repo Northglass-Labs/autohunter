@@ -211,12 +211,16 @@ export async function getUserProfileById(id: string): Promise<UserProfile | null
   return rows[0] ? userProfile(rows[0]) : null;
 }
 
-export async function claimUserProfile(authUserId: string, email: string): Promise<UserProfile | null> {
+export async function bindUserProfileAuthIdentity(
+  profileId: string,
+  authUserId: string,
+  email: string,
+): Promise<UserProfile | null> {
   const sql = getDb();
   const rows = await sql`
     update catcht.user_profiles
     set auth_user_id = ${authUserId}::uuid, updated_at = now()
-    where email = ${email} and active
+    where id = ${profileId}::uuid and lower(email) = ${email} and active
       and (auth_user_id is null or auth_user_id = ${authUserId}::uuid)
     returning *
   `;

@@ -41,9 +41,10 @@ exact endorsement **a Northglass Product**.
 
 - Supabase Auth supplies identity only. Every protected page, route, and Server Action must call
   `currentUser()`/`requireUser()` and authorize against the private profile.
-- Only sessions created by an email link reach the app (ADR-022). `currentUser()` refuses password,
-  anonymous, and OAuth sessions, so they never claim an invitation. Pages use `requirePageUser()`
-  to send signed-out visitors to `/login`.
+- Invitation identities are admin-preprovisioned and bound before login; public signup and
+  email-based profile claiming are prohibited (ADR-026). Only sessions created by an email link
+  reach the app (ADR-022); `currentUser()` refuses password, anonymous, and OAuth sessions. Pages
+  use `requirePageUser()` to send signed-out visitors to `/login`.
 - The `catcht` schema stays server-only and outside browser-facing Supabase roles/Data API.
 - Canonical listings/evidence are global. Searches, listing matches, decisions, digest runs,
   reports, and resend state are scoped to `user_profiles.id`.
@@ -72,8 +73,9 @@ exact endorsement **a Northglass Product**.
 ## Required checks
 
 ```bash
-(cd catcht && npm test && npm run test:db && npm run test:e2e && npm run lint && npm run build && npm audit --omit=dev)
-(cd collector && npm test && npm audit --omit=dev)
+(cd catcht && npm test && npm run test:db && npm run test:e2e && npm run lint && npm run build && node ../.github/scripts/audit-gate.mjs production && node ../.github/scripts/audit-gate.mjs full)
+(cd collector && npm test && node ../.github/scripts/audit-gate.mjs production && node ../.github/scripts/audit-gate.mjs full)
+(cd workers/ebay-account-deletion && npm run check && node ../../.github/scripts/audit-gate.mjs production && node ../../.github/scripts/audit-gate.mjs full)
 ```
 
 Use `npm run platform:health -- --config platform.example.json` only for a deliberate live no-write

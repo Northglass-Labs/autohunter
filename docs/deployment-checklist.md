@@ -23,8 +23,9 @@ git clone https://github.com/Northglass-Labs/autohunter.git
 cd autohunter
 nvm use
 
-(cd catcht && npm ci && npm test && npm run test:db && npm run test:e2e && npm run lint && npm run build && npm audit --omit=dev)
-(cd collector && npm ci && npm test && npm audit --omit=dev)
+(cd catcht && npm ci && npm test && npm run test:db && npm run test:e2e && npm run lint && npm run build && node ../.github/scripts/audit-gate.mjs production && node ../.github/scripts/audit-gate.mjs full)
+(cd collector && npm ci && npm test && node ../.github/scripts/audit-gate.mjs production && node ../.github/scripts/audit-gate.mjs full)
+(cd workers/ebay-account-deletion && npm ci && npm run check && node ../../.github/scripts/audit-gate.mjs production && node ../../.github/scripts/audit-gate.mjs full)
 ```
 
 `test:e2e` resets only the local Supabase stack configured in `catcht/`. It must never point at the
@@ -44,11 +45,15 @@ supabase db advisors
 - [x] use the least-privilege pooled application URL as `DATABASE_URL`
 - [x] set the Auth site URL to `https://autohunter.northglass.io`
 - [x] allow only intentional `/auth/confirm` redirect origins
-- [x] enable `catcht.authorize_invited_user` as the before-user-created hook
-- [x] install the checked-in confirmation and magic-link templates unchanged
-- [ ] require email confirmation after checking the confirmation template (ADR-022)
+- [ ] apply and enable the latest deterministic-identity `catcht.authorize_invited_user` hook
+- [ ] confirm global public user creation is disabled, the email provider remains enabled for
+      existing preprovisioned identities, and the app uses `shouldCreateUser: false`; read both
+      Auth settings back
+- [ ] install the checked-in magic-link template unchanged
 - [x] configure custom SMTP; local Mailpit is test-only
-- [x] provision only intended normalized emails in `catcht.user_profiles`
+- [ ] configure `SUPABASE_SECRET_KEY` as a server-only deployment secret
+- [ ] preprovision and bind every intended invitation through the administrator flow (ADR-026)
+- [ ] prove there are no active unbound profiles or ambiguous pre-existing Auth identities
 - [x] keep all application tables in the private `catcht` schema
 - [x] resolve every Supabase security-advisor error before release
 
@@ -59,14 +64,16 @@ vercel link
 vercel deploy --prod
 ```
 
-- [x] configure the variables in `catcht/.env.example`; only the two `NEXT_PUBLIC_SUPABASE_*`
-  identity values may be browser-visible
+- [ ] configure the variables in `catcht/.env.example`; only the two `NEXT_PUBLIC_SUPABASE_*`
+  identity values may be browser-visible, and `SUPABASE_SECRET_KEY` must remain server-only
 - [x] set `APP_URL=https://autohunter.northglass.io`
 - [x] set `EMAIL_FROM=Northglass AutoHunter <carhunt@northglass.io>`
 - [x] map the canonical Vercel domain and Cloudflare DNS record
 - [x] verify anonymous `/` redirects to `/login`
 - [x] verify protected collector and digest routes return 401 without credentials
 - [x] consume a real administrator magic link and sign out again
+- [ ] prove password signup gives the same denial for invited and unknown addresses and one
+  browser's sign-out does not revoke another browser's session
 - [x] prove a second test profile cannot read or mutate the administrator's searches, decisions, or
   reports
 - [x] send one deliberate report to the administrator and verify sender, rendering, links, images,

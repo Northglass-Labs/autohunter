@@ -5,6 +5,15 @@ const authEnvSchema = z.object({
   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: z.string().min(20),
 });
 
+const adminEnvSchema = z.object({
+  NEXT_PUBLIC_SUPABASE_URL: z.string().url(),
+  SUPABASE_SECRET_KEY: z.string().min(20),
+});
+
 export function getSupabaseAuthEnv() {
   return authEnvSchema.parse(process.env);
+}
+
+export function getSupabaseAdminEnv() {
+  return adminEnvSchema.parse(process.env);
 }

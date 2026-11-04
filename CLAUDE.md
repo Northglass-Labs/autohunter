@@ -21,8 +21,9 @@ retired on 2026-10-11 (ADR-024); its removal is scheduled.
 
 ### `catcht/`
 
-Next.js 16 and React 19 use Supabase email-link identity with server-authorized invited profiles;
-only sessions an email link created are accepted (ADR-022).
+Next.js 16 and React 19 use admin-preprovisioned Supabase email-link identities bound to private
+profiles before login; public user creation is disabled, and only sessions an email link created
+are accepted (ADR-022 and ADR-026).
 The browser cannot access the private `catcht` schema. Canonical listings are shared; saved searches,
 matches, decisions, digest/report runs, and resend state are owner-scoped. Resend delivers the same
 typed report contract represented in `/reports`; email decision links require a confirmation POST.
@@ -58,8 +59,9 @@ additional recipient.
 ## Verification
 
 ```bash
-(cd catcht && npm test && npm run test:db && npm run test:e2e && npm run lint && npm run build && npm audit --omit=dev)
-(cd collector && npm test && npm audit --omit=dev)
+(cd catcht && npm test && npm run test:db && npm run test:e2e && npm run lint && npm run build && node ../.github/scripts/audit-gate.mjs production && node ../.github/scripts/audit-gate.mjs full)
+(cd collector && npm test && node ../.github/scripts/audit-gate.mjs production && node ../.github/scripts/audit-gate.mjs full)
+(cd workers/ebay-account-deletion && npm run check && node ../../.github/scripts/audit-gate.mjs production && node ../../.github/scripts/audit-gate.mjs full)
 ```
 
 See `README.md`, `AGENTS.md`, `docs/standalone.md`, `docs/STATUS.md`, ADR-012, ADR-013, and ADR-014.

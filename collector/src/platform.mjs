@@ -63,6 +63,12 @@ function sanitizedEnrichedListingIds(value) {
 }
 
 const METERED_ADAPTER_KEYS = ["marketcheck", "autodev", "marketcheckIncentives"];
+const PROVIDER_SOURCE_BY_ADAPTER = {
+  marketcheck: "marketcheck",
+  autodev: "auto_dev",
+  marketcheckIncentives: "marketcheck_incentives",
+};
+const WORKING_SOURCE_STATUSES = new Set(["success", "empty"]);
 
 // Enabled inventory/incentive adapters whose cadence includes `now`. MarketCheck shares one
 // monthly allowance between inventory, detail and incentive calls; daily use exhausted it by
@@ -71,6 +77,18 @@ export function dueAdapterKeys(config, now = new Date()) {
   const ignoreCadence = config.collector?.ignoreCadence === true;
   return METERED_ADAPTER_KEYS.filter((key) => config.adapters[key]?.enabled
     && sourceIsDue(config.adapters[key].cadence, now, { ignoreCadence }));
+}
+
+export function requiredProviderFailures(config, runs, now = new Date()) {
+  const runsBySource = new Map(runs.map((run) => [run.source, run]));
+  return dueAdapterKeys(config, now)
+    .filter((key) => config.adapters[key].required !== false)
+    .flatMap((adapter) => {
+      const source = PROVIDER_SOURCE_BY_ADAPTER[adapter];
+      const run = runsBySource.get(source);
+      if (run && WORKING_SOURCE_STATUSES.has(run.status)) return [];
+      return [{ adapter, source, status: run?.status ?? "missing" }];
+    });
 }
 
 function defaultAdapters(config, now = new Date()) {
@@ -124,7 +142,8 @@ function offerKey(offer) {
 export async function runPlatformCollection({
   config,
   searches = config.searches.filter((search) => search.active),
-  adapters = defaultAdapters(config),
+  now = new Date(),
+  adapters = defaultAdapters(config, now),
   enrichers = defaultEnrichers(config),
   ingestImpl = ingestPayload,
   dryRun = false,
@@ -166,13 +185,14 @@ export async function runPlatformCollection({
     counts[run.status] = (counts[run.status] ?? 0) + 1;
     return counts;
   }, {});
-  return { searches: searches.length, discovered: enrichedOffers.length, ingested, sources, runs };
-}
-
-// A cycle with sources but no working result failed, and the scheduler should say so instead of
-// reporting success while every provider is down.
-export function allSourcesFailed(runs) {
-  return runs.length > 0 && runs.every((run) => !["success", "empty"].includes(run.status));
+  return {
+    searches: searches.length,
+    discovered: enrichedOffers.length,
+    ingested,
+    sources,
+    runs,
+    requiredProviderFailures: requiredProviderFailures(config, runs, now),
+  };
 }
 
 export async function runPlatformFromConfig(path, options = {}) {
@@ -180,15 +200,16 @@ export async function runPlatformFromConfig(path, options = {}) {
   if (["1", "true"].includes(String(process.env.AUTOHUNTER_IGNORE_CADENCE ?? "").toLowerCase())) {
     config.collector.ignoreCadence = true;
   }
-  return runPlatformCollection({ config, dryRun: options.dryRun });
+  return runPlatformCollection({ config, dryRun: options.dryRun, now: options.now ?? new Date() });
 }
 
 async function main() {
   const options = argumentsFrom(process.argv.slice(2));
   const result = await runPlatformFromConfig(options.config, options);
   process.stdout.write(`${JSON.stringify(result)}\n`);
-  if (allSourcesFailed(result.runs)) {
-    process.stderr.write("autohunter: every source failed\n");
+  if (result.requiredProviderFailures.length > 0) {
+    const summary = result.requiredProviderFailures.map(({ source, status }) => `${source}:${status}`).join(", ");
+    process.stderr.write(`autohunter: required providers failed: ${summary}\n`);
     process.exitCode = 1;
   }
 }

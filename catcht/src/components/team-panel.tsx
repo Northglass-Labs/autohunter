@@ -31,7 +31,7 @@ export function TeamPanel({ people, searches }: { people: UserProfile[]; searche
                 <small>{person.email ?? "Email not assigned"}</small>
               </span>
               <span className={`access-state ${person.authUserId ? "claimed" : "pending"}`}>
-                {person.authUserId ? "Signed in before" : "Invite pending"}
+                {person.authUserId ? "Magic-link ready" : "Provisioning required"}
               </span>
             </article>
           ))}

@@ -1,6 +1,5 @@
 "use server";
 
-import { getUserProfileByEmail } from "@/lib/dal";
 import { normalizeEmail } from "@/lib/auth-policy";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getCoreEnv } from "@/lib/env";
@@ -21,17 +20,19 @@ export async function requestMagicLinkAction(
     return { sent: false, message: "Enter a valid email address." };
   }
 
-  const profile = await getUserProfileByEmail(email);
-  if (profile) {
-    const supabase = await createSupabaseServerClient();
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: {
-        shouldCreateUser: true,
-        emailRedirectTo: `${getCoreEnv().APP_URL}/auth/confirm`,
-      },
-    });
-    if (error) return { sent: false, message: "We could not send a sign-in link. Try again in a minute." };
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.auth.signInWithOtp({
+    email,
+    options: {
+      shouldCreateUser: false,
+      emailRedirectTo: `${getCoreEnv().APP_URL}/auth/confirm`,
+    },
+  });
+  if (error) {
+    console.warn(JSON.stringify({
+      event: "magic_link_request_rejected",
+      reason: "auth_provider_rejected",
+    }));
   }
 
   return {

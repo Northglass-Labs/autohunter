@@ -48,6 +48,7 @@
   "adapters": {
     "marketcheck": {
       "enabled": true,
+      "required": true,
       "rowsPerSearch": 50,
       "maximumRadiusMiles": 100,
       "maximumSearchCalls": 13,
@@ -56,12 +57,14 @@
     },
     "autodev": {
       "enabled": true,
+      "required": false,
       "rowsPerSearch": 20,
       "maximumRadiusMiles": 250,
       "maximumSearchCalls": 13
     },
     "marketcheckIncentives": {
       "enabled": true,
+      "required": true,
       "rowsPerGroup": 10,
       "maximumSearchCalls": 13,
       "cadence": {
