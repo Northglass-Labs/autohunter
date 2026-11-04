@@ -21,7 +21,7 @@
   secret-free Worker dry-run artifact with an SBOM/source manifest and an upstream-main-push-only
   attestation workflow. Hosted execution and repository policy enforcement remain unverified until
   GitHub runs the merged workflows and the required-check settings are read back.
-- Supply-chain verification on Node `22.23.3`/npm `10.9.9`: audit-gate tests pass 14/14, both audit
+- Supply-chain verification on Node `22.23.3`/npm `10.9.9`: audit-gate tests pass 17/17, both audit
   modes pass in all three npm roots, and a clean Worker install/check passes generated-type
   consistency, typecheck, 18 tests, and the Wrangler dry run. `actionlint 1.7.12`, YAML parsing,
   immutable-action-pin format checks, and `git diff --check` also pass. Hosted SBOM generation,
@@ -42,7 +42,7 @@
   a required failure, while partial offers and the digest-before-fail order are preserved.
 - Fresh Node 22 verification: 220 web unit tests, lint, TypeScript production build, 136 collector
   tests, 18 Worker tests, generated-type check, TypeScript check, Wrangler dry-run, both dependency
-  audit modes in all three roots, 14 audit-gate tests, Actionlint, and `git diff --check` pass.
+  audit modes in all three roots, 17 audit-gate tests, Actionlint, and `git diff --check` pass.
   A disposable loopback-only Supabase PostgreSQL 17 run applied every migration and passed all six
   pgTAP files (62 assertions).
 - The full Auth/Mailpit browser E2E remains intentionally not run on this Mac: Docker Desktop still
@@ -60,6 +60,12 @@
   expiry dates could compare as future strings. Regression coverage now requires separate worktree
   and index cleanliness, known npm severity values, real round-tripped ISO calendar dates, and a
   non-empty, unique, structurally valid exception allowlist before any exception is matched.
+- A follow-on review found that a partial npm v2 report containing only string `via` references
+  could otherwise omit its direct advisory and appear clean. The gate now validates exact package
+  references, reconciles propagated severity, requires every reported package to resolve to a
+  direct advisory, and rejects direct advisories without a stable URL or numeric source identifier.
+  A fixture shaped like the installed Camoufox-to-glob-to-minimatch graph protects compatibility
+  with real reports.
 - Current step: rerun every local promotion gate, freeze a new exact head, and obtain a fresh
   independent exact-head security review before handing the candidate back without pushing,
   opening a PR, changing provider state, or deploying.

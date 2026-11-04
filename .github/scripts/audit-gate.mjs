@@ -81,6 +81,92 @@ function validateAuditAllowlist(allowlist) {
   return allowlist;
 }
 
+function severityRank(value, context) {
+  const rank = SEVERITY_RANK.get(value);
+  if (rank === undefined) {
+    throw new Error(`unsupported npm audit severity for ${context}: ${String(value)}`);
+  }
+  return rank;
+}
+
+function directAdvisoryId(advisory, packageName) {
+  if (typeof advisory.url === "string" && advisory.url && advisory.url.trim() === advisory.url) {
+    try {
+      const pathname = new URL(advisory.url).pathname;
+      const candidate = pathname.split("/").filter(Boolean).at(-1);
+      if (
+        candidate &&
+        candidate !== "undefined" &&
+        candidate !== "null" &&
+        /^[A-Za-z0-9][A-Za-z0-9._-]*$/u.test(candidate)
+      ) {
+        return candidate;
+      }
+    } catch {
+      // Fall back to npm's numeric advisory source below.
+    }
+  }
+  if (Number.isSafeInteger(advisory.source) && advisory.source > 0) return String(advisory.source);
+  throw new Error(`npm audit direct advisory for ${packageName} has no stable identifier`);
+}
+
+function validateAuditGraph(vulnerabilities) {
+  const claimedRanks = new Map();
+  for (const [name, vulnerability] of Object.entries(vulnerabilities)) {
+    if (
+      !vulnerability ||
+      typeof vulnerability !== "object" ||
+      Array.isArray(vulnerability) ||
+      vulnerability.name !== name ||
+      !Array.isArray(vulnerability.via) ||
+      vulnerability.via.length === 0
+    ) {
+      throw new Error(`malformed npm audit graph for ${name}`);
+    }
+    claimedRanks.set(name, severityRank(vulnerability.severity, name));
+    for (const via of vulnerability.via) {
+      if (typeof via === "string") {
+        if (!via || via.trim() !== via) throw new Error(`malformed npm audit graph reference for ${name}`);
+        continue;
+      }
+      if (!via || typeof via !== "object" || Array.isArray(via)) {
+        throw new Error(`malformed npm audit graph advisory for ${name}`);
+      }
+      severityRank(via.severity, name);
+      directAdvisoryId(via, name);
+    }
+  }
+
+  for (const [name, vulnerability] of Object.entries(vulnerabilities)) {
+    const viaRanks = vulnerability.via.map((via) => {
+      if (typeof via !== "string") return severityRank(via.severity, name);
+      const referencedRank = claimedRanks.get(via);
+      if (referencedRank === undefined) {
+        throw new Error(`malformed npm audit graph: ${name} references missing package ${via}`);
+      }
+      return referencedRank;
+    });
+    if (claimedRanks.get(name) !== Math.max(...viaRanks)) {
+      throw new Error(`malformed npm audit graph: ${name} severity does not match its via entries`);
+    }
+  }
+
+  function reachesDirectAdvisory(name, visiting) {
+    const vulnerability = vulnerabilities[name];
+    if (vulnerability.via.some((via) => typeof via !== "string")) return true;
+    if (visiting.has(name)) return false;
+    const next = new Set(visiting);
+    next.add(name);
+    return vulnerability.via.some((via) => reachesDirectAdvisory(via, next));
+  }
+
+  for (const name of Object.keys(vulnerabilities)) {
+    if (!reachesDirectAdvisory(name, new Set())) {
+      throw new Error(`malformed npm audit graph: ${name} does not reach a direct advisory`);
+    }
+  }
+}
+
 export function auditFindings(
   report,
   allowlist,
@@ -103,25 +189,16 @@ export function auditFindings(
   if (minimumRank === undefined) throw new Error(`unsupported minimum audit severity: ${minimumSeverity}`);
   validateIsoDate(today, "audit date");
   const validatedAllowlist = validateAuditAllowlist(allowlist);
+  validateAuditGraph(report.vulnerabilities);
 
   const blocking = [];
   const excepted = [];
   for (const [name, vulnerability] of Object.entries(report.vulnerabilities ?? {})) {
-    if (!vulnerability || typeof vulnerability !== "object" || !Array.isArray(vulnerability.via)) {
-      throw new Error(`npm audit returned malformed vulnerability data for ${name}`);
-    }
     for (const via of vulnerability.via) {
       // String entries point at another vulnerable package, which is reported on its own.
       if (typeof via === "string") continue;
-      if (!via || typeof via !== "object" || Array.isArray(via)) {
-        throw new Error(`npm audit returned malformed advisory data for ${name}`);
-      }
-      const severityRank = SEVERITY_RANK.get(via.severity);
-      if (severityRank === undefined) {
-        throw new Error(`unsupported npm audit severity for ${name}: ${String(via.severity)}`);
-      }
-      if (severityRank < minimumRank) continue;
-      const id = String(via.url ?? via.source).split("/").pop();
+      if (severityRank(via.severity, name) < minimumRank) continue;
+      const id = directAdvisoryId(via, name);
       const finding = `${name} ${id} (${via.severity})`;
       const exception = allowExceptions
         ? validatedAllowlist.find((entry) => entry.id === id && entry.package === name && today <= entry.expires)

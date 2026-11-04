@@ -30,6 +30,8 @@ test("missing or unknown advisory severities fail closed", () => {
     const malformed = {
       vulnerabilities: {
         package: {
+          name: "package",
+          severity: "high",
           via: [{ source: 1, url: "https://github.com/advisories/GHSA-unknown", severity }],
         },
       },
@@ -39,6 +41,78 @@ test("missing or unknown advisory severities fail closed", () => {
       /unsupported npm audit severity/,
     );
   }
+});
+
+test("a realistic nested transitive report resolves to its direct advisories", () => {
+  const nested = {
+    vulnerabilities: {
+      "camoufox-js": { name: "camoufox-js", severity: "moderate", via: ["glob"] },
+      glob: {
+        name: "glob",
+        severity: "moderate",
+        via: [advisory("glob", "GHSA-3g3m-2fjr-6pw4", "moderate"), "minimatch"],
+      },
+      minimatch: {
+        name: "minimatch",
+        severity: "moderate",
+        via: [advisory("minimatch", "GHSA-g3hv-75wg-m249", "moderate")],
+      },
+    },
+  };
+
+  assert.deepEqual(
+    auditFindings(nested, [], "2026-10-10", { minimumSeverity: "moderate", allowExceptions: false })
+      .blocking,
+    ["glob GHSA-3g3m-2fjr-6pw4 (moderate)", "minimatch GHSA-g3hv-75wg-m249 (moderate)"],
+  );
+});
+
+test("partial, empty, inconsistent, or string-only cyclic advisory graphs fail closed", () => {
+  const malformedReports = [
+    {
+      vulnerabilities: {
+        outer: { name: "outer", severity: "critical", via: ["missing-direct-package"] },
+      },
+    },
+    {
+      vulnerabilities: {
+        outer: { name: "outer", severity: "critical", via: [] },
+      },
+    },
+    {
+      vulnerabilities: {
+        outer: {
+          name: "outer",
+          severity: "critical",
+          via: [advisory("outer", "GHSA-low-direct", "low")],
+        },
+      },
+    },
+    {
+      vulnerabilities: {
+        first: { name: "first", severity: "critical", via: ["second"] },
+        second: { name: "second", severity: "critical", via: ["first"] },
+      },
+    },
+  ];
+
+  for (const malformed of malformedReports) {
+    assert.throws(() => auditFindings(malformed, [], "2026-10-10"), /malformed npm audit graph/);
+  }
+});
+
+test("every direct advisory requires a stable URL or numeric source identifier", () => {
+  const malformed = {
+    vulnerabilities: {
+      package: {
+        name: "package",
+        severity: "critical",
+        via: [{ name: "package", severity: "critical", url: "" }],
+      },
+    },
+  };
+
+  assert.throws(() => auditFindings(malformed, [], "2026-10-10"), /stable identifier/);
 });
 
 test("today and exception expiries require real zero-padded ISO calendar dates", () => {
