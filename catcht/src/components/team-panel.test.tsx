@@ -73,9 +73,9 @@ describe("TeamPanel", () => {
 
     expect(html).toContain("Household access");
     expect(html).toContain("Admin");
-    expect(html).toContain("Signed in before");
     expect(html).toContain("Member");
-    expect(html).toContain("Invite pending");
+    expect(html).toContain("Provisioning required");
+    expect(html).toContain("Magic-link ready");
     expect(html).toContain("Invite a driver");
     expect(html).toContain("Rivian R1S under 65k");
     expect(html).toContain("Move searches between queues");

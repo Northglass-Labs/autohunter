@@ -1,6 +1,6 @@
 begin;
 
-select plan(19);
+select plan(23);
 
 select has_table('catcht', 'user_profiles', 'profiles form the private membership allowlist');
 select has_table('catcht', 'listing_matches', 'listings can match more than one owned search');
@@ -29,6 +29,68 @@ select is(
   (select count(*)::integer from catcht.saved_searches where make = 'Porsche' and model = 'Taycan' and active),
   1,
   'the Taycan target is durably present exactly once'
+);
+
+insert into catcht.user_profiles (id, email, display_name, role, active)
+values (
+  'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
+  'hook-member@example.test',
+  'Hook member',
+  'member',
+  true
+);
+
+select is(
+  catcht.authorize_invited_user(jsonb_build_object(
+    'user', jsonb_build_object(
+      'id', 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
+      'email', 'HOOK-MEMBER@example.test'
+    )
+  )),
+  '{}'::jsonb,
+  'the server-reserved profile UUID can create its exact email identity'
+);
+
+select is(
+  catcht.authorize_invited_user(jsonb_build_object(
+    'user', jsonb_build_object(
+      'id', 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee',
+      'email', 'hook-member@example.test'
+    )
+  )),
+  catcht.authorize_invited_user(jsonb_build_object(
+    'user', jsonb_build_object(
+      'id', 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee',
+      'email', 'uninvited@example.test'
+    )
+  )),
+  'a guessed invited email and an unknown email receive the same denial'
+);
+
+select is(
+  catcht.authorize_invited_user(jsonb_build_object(
+    'user', jsonb_build_object(
+      'id', 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
+      'email', 'wrong-address@example.test'
+    )
+  )) #>> '{error,http_code}',
+  '403',
+  'the reserved UUID cannot be paired with another email address'
+);
+
+update catcht.user_profiles
+set active = false
+where id = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
+
+select is(
+  catcht.authorize_invited_user(jsonb_build_object(
+    'user', jsonb_build_object(
+      'id', 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
+      'email', 'hook-member@example.test'
+    )
+  )) #>> '{error,message}',
+  'User creation is not permitted.',
+  'an inactive reservation is denied with the generic creation message'
 );
 
 select * from finish();

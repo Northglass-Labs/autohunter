@@ -1,7 +1,7 @@
 import "server-only";
 import { redirect } from "next/navigation";
-import { claimUserProfile, getUserProfileByAuthUserId, type UserProfile } from "./dal";
-import { isEmailLinkSession, normalizeEmail } from "./auth-policy";
+import { getUserProfileByAuthUserId, type UserProfile } from "./dal";
+import { isEmailLinkSession } from "./auth-policy";
 import { createSupabaseServerClient } from "./supabase/server";
 
 export async function currentUser(): Promise<UserProfile | null> {
@@ -10,13 +10,11 @@ export async function currentUser(): Promise<UserProfile | null> {
   // the authentication methods it carries are trusted.
   const { data, error } = await supabase.auth.getClaims();
   const claims = data?.claims;
-  if (error || !claims?.sub || typeof claims.email !== "string" || !claims.email) return null;
+  if (error || !claims?.sub) return null;
   // Only an email link proves control of the invited inbox (ADR-022).
   if (!isEmailLinkSession(claims.amr)) return null;
 
-  const existing = await getUserProfileByAuthUserId(claims.sub);
-  if (existing) return existing;
-  return claimUserProfile(claims.sub, normalizeEmail(claims.email));
+  return getUserProfileByAuthUserId(claims.sub);
 }
 
 export async function requireUser(requiredRole?: UserProfile["role"]) {

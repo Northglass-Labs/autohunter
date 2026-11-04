@@ -4,7 +4,6 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import {
   addSavedSearch,
-  inviteUserProfile,
   setDisposition,
   setReportPreferences,
   setSavedSearchActive,
@@ -12,7 +11,9 @@ import {
   updateSavedSearch,
 } from "@/lib/dal";
 import { requireUser } from "@/lib/auth";
+import { signOutCurrentSession } from "@/lib/auth-session";
 import { normalizeEmail } from "@/lib/auth-policy";
+import { preprovisionInvitation } from "@/lib/invitation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { isReportFrequency, REPORT_FREQUENCIES, reportSettingsFor } from "@/lib/report-settings";
 import {
@@ -108,11 +109,11 @@ export async function inviteUserAction(_state: InviteUserState, formData: FormDa
   if (!displayName || displayName.length > 100) return { ok: false, message: "Enter a short display name." };
   try {
     const email = normalizeEmail(String(formData.get("email") ?? ""));
-    await inviteUserProfile(email, displayName);
+    await preprovisionInvitation(email, displayName);
     revalidatePath("/");
-    return { ok: true, message: `${displayName} can now request an AutoHunter magic link.` };
+    return { ok: true, message: `${displayName} is ready for AutoHunter magic-link access.` };
   } catch {
-    return { ok: false, message: "Enter a valid email that is not already assigned." };
+    return { ok: false, message: "That invitation could not be safely provisioned. Check the address and try again." };
   }
 }
 
@@ -126,6 +127,6 @@ export async function setSavedSearchOwnerAction(formData: FormData) {
 
 export async function signOutAction() {
   const supabase = await createSupabaseServerClient();
-  await supabase.auth.signOut();
+  await signOutCurrentSession(supabase);
   redirect("/login");
 }

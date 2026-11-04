@@ -1,7 +1,8 @@
 import type { EmailOtpType } from "@supabase/supabase-js";
 import { NextResponse, type NextRequest } from "next/server";
-import { normalizeEmail, safeNextPath } from "@/lib/auth-policy";
-import { claimUserProfile } from "@/lib/dal";
+import { safeNextPath } from "@/lib/auth-policy";
+import { getUserProfileByAuthUserId } from "@/lib/dal";
+import { signOutCurrentSession } from "@/lib/auth-session";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getCoreEnv } from "@/lib/env";
 
@@ -16,13 +17,13 @@ export async function GET(request: NextRequest) {
     const { error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type });
     if (!error) {
       const { data: { user } } = await supabase.auth.getUser();
-      if (user?.id && user.email) {
-        const profile = await claimUserProfile(user.id, normalizeEmail(user.email));
+      if (user?.id) {
+        const profile = await getUserProfileByAuthUserId(user.id);
         if (profile) {
           return NextResponse.redirect(new URL(next, appUrl));
         }
       }
-      await supabase.auth.signOut();
+      await signOutCurrentSession(supabase);
     }
   }
 
