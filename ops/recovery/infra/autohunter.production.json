@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "product": "AutoHunter",
+  "projects": {
+    "production": {
+      "ref": "vbnowzvaoyilhylrowku"
+    }
+  },
+  "deployment": {
+    "activeProjectRef": "vbnowzvaoyilhylrowku"
+  },
+  "recovery": {
+    "status": "candidate-not-installed",
+    "schemas": [
+      "auth",
+      "public",
+      "catcht"
+    ],
+    "destination_approval": "required",
+    "roles_and_grants": "not captured by portable archive; separate reviewed bootstrap required",
+    "storage_objects_and_provider_config": "separate export required"
+  }
+}

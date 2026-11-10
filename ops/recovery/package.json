@@ -1,0 +1,11 @@
+{
+  "name": "@northglass/autohunter-recovery",
+  "private": true,
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "backup": "bash scripts/backup-portable-postgres.sh",
+    "restore": "bash scripts/verify-portable-postgres-restore.sh",
+    "scheduled": "bash scripts/run-portable-postgres-backup-scheduled.sh",
+    "test": "node --test tests/portable-postgres-backup.test.mjs tests/portable-postgres-operations.test.mjs"
+  }
+}
