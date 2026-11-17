@@ -1,5 +1,22 @@
 # AutoHunter status
 
+## 2026-11-09: portable recovery prerequisite candidate
+
+The owner resumed estate maintenance. This isolated lane prepares an offline-tested
+AutoHunter backup/restore candidate from the preserved portable PostgreSQL helpers.
+Completed: demonstrated the catcht-schema regression, adapted all dump/parity/
+receipt/restore boundaries, and qualified 13 synthetic contracts on Node 22.
+Independent review found an inherited TOC early-close failure; an executable
+fixture reproduced exit 141 before the narrow fix and now proves only producer
+SIGPIPE is accepted while producer/parser failures remain errors. Bash syntax,
+actionlint, and diff whitespace checks pass. Source provenance, integrity list,
+fixed-command candidates and unresolved operator-profile inputs are in
+`ops/recovery/README.md`; ADR027 is proposed. No credentials, production rows,
+profile installation, database/Auth changes or PR39 merge occurred. Current
+production and PR39 remain unchanged. Next: operator qualifies the immutable
+runtime/profile closure and existing source credential/role, CA and destination;
+then prove a real encrypted readback, isolated restore and authorization canary.
+
 ## 2026-11-02: eBay callback source recovery and secret migration (complete)
 
 - Live Cloudflare readback recovered the provider-only

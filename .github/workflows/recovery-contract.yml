@@ -1,0 +1,37 @@
+name: Recovery contract
+
+on:
+  pull_request:
+    paths:
+      - ops/recovery/**
+      - .github/workflows/recovery-contract.yml
+  push:
+    branches: [main]
+    paths:
+      - ops/recovery/**
+      - .github/workflows/recovery-contract.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: recovery-contract-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  synthetic-recovery:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - name: Syntax and synthetic backup/restore contracts
+        run: |
+          bash -n ops/recovery/scripts/backup-portable-postgres.sh
+          bash -n ops/recovery/scripts/verify-portable-postgres-restore.sh
+          bash -n ops/recovery/scripts/run-portable-postgres-backup-scheduled.sh
+          node --test ops/recovery/tests/portable-postgres-backup.test.mjs ops/recovery/tests/portable-postgres-operations.test.mjs

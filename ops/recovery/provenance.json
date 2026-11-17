@@ -1,0 +1,16 @@
+{
+  "upstream_repository": "tomstetson/RateWatch.io local preserved branch",
+  "upstream_ref": "f75b25d1ed0567100d025709eb8c90d8b35a653c",
+  "upstream_files_sha256": {
+    "scripts/backup-portable-postgres.sh": "312ba02ac4e033f82627dac7645f13d7cd32769f63ff3d4f4020b736043a9074",
+    "scripts/verify-portable-postgres-restore.sh": "f839faea2622c896e6ad89d356a6511034a2eaec3bd453965f009538dcbd08c2",
+    "scripts/run-portable-postgres-backup-scheduled.sh": "8c6bb27d6ab9d44089a8b63aa734a0ffc55ed9a239d404fc89dbe6a03a368cc3"
+  },
+  "scope": "Offline AutoHunter derivative; no runtime link to RateWatch checkout. Identity substitutions first; catcht schema adaptation follows failing regression.",
+  "adaptations": [
+    "AutoHunter names, manifest source vbnowzvaoyilhylrowku, auth/public/catcht dump, aggregate, receipt, and restore boundaries",
+    "Synthetic catcht-row and schema receipt regression, wrong-schema and production-target refusal",
+    "TOC producer SIGPIPE accepted only after failing executable fixture; all other producer/parser failures rejected",
+    "Owning-repository package commands, synthetic CI, proposed ADR, and operator-review handoff; no installation or credentials"
+  ]
+}
